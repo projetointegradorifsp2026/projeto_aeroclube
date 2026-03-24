@@ -1,0 +1,41 @@
+services:
+  frontend:
+    deploy:
+      replicas: 0 # não sobe o frontend no ambiente de teste
+
+  backend:
+    build:
+      target: dev
+    command: python manage.py test --settings=config.settings.test --verbosity=2
+    environment:
+      - DEBUG=False
+      - DJANGO_SETTINGS_MODULE=config.settings.test
+      - DB_HOST=db_test
+      - DB_NAME=${DB_TEST_NAME:-aeroclube_test}
+    depends_on:
+      db_test:
+        condition: service_healthy
+
+  db_test:
+    image: mariadb:11
+    networks:
+      - aeroclube_network
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DB_TEST_NAME:-aeroclube_test}
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # tmpfs: banco inteiro roda na memória RAM.
+    tmpfs:
+      - /var/lib/mysql
+
+  # Sobrescreve o db original para não subir no ambiente de teste
+  db:
+    deploy:
+      replicas: 0

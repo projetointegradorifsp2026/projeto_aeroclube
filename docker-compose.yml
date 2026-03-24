@@ -1,0 +1,66 @@
+# Este arquivo define a estrutura comum a TODOS os ambientes.
+#
+#   Desenvolvimento:  docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#   Testes:           docker compose -f docker-compose.yml -f docker-compose.test.yml up
+#   Produção:         docker compose -f docker-compose.yml -f docker-compose.prod.yml up
+
+services:
+  # FRONTEND
+  frontend:
+    build:
+      context: ./frontend
+      target: dev
+    networks:
+      - aeroclube_network
+
+  # ---------------------------------------------------------------------------
+  # BACKEND
+  backend:
+    build:
+      context: ./backend
+      target: dev
+    networks:
+      - aeroclube_network
+    depends_on:
+      db:
+        condition: service_healthy # só sobe depois que o banco estiver pronto
+    environment:
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - SECRET_KEY=${SECRET_KEY}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+      - DEBUG=${DEBUG}
+
+  # ---------------------------------------------------------------------------
+  # BANCO DE DADOS
+  db:
+    image: mariadb:11
+    networks:
+      - aeroclube_network
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DB_NAME}
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD: ${DB_PASSWORD}
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+# -----------------------------------------------------------------------------
+# REDE INTERNA
+# Os serviços se comunicam por nome dentro desta rede.
+networks:
+  aeroclube_network:
+    driver: bridge
+
+# -----------------------------------------------------------------------------
+# VOLUMES NOMEADOS
+# Dados do banco persistem entre restarts do container.
+volumes:
+  db_data:
