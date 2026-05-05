@@ -2,10 +2,55 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
 import logo from "@/assets/logo_aeroclube.svg"
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 
+type FormErrors = {
+  email?: string
+  senha?: string
+}
 
 
 export default function Login() {
+  const navigate = useNavigate();
+
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [errors, setErrors] = useState<FormErrors>({})
+
+  const isValidEmail = (value: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+  }
+
+  const handleSubmit = () => {
+    const newErrors: FormErrors = {}
+
+    if (!email) {
+      newErrors.email = "E-mail é obrigatório"
+    } else if (!isValidEmail(email)) {
+      newErrors.email = "E-mail inválido"
+    }
+
+    if (!senha) {
+      newErrors.senha = "Senha é obrigatória"
+    } else if (senha.length <= 6) {
+      newErrors.senha = "A senha deve ter mais de 6 caracteres"
+    }
+
+    setErrors(newErrors)
+
+    if (Object.keys(newErrors).length === 0) {
+      console.log("form válido")
+
+      navigate("/dashboard", {
+        state: {
+          user: email,
+        },
+      })
+    }
+  }
+
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#422974] to-[#7756B9] text-foreground px-4">
 
@@ -14,7 +59,7 @@ export default function Login() {
 
         {/* Header */}
         <div className="text-center space-y-2 flex flex-col items-center">
-          <img src={logo} alt="Logo" className="w-[250px]"/>
+          <img src={logo} alt="Logo" className="w-[250px]" />
           <h1 className="text-3xl font-bold tracking-tight ">
             Sistema Aeroclube
           </h1>
@@ -33,6 +78,10 @@ export default function Login() {
             <Input
               placeholder="seuemail@exemplo.com"
               className="bg-background h-10"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              hasError={!!errors.email}
+              helper={errors.email}
             />
           </div>
 
@@ -41,10 +90,13 @@ export default function Login() {
               Senha
             </label>
             <Input
-            
               type="password"
               placeholder="••••••••"
               className="bg-background h-10"
+              value={senha}
+              onChange={(e) => setSenha(e.target.value)}
+              hasError={!!errors.senha}
+              helper={errors.senha}
             />
           </div>
 
@@ -52,9 +104,7 @@ export default function Login() {
             className="
             w-full
             h-10
-            " onClick={() => {
-              alert("Teste")
-            }}
+            " onClick={handleSubmit}
           >
             Entrar
           </Button>
