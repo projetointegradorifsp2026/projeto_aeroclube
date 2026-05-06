@@ -59,8 +59,11 @@ help:
 # -----------------------------------------------------------------------------
 # Desenvolvimento
 # -----------------------------------------------------------------------------
-dev-up:
+dev-up-build:
 	docker compose -f $(BASE) -f $(DEV) up --build
+
+dev-up:
+	docker compose -f $(BASE) -f $(DEV) up
 
 dev-down:
 	docker compose -f $(BASE) -f $(DEV) down
