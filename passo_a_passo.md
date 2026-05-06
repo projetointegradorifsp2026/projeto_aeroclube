@@ -10,6 +10,14 @@ make dev-up
 ```bash
 
 make makemigrations
+docker compose exec backend python manage.py makemigrations users
+docker compose exec backend python manage.py makemigrations relatorios
+docker compose exec backend python manage.py makemigrations pessoas
+docker compose exec backend python manage.py makemigrations carteira
+docker compose exec backend python manage.py makemigrations titulos_pagar
+docker compose exec backend python manage.py makemigrations titulos_receber
+docker compose exec backend python manage.py makemigrations aeronaves
+docker compose exec backend python manage.py makemigrations voos
 make migrate
 
 ```

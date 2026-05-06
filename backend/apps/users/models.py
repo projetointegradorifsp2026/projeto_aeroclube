@@ -7,8 +7,32 @@ mantendo compatibilidade com o sistema de autenticação do Django.
 Um usuário pode ter múltiplos perfis (roles). O perfil ativo
 é controlado pelo campo `perfil_ativo`.
 """
-from django.contrib.auth.models import AbstractUser
+
+from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
+
+
+class UsuarioManager(BaseUserManager):
+    def create_user(self, email, nome, password=None, **extra_fields):
+        if not email:
+            raise ValueError("O e-mail é obrigatório")
+
+        email = self.normalize_email(email)
+        user = self.model(email=email, nome=nome, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, nome, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError("Superuser precisa ter is_staff=True.")
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError("Superuser precisa ter is_superuser=True.")
+
+        return self.create_user(email, nome, password, **extra_fields)
 
 
 class Usuario(AbstractUser):
@@ -16,9 +40,11 @@ class Usuario(AbstractUser):
     Usuário customizado baseado em AbstractUser (compatível com admin).
     Login é feito por e-mail em vez de username.
     """
-
     # REMOVE username padrão
     username = None
+
+    # Manager customizado
+    objects = UsuarioManager()
 
     PERFIL_ALUNO = "aluno"
     PERFIL_SOCIO = "socio"

@@ -19,4 +19,5 @@ urlpatterns = [
     path("api/v1/", include("apps.financeiro.titulos_pagar.urls")),
     path("api/v1/", include("apps.financeiro.titulos_receber.urls")),
     path("api/v1/", include("apps.financeiro.carteira.urls")),
+    path("api-auth/", include("rest_framework.urls")),
 ]
