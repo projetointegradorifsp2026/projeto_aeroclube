@@ -7,32 +7,18 @@ mantendo compatibilidade com o sistema de autenticação do Django.
 Um usuário pode ter múltiplos perfis (roles). O perfil ativo
 é controlado pelo campo `perfil_ativo`.
 """
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 
-class UsuarioManager(BaseUserManager):
-    def create_user(self, email, nome, password=None, **extra_fields):
-        if not email:
-            raise ValueError("O e-mail é obrigatório.")
-        email = self.normalize_email(email)
-        user = self.model(email=email, nome=nome, **extra_fields)
-        user.set_password(password)
-        user.save(using=self._db)
-        return user
-
-    def create_superuser(self, email, nome, password=None, **extra_fields):
-        extra_fields.setdefault("is_staff", True)
-        extra_fields.setdefault("is_superuser", True)
-        return self.create_user(email, nome, password, **extra_fields)
-
-
-class Usuario(AbstractBaseUser, PermissionsMixin):
+class Usuario(AbstractUser):
     """
-    Usuário do sistema. Um usuário pode ter múltiplos perfis;
-    o campo `perfis` é um ArrayField simulado via ManyToMany com PerfilUsuario,
-    mas aqui usamos choices múltiplos via UsuarioPerfil (tabela intermediária).
+    Usuário customizado baseado em AbstractUser (compatível com admin).
+    Login é feito por e-mail em vez de username.
     """
+
+    # REMOVE username padrão
+    username = None
 
     PERFIL_ALUNO = "aluno"
     PERFIL_SOCIO = "socio"
@@ -48,12 +34,12 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
         (PERFIL_ADMIN, "Administrador"),
     ]
 
-    # Campos principais
+    # Campos personalizados
     nome = models.CharField("Nome completo", max_length=200)
     cpf_cnpj = models.CharField("CPF/CNPJ", max_length=18, unique=True, blank=True, null=True)
+
     email = models.EmailField("E-mail", unique=True)
 
-    # Perfil ativo (o usuário pode alternar entre seus perfis)
     perfil_ativo = models.CharField(
         "Perfil ativo",
         max_length=20,
@@ -61,15 +47,9 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
         default=PERFIL_ALUNO,
     )
 
-    # Controle de acesso Django
-    is_active = models.BooleanField("Ativo", default=True)
-    is_staff = models.BooleanField("Staff", default=False)
-
-    date_joined = models.DateTimeField("Data de cadastro", auto_now_add=True)
     updated_at = models.DateTimeField("Última atualização", auto_now=True)
 
-    objects = UsuarioManager()
-
+    # Configuração de login
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["nome"]
 
