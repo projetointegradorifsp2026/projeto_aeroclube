@@ -1,0 +1,103 @@
+"""
+Módulo Títulos a Receber.
+
+RF05: Geração de títulos para alunos, sócios e clientes externos.
+RF06: Baixa parcial com saldo remanescente em aberto + juros.
+RF07: Quitação de múltiplos títulos em uma operação.
+RF10: Gerado automaticamente por cada voo registrado.
+"""
+from decimal import Decimal
+from django.db import models
+from django.utils import timezone
+
+
+class TituloReceber(models.Model):
+    TIPO_MENSALIDADE = "mensalidade"
+    TIPO_VOO = "voo"
+    TIPO_HORAS_PRE_PAGAS = "horas_pre_pagas"
+    TIPO_SERVICO = "servico"
+    TIPO_OUTROS = "outros"
+
+    TIPO_CHOICES = [
+        (TIPO_MENSALIDADE, "Mensalidade"),
+        (TIPO_VOO, "Cobrança de Voo"),
+        (TIPO_HORAS_PRE_PAGAS, "Compra de Horas Pré-pagas"),
+        (TIPO_SERVICO, "Serviço"),
+        (TIPO_OUTROS, "Outros"),
+    ]
+
+    STATUS_ABERTO = "aberto"
+    STATUS_BAIXADO = "baixado"
+
+    STATUS_CHOICES = [
+        (STATUS_ABERTO, "Em Aberto"),
+        (STATUS_BAIXADO, "Baixado"),
+    ]
+
+    participante = models.ForeignKey(
+        "users.Usuario",
+        on_delete=models.PROTECT,
+        related_name="titulos_receber",
+        verbose_name="Participante",
+    )
+    tipo = models.CharField("Tipo", max_length=20, choices=TIPO_CHOICES)
+    descricao = models.CharField("Descrição", max_length=300)
+
+    # Vínculo com voo (quando gerado automaticamente por voo)
+    voo = models.OneToOneField(
+        "voos.Voo",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="titulo_receber",
+        verbose_name="Voo de origem",
+    )
+
+    # Parcelamento
+    num_parcela = models.PositiveSmallIntegerField("Nº da parcela", default=1)
+    total_parcelas = models.PositiveSmallIntegerField("Total de parcelas", default=1)
+
+    # Valores
+    valor_original = models.DecimalField("Valor original (R$)", max_digits=10, decimal_places=2)
+    juros_aplicado = models.DecimalField("Juros aplicado (R$)", max_digits=8, decimal_places=2, default=Decimal("0.00"))
+    valor_pago = models.DecimalField("Valor pago (R$)", max_digits=10, decimal_places=2, default=Decimal("0.00"))
+
+    data_emissao = models.DateField("Data de emissão", default=timezone.now)
+    data_vencimento = models.DateField("Data de vencimento")
+    data_pagamento = models.DateField("Data do último pagamento", null=True, blank=True)
+
+    status = models.CharField("Status", max_length=10, choices=STATUS_CHOICES, default=STATUS_ABERTO)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Título a Receber"
+        verbose_name_plural = "Títulos a Receber"
+        ordering = ["data_vencimento"]
+
+    def __str__(self):
+        return f"{self.participante.nome} | {self.descricao} | {self.get_status_display()}"
+
+    @property
+    def valor_total_com_juros(self) -> Decimal:
+        return self.valor_original + self.juros_aplicado
+
+    @property
+    def saldo_devedor(self) -> Decimal:
+        return self.valor_total_com_juros - self.valor_pago
+
+    @property
+    def esta_atrasado(self) -> bool:
+        return self.status == self.STATUS_ABERTO and self.data_vencimento < timezone.now().date()
+
+    def aplicar_baixa_parcial(self, valor: Decimal, juros: Decimal = Decimal("0"), data=None):
+        """
+        RF06: Aplica uma baixa parcial. Se o valor cobre o saldo total, baixa o título.
+        """
+        self.juros_aplicado += juros
+        self.valor_pago += valor
+        self.data_pagamento = data or timezone.now().date()
+        if self.valor_pago >= self.valor_total_com_juros:
+            self.status = self.STATUS_BAIXADO
+        self.save()

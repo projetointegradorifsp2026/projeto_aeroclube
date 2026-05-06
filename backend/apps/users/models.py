@@ -1,0 +1,108 @@
+"""
+Modelo de usuário customizado do Aeroclube.
+
+Usa AbstractBaseUser para ter controle total sobre os campos,
+mantendo compatibilidade com o sistema de autenticação do Django.
+
+Um usuário pode ter múltiplos perfis (roles). O perfil ativo
+é controlado pelo campo `perfil_ativo`.
+"""
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.db import models
+
+
+class UsuarioManager(BaseUserManager):
+    def create_user(self, email, nome, password=None, **extra_fields):
+        if not email:
+            raise ValueError("O e-mail é obrigatório.")
+        email = self.normalize_email(email)
+        user = self.model(email=email, nome=nome, **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, email, nome, password=None, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        return self.create_user(email, nome, password, **extra_fields)
+
+
+class Usuario(AbstractBaseUser, PermissionsMixin):
+    """
+    Usuário do sistema. Um usuário pode ter múltiplos perfis;
+    o campo `perfis` é um ArrayField simulado via ManyToMany com PerfilUsuario,
+    mas aqui usamos choices múltiplos via UsuarioPerfil (tabela intermediária).
+    """
+
+    PERFIL_ALUNO = "aluno"
+    PERFIL_SOCIO = "socio"
+    PERFIL_INSTRUTOR = "instrutor"
+    PERFIL_EXTERNO = "externo"
+    PERFIL_ADMIN = "admin"
+
+    PERFIL_CHOICES = [
+        (PERFIL_ALUNO, "Aluno"),
+        (PERFIL_SOCIO, "Sócio"),
+        (PERFIL_INSTRUTOR, "Instrutor"),
+        (PERFIL_EXTERNO, "Cliente Externo"),
+        (PERFIL_ADMIN, "Administrador"),
+    ]
+
+    # Campos principais
+    nome = models.CharField("Nome completo", max_length=200)
+    cpf_cnpj = models.CharField("CPF/CNPJ", max_length=18, unique=True, blank=True, null=True)
+    email = models.EmailField("E-mail", unique=True)
+
+    # Perfil ativo (o usuário pode alternar entre seus perfis)
+    perfil_ativo = models.CharField(
+        "Perfil ativo",
+        max_length=20,
+        choices=PERFIL_CHOICES,
+        default=PERFIL_ALUNO,
+    )
+
+    # Controle de acesso Django
+    is_active = models.BooleanField("Ativo", default=True)
+    is_staff = models.BooleanField("Staff", default=False)
+
+    date_joined = models.DateTimeField("Data de cadastro", auto_now_add=True)
+    updated_at = models.DateTimeField("Última atualização", auto_now=True)
+
+    objects = UsuarioManager()
+
+    USERNAME_FIELD = "email"
+    REQUIRED_FIELDS = ["nome"]
+
+    class Meta:
+        verbose_name = "Usuário"
+        verbose_name_plural = "Usuários"
+        ordering = ["nome"]
+
+    def __str__(self):
+        return f"{self.nome} ({self.get_perfil_ativo_display()})"
+
+
+class UsuarioPerfil(models.Model):
+    """
+    Tabela intermediária: um usuário pode ter múltiplos perfis.
+    O administrador cadastra quais perfis um usuário possui.
+    """
+
+    usuario = models.ForeignKey(
+        Usuario,
+        on_delete=models.CASCADE,
+        related_name="perfis",
+    )
+    perfil = models.CharField(
+        "Perfil",
+        max_length=20,
+        choices=Usuario.PERFIL_CHOICES,
+    )
+
+    class Meta:
+        verbose_name = "Perfil do Usuário"
+        verbose_name_plural = "Perfis do Usuário"
+        unique_together = ("usuario", "perfil")
+
+    def __str__(self):
+        return f"{self.usuario.nome} — {self.get_perfil_display()}"
