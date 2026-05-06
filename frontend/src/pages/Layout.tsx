@@ -124,9 +124,21 @@ export default function Layout() {
                                         tooltip="Movimentações"
                                     >
                                         <Link to="/movimentacoes">
-
                                             <ChartSpline />
                                             <span>Movimentações</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={location.pathname === "/voos"}
+                                        tooltip="Voos"
+                                    >
+                                        <Link to="/voos">
+                                            <Plane />
+                                            <span>Voos</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>

@@ -15,6 +15,7 @@ import Clientes from './pages/Clientes';
 import Aeronaves from './pages/Aeronaves';
 import Fornecedores from './pages/Fornecedores';
 import ContaFixa from './pages/ContaFixa';
+import Voos from './pages/Voos';
 
 
 const router = createBrowserRouter([
@@ -35,7 +36,8 @@ const router = createBrowserRouter([
       { path: "clientes", element: <Clientes /> },
       { path: "aeronaves", element: <Aeronaves /> },
       { path: "fornecedores", element: <Fornecedores /> },
-      { path: "conta-fixa", element: <ContaFixa /> }
+      { path: "conta-fixa", element: <ContaFixa /> },
+      { path: "voos", element: <Voos /> }
     ]
   }
 ])
