@@ -77,12 +77,17 @@ export default function Layout() {
 
                 <Sidebar collapsible="icon">
                     {/* HEADER */}
-                    <SidebarHeader className="flex items-center justify-center pt-5 h-[90px]">
-                        <img
-                            src={isCollapsed ? logoIcon : logo}
-                            alt="Logo aeroclube"
-                            className="h-full object-contain"
-                        />
+                    <SidebarHeader className="flex flex-col pt-3 gap-1">
+                        <div className="flex justify-end px-1">
+                            <SidebarTrigger />
+                        </div>
+                        <div className="flex items-center justify-center h-[70px] pb-2">
+                            <img
+                                src={isCollapsed ? logoIcon : logo}
+                                alt="Logo aeroclube"
+                                className="h-full object-contain"
+                            />
+                        </div>
                     </SidebarHeader>
 
                     <SidebarContent>
@@ -334,8 +339,6 @@ export default function Layout() {
                 {/* CONTEÚDO */}
                 <SidebarInset>
                     <div className="p-8">
-                        <SidebarTrigger />
-
                         <Outlet />
                     </div>
                 </SidebarInset>
