@@ -1,7 +1,236 @@
-export default function Movimentacoes() {
+import { useEffect, useState, useMemo } from 'react'
+import { TablePagination } from '@/components/ui/pagination'
+import { Search, Receipt } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Badge } from '@/components/ui/badge'
+import { getTitulosPagar } from '@/services/titulosPagarService'
+import { getTitulosReceber } from '@/services/titulosReceberService'
+import { cn } from '@/lib/utils'
+
+const inputCls =
+  'h-10 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
+
+const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR')
+
+type MovTipo = 'entrada' | 'saida'
+type MovStatus = 'em_aberto' | 'pago_parcial' | 'baixado'
+
+interface MovRow {
+  id: string
+  tipo: MovTipo
+  data: string
+  descricao: string
+  pessoa: string
+  valor: number
+  valor_pago: number
+  status: MovStatus
+}
+
+function StatusBadge({ status }: { status: MovStatus }) {
+  if (status === 'baixado') return <Badge variant="success">Baixado</Badge>
+  if (status === 'pago_parcial')
     return (
-        <div>
-            <h1 className="text-6xl">Tela movimentações</h1>
-        </div>
+      <Badge variant="outline" className="border-amber-400 text-amber-600 dark:text-amber-400">
+        Pago Parcial
+      </Badge>
     )
+  return <Badge variant="outline" className="text-muted-foreground">Em Aberto</Badge>
+}
+
+export default function Movimentacoes() {
+  const [rows, setRows] = useState<MovRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [tipoFilter, setTipoFilter] = useState<MovTipo | 'all'>('all')
+  const [statusFilter, setStatusFilter] = useState<MovStatus | 'all'>('all')
+  const [page, setPage] = useState(1)
+
+  useEffect(() => { setPage(1) }, [search, tipoFilter, statusFilter])
+
+  useEffect(() => {
+    Promise.all([getTitulosPagar(), getTitulosReceber()]).then(([pagar, receber]) => {
+      const entradas: MovRow[] = receber.map(t => ({
+        id: `r-${t.id}`,
+        tipo: 'entrada',
+        data: t.data_vencimento,
+        descricao: t.descricao,
+        pessoa: t.usuario_nome,
+        valor: t.valor + t.juros_aplicado,
+        valor_pago: t.valor_pago,
+        status: t.status as MovStatus,
+      }))
+      const saidas: MovRow[] = pagar.map(t => ({
+        id: `p-${t.id}`,
+        tipo: 'saida',
+        data: t.data_vencimento,
+        descricao: t.descricao,
+        pessoa: t.favorecido,
+        valor: t.valor,
+        valor_pago: t.valor_pago ?? 0,
+        status: t.status as MovStatus,
+      }))
+      setRows([...entradas, ...saidas].sort((a, b) => b.data.localeCompare(a.data)))
+      setLoading(false)
+    })
+  }, [])
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase()
+    return rows.filter(r => {
+      const matchSearch =
+        !q || r.pessoa.toLowerCase().includes(q) || r.descricao.toLowerCase().includes(q)
+      const matchTipo = tipoFilter === 'all' || r.tipo === tipoFilter
+      const matchStatus = statusFilter === 'all' || r.status === statusFilter
+      return matchSearch && matchTipo && matchStatus
+    })
+  }, [rows, search, tipoFilter, statusFilter])
+
+  const PAGE_SIZE = 10
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  return (
+    <div className="pt-2 space-y-6">
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Movimentações</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Registro de todos os títulos a receber e a pagar
+        </p>
+      </div>
+
+      <div className="flex items-center gap-3">
+        <div className="relative w-64">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <input
+            className={cn(inputCls, 'w-full pl-8 pr-3')}
+            placeholder="Buscar por participante ou descrição..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        <select
+          className={inputCls}
+          value={tipoFilter}
+          onChange={e => setTipoFilter(e.target.value as MovTipo | 'all')}
+        >
+          <option value="all">Entradas e saídas</option>
+          <option value="entrada">Somente entradas</option>
+          <option value="saida">Somente saídas</option>
+        </select>
+        <select
+          className={inputCls}
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value as MovStatus | 'all')}
+        >
+          <option value="all">Todos os status</option>
+          <option value="em_aberto">Em Aberto</option>
+          <option value="pago_parcial">Pago Parcial</option>
+          <option value="baixado">Baixado</option>
+        </select>
+      </div>
+
+      <Card>
+        <CardHeader className="border-b pb-3">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            {loading
+              ? 'Carregando...'
+              : `${filtered.length} movimentaç${filtered.length !== 1 ? 'ões' : 'ão'} encontrada${filtered.length !== 1 ? 's' : ''}`}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="p-4 space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-14 text-muted-foreground">
+              <Receipt className="h-10 w-10 mb-3 opacity-30" />
+              <p className="text-sm font-medium">Nenhuma movimentação encontrada</p>
+              <p className="text-xs mt-1">As movimentações aparecem conforme títulos são lançados</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
+                      Data
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">
+                      Tipo
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
+                      Descrição
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">
+                      Participante / Favorecido
+                    </th>
+                    <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
+                      Valor
+                    </th>
+                    <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden lg:table-cell">
+                      Pago
+                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
+                      Status
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {paginated.map(r => (
+                    <tr key={r.id} className="hover:bg-muted/20 transition-colors">
+                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">
+                        {fmtDate(r.data)}
+                      </td>
+                      <td className="px-4 py-3 hidden sm:table-cell">
+                        <span
+                          className={cn(
+                            'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
+                            r.tipo === 'entrada'
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                              : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+                          )}
+                        >
+                          {r.tipo === 'entrada' ? 'Entrada' : 'Saída'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 max-w-[200px]">
+                        <p className="truncate font-medium">{r.descricao}</p>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
+                        {r.pessoa}
+                      </td>
+                      <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
+                        <span
+                          className={
+                            r.tipo === 'entrada'
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : 'text-rose-600 dark:text-rose-400'
+                          }
+                        >
+                          {r.tipo === 'entrada' ? '+' : '-'}
+                          {fmt(r.valor)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell whitespace-nowrap">
+                        {r.valor_pago > 0 ? fmt(r.valor_pago) : '—'}
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge status={r.status} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <TablePagination page={page} totalPages={totalPages} onPageChange={setPage} />
+        </CardContent>
+      </Card>
+    </div>
+  )
 }

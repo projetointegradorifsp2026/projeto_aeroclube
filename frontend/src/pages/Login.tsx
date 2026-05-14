@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
-import logo from "@/assets/logo_aeroclube.svg"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 
@@ -59,7 +58,7 @@ export default function Login() {
 
         {/* Header */}
         <div className="text-center space-y-2 flex flex-col items-center">
-          <img src={logo} alt="Logo" className="w-[250px]" />
+          <img src="/logo_icon.svg" alt="Logo" className="w-[120px]" />
           <h1 className="text-3xl font-bold tracking-tight ">
             Sistema Aeroclube
           </h1>

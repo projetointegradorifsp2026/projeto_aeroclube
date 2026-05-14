@@ -5,10 +5,8 @@ import {
     UserPlus,
     BookOpen,
     ArrowUpRight,
-    ExternalLink,
     TrendingUp,
     TrendingDown,
-    Wallet,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -315,42 +313,32 @@ function FinCard({
 // ─── Movimentação row ─────────────────────────────────────────────────────────
 
 function MovRow({ mov }: { mov: Movimentacao }) {
-    const [first, ...rest] = mov.tags
-    const isPagamento = mov.tipo === 'Pagamento'
+    const isEntrada = mov.tipo === 'entrada'
     return (
         <tr className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
             <td className="px-4 py-3">
                 <span
                     className={cn(
                         'inline-flex rounded-full px-2 py-0.5 text-xs font-medium mb-1',
-                        isPagamento
-                            ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
-                            : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+                        isEntrada
+                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                            : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
                     )}
                 >
-                    {mov.tipo}
+                    {isEntrada ? 'Entrada' : 'Saída'}
                 </span>
                 <p className="text-xs text-muted-foreground">{mov.pessoa}</p>
             </td>
-            <td className="px-4 py-3">
-                <div className="flex items-center gap-1.5">
-                    {first && (
-                        <span className="rounded-md border border-border bg-muted/40 px-2 py-0.5 text-xs whitespace-nowrap">
-                            {first}
-                        </span>
-                    )}
-                    {rest.length > 0 && (
-                        <span className="text-xs font-medium text-muted-foreground">+{rest.length}</span>
-                    )}
-                </div>
+            <td className="px-4 py-3 text-sm text-muted-foreground max-w-[200px]">
+                <p className="truncate">{mov.descricao}</p>
+            </td>
+            <td className="px-4 py-3 text-sm font-medium whitespace-nowrap">
+                <span className={isEntrada ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                    {isEntrada ? '+' : '-'}{fmt(mov.valor)}
+                </span>
             </td>
             <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
                 {fmtDate(mov.data)}
-            </td>
-            <td className="px-4 py-3 text-right">
-                <button className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
-                    <ExternalLink className="h-4 w-4" />
-                </button>
             </td>
         </tr>
     )
@@ -448,7 +436,7 @@ export default function Dashboard() {
                     {/* Resumo Financeiro */}
                     <section>
                         <p className="text-sm font-medium text-muted-foreground mb-3">Resumo Financeiro</p>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <FinCard
                                 label="Títulos a Pagar em Aberto"
                                 value={resumo?.titulosPagar ?? 0}
@@ -456,7 +444,6 @@ export default function Dashboard() {
                                 icon={TrendingDown}
                                 iconBg="bg-chart-5/10 dark:bg-chart-5/20"
                                 iconColor="text-chart-5"
-                                trend={{ value: 8, up: false }}
                             />
                             <FinCard
                                 label="Títulos a Receber em Aberto"
@@ -465,15 +452,6 @@ export default function Dashboard() {
                                 icon={TrendingUp}
                                 iconBg="bg-chart-2/10 dark:bg-chart-2/20"
                                 iconColor="text-chart-2"
-                                trend={{ value: 12, up: true }}
-                            />
-                            <FinCard
-                                label="Saldo Atual da Carteira"
-                                value={resumo?.saldoCarteira ?? 0}
-                                loading={loading}
-                                icon={Wallet}
-                                iconBg="bg-primary/10 dark:bg-primary/20"
-                                iconColor="text-primary"
                             />
                         </div>
                     </section>
@@ -499,13 +477,13 @@ export default function Dashboard() {
                                                     Título
                                                 </th>
                                                 <th className="px-4 py-3 text-left font-medium text-muted-foreground">
-                                                    Tags
+                                                    Descrição
+                                                </th>
+                                                <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">
+                                                    Valor
                                                 </th>
                                                 <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">
                                                     Data
-                                                </th>
-                                                <th className="px-4 py-3 text-right font-medium text-muted-foreground">
-                                                    Acessar
                                                 </th>
                                             </tr>
                                         </thead>

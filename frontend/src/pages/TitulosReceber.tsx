@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
+import { TablePagination } from '@/components/ui/pagination'
 import { Search, Plus, Pencil, CircleDollarSign, CircleAlert } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -65,6 +66,12 @@ interface TableProps {
 }
 
 function TitulosTable({ items, showBaixa, onBaixa, onEdit, emptyMessage }: TableProps) {
+  const [page, setPage] = useState(1)
+  useEffect(() => { setPage(1) }, [items])
+  const PAGE_SIZE = 10
+  const totalPages = Math.ceil(items.length / PAGE_SIZE)
+  const paginated = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-14 text-muted-foreground">
@@ -75,35 +82,36 @@ function TitulosTable({ items, showBaixa, onBaixa, onEdit, emptyMessage }: Table
   }
 
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b bg-muted/30">
-            <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
-              Devedor
-            </th>
-            <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">
-              Tipo
-            </th>
-            <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">
-              Descrição
-            </th>
-            <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">
-              Parcela
-            </th>
-            <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
-              Vencimento
-            </th>
-            <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
-              Valor
-            </th>
-            <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
-              Ações
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border">
-          {items.map(t => (
+    <>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b bg-muted/30">
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
+                Devedor
+              </th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">
+                Tipo
+              </th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">
+                Descrição
+              </th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">
+                Parcela
+              </th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
+                Vencimento
+              </th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
+                Valor
+              </th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
+                Ações
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {paginated.map(t => (
             <tr key={t.id} className="hover:bg-muted/20 transition-colors">
               <td className="px-4 py-3">
                 <p className="font-medium">{t.usuario_nome}</p>
@@ -142,12 +150,6 @@ function TitulosTable({ items, showBaixa, onBaixa, onEdit, emptyMessage }: Table
               </td>
               <td className="px-4 py-3">
                 <div className="flex items-center justify-end gap-2">
-                  {showBaixa && (
-                    <Button size="sm" onClick={() => onBaixa(t)}>
-                      <CircleDollarSign className="h-3.5 w-3.5" />
-                      Receber
-                    </Button>
-                  )}
                   <Button
                     variant="ghost"
                     size="icon-sm"
@@ -156,13 +158,21 @@ function TitulosTable({ items, showBaixa, onBaixa, onEdit, emptyMessage }: Table
                   >
                     <Pencil className="h-3.5 w-3.5" />
                   </Button>
+                  {showBaixa && (
+                    <Button size="sm" onClick={() => onBaixa(t)}>
+                      Dar baixa
+                      <CircleDollarSign className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
               </td>
             </tr>
           ))}
-        </tbody>
-      </table>
-    </div>
+          </tbody>
+        </table>
+      </div>
+      <TablePagination page={page} totalPages={totalPages} onPageChange={setPage} />
+    </>
   )
 }
 
@@ -193,14 +203,16 @@ export default function TitulosReceber() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
-    return titulos.filter(t => {
-      const matchSearch =
-        !q ||
-        t.usuario_nome.toLowerCase().includes(q) ||
-        t.descricao.toLowerCase().includes(q)
-      const matchTipo = tipoFilter === 'all' || t.tipo === tipoFilter
-      return matchSearch && matchTipo
-    })
+    return titulos
+      .filter(t => {
+        const matchSearch =
+          !q ||
+          t.usuario_nome.toLowerCase().includes(q) ||
+          t.descricao.toLowerCase().includes(q)
+        const matchTipo = tipoFilter === 'all' || t.tipo === tipoFilter
+        return matchSearch && matchTipo
+      })
+      .sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento))
   }, [titulos, search, tipoFilter])
 
   const emAbertoList = filtered.filter(
@@ -297,46 +309,40 @@ export default function TitulosReceber() {
   return (
     <div className="pt-2 space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Títulos a Receber</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Gerencie os títulos a receber do aeroclube
-          </p>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Títulos a Receber</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">
+          Gerencie os títulos a receber do aeroclube
+        </p>
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-3">
+        <div className="relative w-64">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <input
+            className={cn(inputCls, 'w-full pl-8 pr-3')}
+            placeholder="Buscar por devedor ou descrição..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
         </div>
-        <Button onClick={openCreate} className="shrink-0">
+        <select
+          className={inputCls}
+          value={tipoFilter}
+          onChange={e => setTipoFilter(e.target.value as TipoFilter)}
+        >
+          <option value="all">Todos os tipos</option>
+          <option value="mensalidade">Mensalidade</option>
+          <option value="pontual">Pontual</option>
+          <option value="servico">Serviço</option>
+          <option value="voo">Voo</option>
+        </select>
+        <Button onClick={openCreate} className="ml-auto shrink-0">
           <Plus className="h-4 w-4" />
           Novo Título
         </Button>
       </div>
-
-      {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <input
-                className={cn(inputCls, 'w-full pl-8 pr-3')}
-                placeholder="Buscar por devedor ou descrição..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
-            </div>
-            <select
-              className={inputCls}
-              value={tipoFilter}
-              onChange={e => setTipoFilter(e.target.value as TipoFilter)}
-            >
-              <option value="all">Todos os tipos</option>
-              <option value="mensalidade">Mensalidade</option>
-              <option value="pontual">Pontual</option>
-              <option value="servico">Serviço</option>
-              <option value="voo">Voo</option>
-            </select>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Tabs + Tables */}
       {loading ? (
@@ -485,7 +491,7 @@ export default function TitulosReceber() {
                 type="number"
                 min={0}
                 step={0.01}
-                className="h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
+                className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
                 value={baixaValor}
                 onChange={e => setBaixaValor(e.target.value)}
               />
@@ -499,7 +505,7 @@ export default function TitulosReceber() {
               <label className="text-sm font-medium">Data de recebimento</label>
               <input
                 type="date"
-                className="h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
+                className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
                 value={baixaData}
                 onChange={e => setBaixaData(e.target.value)}
               />

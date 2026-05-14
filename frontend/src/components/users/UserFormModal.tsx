@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react'
+﻿import { useState, useEffect, type FormEvent } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -187,7 +187,7 @@ export function UserFormModal({ user, open, onClose, onSave }: UserFormModalProp
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Perfil ativo</label>
               <select
-                className="h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
+                className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
                 value={form.perfil_ativo}
                 onChange={e =>
                   setForm(p => ({ ...p, perfil_ativo: e.target.value as UserProfile }))

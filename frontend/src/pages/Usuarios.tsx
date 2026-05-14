@@ -1,4 +1,5 @@
-import { useEffect, useState, useMemo } from 'react'
+﻿import { useEffect, useState, useMemo } from 'react'
+import { TablePagination } from '@/components/ui/pagination'
 import { Search, UserPlus, Pencil, Trash2, UserCheck, UserX } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -39,6 +40,9 @@ export default function Usuarios() {
   const [modalOpen, setModalOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [page, setPage] = useState(1)
+
+  useEffect(() => { setPage(1) }, [search, profileFilter, statusFilter])
 
   useEffect(() => {
     getUsers().then(data => {
@@ -63,6 +67,10 @@ export default function Usuarios() {
       return matchSearch && matchProfile && matchStatus
     })
   }, [users, search, profileFilter, statusFilter])
+
+  const PAGE_SIZE = 10
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   async function handleSave(data: UserFormData): Promise<void> {
     if (editUser) {
@@ -96,54 +104,48 @@ export default function Usuarios() {
   return (
     <div className="pt-2 space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Usuários</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">Gerencie os usuários do sistema</p>
-        </div>
-        <Button onClick={openCreate} className="shrink-0">
-          <UserPlus className="h-4 w-4 mr-1.5" />
-          Novo Usuário
-        </Button>
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Usuários</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Gerencie os usuários do sistema</p>
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <input
-                className="h-8 w-full rounded-lg border border-input bg-background pl-8 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring/50 placeholder:text-muted-foreground transition-shadow"
-                placeholder="Buscar por nome, e-mail ou CPF..."
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
-            </div>
-            <select
-              className="h-8 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow"
-              value={profileFilter}
-              onChange={e => setProfileFilter(e.target.value as UserProfile | 'all')}
-            >
-              <option value="all">Todos os perfis</option>
-              <option value="administrador">Administrador</option>
-              <option value="aluno">Aluno</option>
-              <option value="socio">Sócio</option>
-              <option value="cliente_externo">Cliente Externo</option>
-              <option value="colaborador">Colaborador</option>
-            </select>
-            <select
-              className="h-8 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow"
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}
-            >
-              <option value="all">Todos os status</option>
-              <option value="active">Ativos</option>
-              <option value="inactive">Inativos</option>
-            </select>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center gap-3">
+        <div className="relative w-64">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <input
+            className="h-10 w-full rounded-lg border border-input bg-background pl-8 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring/50 placeholder:text-muted-foreground transition-shadow"
+            placeholder="Buscar por nome, e-mail ou CPF..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        <select
+          className="h-10 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow"
+          value={profileFilter}
+          onChange={e => setProfileFilter(e.target.value as UserProfile | 'all')}
+        >
+          <option value="all">Todos os perfis</option>
+          <option value="administrador">Administrador</option>
+          <option value="aluno">Aluno</option>
+          <option value="socio">Sócio</option>
+          <option value="cliente_externo">Cliente Externo</option>
+          <option value="colaborador">Colaborador</option>
+        </select>
+        <select
+          className="h-10 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow"
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}
+        >
+          <option value="all">Todos os status</option>
+          <option value="active">Ativos</option>
+          <option value="inactive">Inativos</option>
+        </select>
+        <Button onClick={openCreate} className="ml-auto shrink-0">
+          <UserPlus className="h-4 w-4" />
+          Novo Usuário
+        </Button>
+      </div>
 
       {/* Table */}
       <Card>
@@ -193,7 +195,7 @@ export default function Usuarios() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {filtered.map(user => (
+                  {paginated.map(user => (
                     <tr key={user.id} className="hover:bg-muted/20 transition-colors">
                       <td className="px-4 py-3">
                         <div>
@@ -266,6 +268,7 @@ export default function Usuarios() {
               </table>
             </div>
           )}
+          <TablePagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </CardContent>
       </Card>
 
