@@ -1,4 +1,4 @@
-export type TituloPagarTipo = 'fornecedor' | 'folha' | 'conta_fixa' | 'outros'
+export type TituloPagarTipo = 'fornecedor' | 'folha' | 'conta_fixa' | 'outros' | 'instrutor'
 export type TituloPagarStatus = 'em_aberto' | 'baixado'
 
 export interface TituloPagar {
@@ -41,6 +41,7 @@ export const TITULO_PAGAR_TIPO_LABELS: Record<TituloPagarTipo, string> = {
   folha: 'Folha',
   conta_fixa: 'Conta Fixa',
   outros: 'Outros',
+  instrutor: 'Instrutor',
 }
 
 export const TITULO_RECEBER_TIPO_LABELS: Record<TituloReceberTipo, string> = {
@@ -50,7 +51,7 @@ export const TITULO_RECEBER_TIPO_LABELS: Record<TituloReceberTipo, string> = {
   voo: 'Voo',
 }
 
-export const ALL_TITULO_PAGAR_TIPOS: TituloPagarTipo[] = ['fornecedor', 'folha', 'conta_fixa', 'outros']
+export const ALL_TITULO_PAGAR_TIPOS: TituloPagarTipo[] = ['fornecedor', 'folha', 'conta_fixa', 'outros', 'instrutor']
 export const ALL_TITULO_RECEBER_TIPOS: TituloReceberTipo[] = ['mensalidade', 'pontual', 'servico', 'voo']
 
 export const mockTitulosPagar: TituloPagar[] = [

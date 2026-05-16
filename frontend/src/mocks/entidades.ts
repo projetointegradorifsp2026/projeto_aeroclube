@@ -1,12 +1,13 @@
-export type EntidadeTipo = 'fornecedor' | 'funcionario' | 'instrutor'
+export type EntidadeTipo = 'fornecedor' | 'funcionario' | 'instrutor' | 'cliente'
 
 export const ENTIDADE_TIPO_LABELS: Record<EntidadeTipo, string> = {
   fornecedor: 'Fornecedor',
   funcionario: 'Funcionário',
   instrutor: 'Instrutor',
+  cliente: 'Cliente',
 }
 
-export const ALL_ENTIDADE_TIPOS: EntidadeTipo[] = ['fornecedor', 'funcionario', 'instrutor']
+export const ALL_ENTIDADE_TIPOS: EntidadeTipo[] = ['fornecedor', 'funcionario', 'instrutor', 'cliente']
 
 export interface Entidade {
   id: string
@@ -53,6 +54,33 @@ export const mockEntidades: Entidade[] = [
     email: 'contato@papelariacentral.com.br',
     contato: '(11) 3456-7890',
     tipo: 'fornecedor',
+    is_active: false,
+  },
+  {
+    id: '9',
+    nome: 'João Pedro Oliveira',
+    cpf_cnpj: '321.654.987-00',
+    email: 'joao.oliveira@email.com',
+    contato: '(11) 99001-2345',
+    tipo: 'cliente',
+    is_active: true,
+  },
+  {
+    id: '10',
+    nome: 'Maria Fernanda Lima',
+    cpf_cnpj: '654.321.098-11',
+    email: 'maria.lima@email.com',
+    contato: '(19) 98765-4321',
+    tipo: 'cliente',
+    is_active: true,
+  },
+  {
+    id: '11',
+    nome: 'Roberto Souza',
+    cpf_cnpj: '111.222.333-44',
+    email: 'roberto.souza@email.com',
+    contato: '(11) 91234-5678',
+    tipo: 'cliente',
     is_active: false,
   },
   {

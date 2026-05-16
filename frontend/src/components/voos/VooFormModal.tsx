@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo, type FormEvent } from 'react'
+import { useState, useEffect, useRef, useMemo, type FormEvent } from 'react'
 import { Trash2 } from 'lucide-react'
 import {
   Dialog,
@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { SearchSelect } from '@/components/ui/search-select'
 import {
   type TipoVoo,
   TIPO_VOO_LABELS,
@@ -34,7 +35,9 @@ export interface VooFormData {
   origem: string
   destino: string
   valor_hora: number
+  taxa_instrutor: number | null
   data: string
+  data_vencimento: string
 }
 
 interface VooFormModalProps {
@@ -56,7 +59,14 @@ const dateCls =
 
 const todayStr = () => new Date().toISOString().split('T')[0]
 
+function addOneMonth(dateStr: string): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  d.setMonth(d.getMonth() + 1)
+  return d.toISOString().split('T')[0]
+}
+
 function makeEmpty(): VooFormData {
+  const today = todayStr()
   return {
     aeronave_id: '',
     aeronave_nome: '',
@@ -71,7 +81,9 @@ function makeEmpty(): VooFormData {
     origem: '',
     destino: '',
     valor_hora: 0,
-    data: todayStr(),
+    taxa_instrutor: 10,
+    data: today,
+    data_vencimento: addOneMonth(today),
   }
 }
 
@@ -100,6 +112,7 @@ type FormErrors = {
   inicio?: string
   fim?: string
   data?: string
+  data_vencimento?: string
 }
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -119,14 +132,17 @@ export function VooFormModal({
   const [saving, setSaving] = useState(false)
   const isEdit = !!voo
 
+  const autoVencimento = useRef<string>('')
+
   useEffect(() => {
     if (open) {
-      setForm(voo ? { ...voo } : makeEmpty())
+      const initial = voo ? { ...voo } : makeEmpty()
+      setForm(initial)
+      autoVencimento.current = addOneMonth(initial.data)
       setErrors({})
     }
   }, [voo, open])
 
-  // Recalculate tempo_decimal when times change
   useEffect(() => {
     if (form.inicio && form.fim) {
       const decimal = calcTempoDecimal(form.inicio, form.fim)
@@ -134,7 +150,6 @@ export function VooFormModal({
     }
   }, [form.inicio, form.fim])
 
-  // Recalculate valor_hora when aircraft or tipo changes
   useEffect(() => {
     const aeronave = aeronaves.find(a => a.id === form.aeronave_id)
     if (aeronave) {
@@ -143,10 +158,31 @@ export function VooFormModal({
     }
   }, [form.aeronave_id, form.tipo_voo, aeronaves])
 
-  const participantesFiltrados = useMemo(() => {
+  useEffect(() => {
+    if (!form.data) return
+    const auto = addOneMonth(form.data)
+    if (form.data_vencimento === autoVencimento.current) {
+      setForm(p => ({ ...p, data_vencimento: auto }))
+    }
+    autoVencimento.current = auto
+  }, [form.data])
+
+  const aeronaveOptions = useMemo(
+    () => aeronaves.filter(a => a.is_active).map(a => ({ value: a.id, label: a.nome })),
+    [aeronaves],
+  )
+
+  const participanteOptions = useMemo(() => {
     const perfil = PERFIL_POR_TIPO[form.tipo_voo]
-    return usuarios.filter(u => u.is_active && u.perfis.includes(perfil))
+    return usuarios
+      .filter(u => u.is_active && u.perfis.includes(perfil))
+      .map(u => ({ value: u.id, label: u.nome }))
   }, [form.tipo_voo, usuarios])
+
+  const instrutorOptions = useMemo(
+    () => instrutores.filter(i => i.is_active).map(i => ({ value: i.id, label: i.nome })),
+    [instrutores],
+  )
 
   const precisaInstrutor = TIPOS_VOO_COM_INSTRUTOR.includes(form.tipo_voo)
 
@@ -173,7 +209,12 @@ export function VooFormModal({
 
   function handleInstrutorChange(id: string) {
     const i = instrutores.find(i => i.id === id)
-    setForm(p => ({ ...p, instrutor_id: id || null, instrutor_nome: i?.nome ?? null }))
+    setForm(p => ({
+      ...p,
+      instrutor_id: id || null,
+      instrutor_nome: i?.nome ?? null,
+      taxa_instrutor: id ? (p.taxa_instrutor ?? 10) : null,
+    }))
   }
 
   function validate(): boolean {
@@ -186,6 +227,7 @@ export function VooFormModal({
     if (form.inicio && form.fim && form.tempo_decimal <= 0)
       e.fim = 'Horário de término deve ser após o início'
     if (!form.data) e.data = 'Data é obrigatória'
+    if (!form.data_vencimento) e.data_vencimento = 'Data de vencimento é obrigatória'
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -203,10 +245,14 @@ export function VooFormModal({
   }
 
   const valorEstimado = form.tempo_decimal * form.valor_hora
+  const valorInstrutor =
+    form.instrutor_id && form.taxa_instrutor != null
+      ? valorEstimado * (form.taxa_instrutor / 100)
+      : 0
 
   return (
     <Dialog open={open} onOpenChange={o => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Editar Voo' : 'Registrar Voo'}</DialogTitle>
           <DialogDescription>
@@ -214,159 +260,203 @@ export function VooFormModal({
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 pt-1">
-          <div className="grid grid-cols-2 gap-3">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          {/* SearchSelect fields — outside the scrollable area so dropdowns aren't clipped */}
+          <div className="space-y-4 pt-1">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Data</label>
+                <input
+                  type="date"
+                  className={dateCls}
+                  value={form.data}
+                  onChange={e => setForm(p => ({ ...p, data: e.target.value }))}
+                />
+                {errors.data && <p className="text-xs text-destructive">{errors.data}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Tipo de voo</label>
+                <select
+                  className={selectCls}
+                  value={form.tipo_voo}
+                  onChange={e => handleTipoChange(e.target.value as TipoVoo)}
+                >
+                  {ALL_TIPOS_VOO.map(t => (
+                    <option key={t} value={t}>
+                      {TIPO_VOO_LABELS[t]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Data</label>
+              <label className="text-sm font-medium">Aeronave</label>
+              <SearchSelect
+                options={aeronaveOptions}
+                value={form.aeronave_id}
+                onChange={handleAeronaveChange}
+                placeholder="Selecione a aeronave..."
+                hasError={!!errors.aeronave_id}
+              />
+              {errors.aeronave_id && (
+                <p className="text-xs text-destructive">{errors.aeronave_id}</p>
+              )}
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Participante</label>
+              <SearchSelect
+                options={participanteOptions}
+                value={form.participante_id}
+                onChange={handleParticipanteChange}
+                placeholder="Selecione o participante..."
+                hasError={!!errors.participante_id}
+                emptyMessage="Nenhum participante para este tipo de voo"
+              />
+              {errors.participante_id && (
+                <p className="text-xs text-destructive">{errors.participante_id}</p>
+              )}
+            </div>
+
+            {precisaInstrutor && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Instrutor</label>
+                  <SearchSelect
+                    options={instrutorOptions}
+                    value={form.instrutor_id ?? ''}
+                    onChange={handleInstrutorChange}
+                    placeholder="Selecione o instrutor..."
+                    hasError={!!errors.instrutor_id}
+                  />
+                  {errors.instrutor_id && (
+                    <p className="text-xs text-destructive">{errors.instrutor_id}</p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Taxa do instrutor (%)</label>
+                  {form.instrutor_id ? (
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.1"
+                        placeholder="10"
+                        value={form.taxa_instrutor ?? ''}
+                        onChange={e =>
+                          setForm(p => ({
+                            ...p,
+                            taxa_instrutor:
+                              e.target.value === '' ? null : Number(e.target.value),
+                          }))
+                        }
+                      />
+                      <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                        %
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="h-10 rounded-lg border border-input bg-muted/40 px-2.5 text-sm flex items-center text-muted-foreground">
+                      Selecione um instrutor
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Remaining fields in a scrollable area */}
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-4 py-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Início</label>
+                <input
+                  type="time"
+                  className={dateCls}
+                  value={form.inicio}
+                  onChange={e => setForm(p => ({ ...p, inicio: e.target.value }))}
+                />
+                {errors.inicio && <p className="text-xs text-destructive">{errors.inicio}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Término</label>
+                <input
+                  type="time"
+                  className={dateCls}
+                  value={form.fim}
+                  onChange={e => setForm(p => ({ ...p, fim: e.target.value }))}
+                />
+                {errors.fim && <p className="text-xs text-destructive">{errors.fim}</p>}
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Tempo decimal</label>
+                <div className="h-10 rounded-lg border border-input bg-muted/40 px-2.5 text-sm flex items-center font-medium">
+                  {form.tempo_decimal.toFixed(1)}h
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Data de vencimento</label>
               <input
                 type="date"
                 className={dateCls}
-                value={form.data}
-                onChange={e => setForm(p => ({ ...p, data: e.target.value }))}
+                value={form.data_vencimento}
+                onChange={e => setForm(p => ({ ...p, data_vencimento: e.target.value }))}
               />
-              {errors.data && <p className="text-xs text-destructive">{errors.data}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Tipo de voo</label>
-              <select
-                className={selectCls}
-                value={form.tipo_voo}
-                onChange={e => handleTipoChange(e.target.value as TipoVoo)}
-              >
-                {ALL_TIPOS_VOO.map(t => (
-                  <option key={t} value={t}>
-                    {TIPO_VOO_LABELS[t]}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Aeronave</label>
-            <select
-              className={selectCls}
-              value={form.aeronave_id}
-              onChange={e => handleAeronaveChange(e.target.value)}
-            >
-              <option value="">Selecione...</option>
-              {aeronaves.filter(a => a.is_active).map(a => (
-                <option key={a.id} value={a.id}>
-                  {a.nome}
-                </option>
-              ))}
-            </select>
-            {errors.aeronave_id && (
-              <p className="text-xs text-destructive">{errors.aeronave_id}</p>
-            )}
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Participante</label>
-            <select
-              className={selectCls}
-              value={form.participante_id}
-              onChange={e => handleParticipanteChange(e.target.value)}
-            >
-              <option value="">Selecione...</option>
-              {participantesFiltrados.map(u => (
-                <option key={u.id} value={u.id}>
-                  {u.nome}
-                </option>
-              ))}
-            </select>
-            {errors.participante_id && (
-              <p className="text-xs text-destructive">{errors.participante_id}</p>
-            )}
-          </div>
-
-          {precisaInstrutor && (
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Instrutor</label>
-              <select
-                className={selectCls}
-                value={form.instrutor_id ?? ''}
-                onChange={e => handleInstrutorChange(e.target.value)}
-              >
-                <option value="">Selecione...</option>
-                {instrutores.filter(i => i.is_active).map(i => (
-                  <option key={i.id} value={i.id}>
-                    {i.nome}
-                  </option>
-                ))}
-              </select>
-              {errors.instrutor_id && (
-                <p className="text-xs text-destructive">{errors.instrutor_id}</p>
+              {errors.data_vencimento && (
+                <p className="text-xs text-destructive">{errors.data_vencimento}</p>
               )}
             </div>
-          )}
 
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Início</label>
-              <input
-                type="time"
-                className={dateCls}
-                value={form.inicio}
-                onChange={e => setForm(p => ({ ...p, inicio: e.target.value }))}
-              />
-              {errors.inicio && <p className="text-xs text-destructive">{errors.inicio}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Término</label>
-              <input
-                type="time"
-                className={dateCls}
-                value={form.fim}
-                onChange={e => setForm(p => ({ ...p, fim: e.target.value }))}
-              />
-              {errors.fim && <p className="text-xs text-destructive">{errors.fim}</p>}
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Tempo decimal</label>
-              <div className="h-10 rounded-lg border border-input bg-muted/40 px-2.5 text-sm flex items-center font-medium">
-                {form.tempo_decimal.toFixed(1)}h
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Origem (ICAO)</label>
+                <Input
+                  placeholder="SDAG"
+                  value={form.origem}
+                  onChange={e => setForm(p => ({ ...p, origem: e.target.value.toUpperCase() }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Destino (ICAO)</label>
+                <Input
+                  placeholder="SDAG"
+                  value={form.destino}
+                  onChange={e => setForm(p => ({ ...p, destino: e.target.value.toUpperCase() }))}
+                />
               </div>
             </div>
+
+            {form.tempo_decimal > 0 && form.valor_hora > 0 && (
+              <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm space-y-1.5">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Valor/hora</span>
+                  <span className="font-medium">{fmt(form.valor_hora)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tempo</span>
+                  <span className="font-medium">{form.tempo_decimal.toFixed(1)}h</span>
+                </div>
+                <div className="flex justify-between border-t pt-1.5">
+                  <span className="font-medium">Valor estimado (a receber)</span>
+                  <span className="font-semibold text-primary">{fmt(valorEstimado)}</span>
+                </div>
+                {form.instrutor_id && form.taxa_instrutor != null && form.taxa_instrutor > 0 && (
+                  <div className="flex justify-between text-muted-foreground border-t pt-1.5">
+                    <span>Taxa do instrutor ({form.taxa_instrutor}%) — a pagar</span>
+                    <span className="font-medium text-amber-600 dark:text-amber-400">
+                      {fmt(valorInstrutor)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Origem (ICAO)</label>
-              <Input
-                placeholder="SDAG"
-                value={form.origem}
-                onChange={e => setForm(p => ({ ...p, origem: e.target.value.toUpperCase() }))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Destino (ICAO)</label>
-              <Input
-                placeholder="SDAG"
-                value={form.destino}
-                onChange={e => setForm(p => ({ ...p, destino: e.target.value.toUpperCase() }))}
-              />
-            </div>
-          </div>
-
-          {form.tempo_decimal > 0 && form.valor_hora > 0 && (
-            <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm space-y-1.5">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Valor/hora</span>
-                <span className="font-medium">{fmt(form.valor_hora)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Tempo</span>
-                <span className="font-medium">{form.tempo_decimal.toFixed(1)}h</span>
-              </div>
-              <div className="flex justify-between border-t pt-1.5">
-                <span className="font-medium">Valor estimado</span>
-                <span className="font-semibold text-primary">{fmt(valorEstimado)}</span>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
+          <DialogFooter className="pt-2">
             <div className="flex w-full items-center gap-2">
               {isEdit && onDeleteRequest && (
                 <Button

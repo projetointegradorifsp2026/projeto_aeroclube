@@ -42,6 +42,7 @@ const TIPO_COLORS: Record<TituloPagarTipo, string> = {
   folha: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   conta_fixa: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   outros: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  instrutor: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
 }
 
 function TipoBadge({ tipo }: { tipo: TituloPagarTipo }) {
@@ -326,6 +327,7 @@ export default function TitulosPagar() {
           <option value="fornecedor">Fornecedor</option>
           <option value="folha">Folha de Pagamento</option>
           <option value="conta_fixa">Conta Fixa</option>
+          <option value="instrutor">Instrutor</option>
           <option value="outros">Outros</option>
         </select>
         <Button onClick={openCreate} className="ml-auto shrink-0">

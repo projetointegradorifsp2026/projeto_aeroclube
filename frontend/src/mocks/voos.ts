@@ -33,7 +33,9 @@ export interface Voo {
   origem: string
   destino: string
   valor_hora: number
+  taxa_instrutor: number | null
   data: string
+  data_vencimento: string
   created_at: string
 }
 
@@ -53,7 +55,9 @@ export const mockVoos: Voo[] = [
     origem: 'SDAG',
     destino: 'SDAG',
     valor_hora: 420,
+    taxa_instrutor: 10,
     data: '2026-05-10',
+    data_vencimento: '2026-06-10',
     created_at: '2026-05-10T10:00:00',
   },
   {
@@ -71,7 +75,9 @@ export const mockVoos: Voo[] = [
     origem: 'SDAG',
     destino: 'SBSP',
     valor_hora: 350,
+    taxa_instrutor: null,
     data: '2026-05-08',
+    data_vencimento: '2026-06-08',
     created_at: '2026-05-08T12:00:00',
   },
   {
@@ -89,7 +95,9 @@ export const mockVoos: Voo[] = [
     origem: 'SDAG',
     destino: 'SDAG',
     valor_hora: 300,
+    taxa_instrutor: null,
     data: '2026-05-07',
+    data_vencimento: '2026-06-07',
     created_at: '2026-05-07T16:00:00',
   },
   {
@@ -107,7 +115,9 @@ export const mockVoos: Voo[] = [
     origem: 'SDAG',
     destino: 'SDAG',
     valor_hora: 490,
+    taxa_instrutor: 10,
     data: '2026-05-05',
+    data_vencimento: '2026-06-05',
     created_at: '2026-05-05T11:00:00',
   },
   {
@@ -125,7 +135,9 @@ export const mockVoos: Voo[] = [
     origem: 'SDAG',
     destino: 'SDAS',
     valor_hora: 390,
+    taxa_instrutor: 10,
     data: '2026-05-03',
+    data_vencimento: '2026-06-03',
     created_at: '2026-05-03T14:00:00',
   },
 ]

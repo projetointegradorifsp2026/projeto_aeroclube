@@ -15,6 +15,7 @@ import {
 import { VooFormModal, type VooFormData } from '@/components/voos/VooFormModal'
 import { getVoos, createVoo, updateVoo, deleteVoo, type Voo } from '@/services/voosService'
 import { createTituloReceber } from '@/services/titulosReceberService'
+import { createTituloPagar } from '@/services/titulosPagarService'
 import { getAeronaves, type Aeronave } from '@/services/aeronavesService'
 import { getEntidades, type Entidade } from '@/services/entidadesService'
 import { getUsers, type User } from '@/services/usersService'
@@ -95,21 +96,41 @@ export default function Voos() {
     } else {
       const voo = await createVoo(data)
       setVoos(prev => [voo, ...prev])
-      const valor = voo.tempo_decimal * voo.valor_hora
+
+      const descricaoVoo = `${TIPO_VOO_LABELS[voo.tipo_voo]} – ${voo.tempo_decimal.toFixed(1)}h – ${voo.aeronave_nome}`
+
       await createTituloReceber({
         usuario_nome: voo.participante_nome,
         tipo: 'voo',
-        descricao: `${TIPO_VOO_LABELS[voo.tipo_voo]} – ${voo.tempo_decimal.toFixed(1)}h – ${voo.aeronave_nome}`,
+        descricao: descricaoVoo,
         num_parcela: 1,
         total_parcelas: 1,
-        valor,
+        valor: voo.tempo_decimal * voo.valor_hora,
         valor_pago: 0,
         juros_aplicado: 0,
         data_emissao: voo.data,
-        data_vencimento: voo.data,
+        data_vencimento: voo.data_vencimento,
         data_pagamento: null,
         status: 'em_aberto',
       })
+
+      if (voo.instrutor_id && voo.instrutor_nome && voo.taxa_instrutor && voo.taxa_instrutor > 0) {
+        const valorInstrutor = voo.tempo_decimal * voo.valor_hora * (voo.taxa_instrutor / 100)
+        await createTituloPagar({
+          tipo: 'instrutor',
+          favorecido: voo.instrutor_nome,
+          descricao: `Instrução – ${descricaoVoo}`,
+          num_parcela: 1,
+          total_parcelas: 1,
+          valor: valorInstrutor,
+          data_emissao: voo.data,
+          data_vencimento: voo.data_vencimento,
+          status: 'em_aberto',
+          valor_pago: null,
+          data_pagamento: null,
+          recorrente: false,
+        })
+      }
     }
   }
 
