@@ -17,6 +17,7 @@ BASE     = docker-compose.yml
 DEV      = docker-compose.dev.yml
 TEST     = docker-compose.test.yml
 PROD     = docker-compose.prod.yml
+APPS = users relatorios pessoas carteira titulos_pagar titulos_receber aeronaves voos
 
 # .PHONY declara que estes alvos não são arquivos reais
 .PHONY: help dev-up dev-down dev-logs test test-down prod-up prod-down \
@@ -58,8 +59,11 @@ help:
 # -----------------------------------------------------------------------------
 # Desenvolvimento
 # -----------------------------------------------------------------------------
-dev-up:
+dev-up-build:
 	docker compose -f $(BASE) -f $(DEV) up --build
+
+dev-up:
+	docker compose -f $(BASE) -f $(DEV) up
 
 dev-down:
 	docker compose -f $(BASE) -f $(DEV) down
@@ -97,8 +101,12 @@ prod-down:
 migrate:
 	docker compose -f $(BASE) -f $(DEV) exec backend python manage.py migrate
 
+
 makemigrations:
 	docker compose -f $(BASE) -f $(DEV) exec backend python manage.py makemigrations
+	@for app in $(APPS); do \
+		docker compose exec backend python manage.py makemigrations $$app; \
+	done
 
 shell:
 	docker compose -f $(BASE) -f $(DEV) exec backend python manage.py shell
@@ -125,3 +133,4 @@ ps:
 clean:
 	docker compose -f $(BASE) -f $(DEV) down -v --rmi local
 	@echo "Containers, volumes e imagens locais removidos."
+	docker compose down -v
