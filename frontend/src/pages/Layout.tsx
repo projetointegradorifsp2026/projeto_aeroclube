@@ -92,7 +92,7 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, user, onLo
                                 >
                                     <Link to="/dashboard">
                                         <ChartNoAxesColumnIncreasing />
-                                        <span>Dashboard</span>
+                                        <span className="group-data-[collapsible=icon]:hidden">Dashboard</span>
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
@@ -105,7 +105,7 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, user, onLo
                                 >
                                     <Link to="/usuarios">
                                         <Users />
-                                        <span>Usuários</span>
+                                        <span className="group-data-[collapsible=icon]:hidden">Usuários</span>
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
@@ -118,7 +118,7 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, user, onLo
                                 >
                                     <Link to="/movimentacoes">
                                         <ChartSpline />
-                                        <span>Movimentações</span>
+                                        <span className="group-data-[collapsible=icon]:hidden">Movimentações</span>
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
@@ -131,7 +131,7 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, user, onLo
                                 >
                                     <Link to="/voos">
                                         <Plane />
-                                        <span>Voos</span>
+                                        <span className="group-data-[collapsible=icon]:hidden">Voos</span>
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
@@ -150,7 +150,7 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, user, onLo
                                 >
                                     <Link to="/titulos-a-receber">
                                         <FileInput />
-                                        <span>Títulos a receber</span>
+                                        <span className="group-data-[collapsible=icon]:hidden">Títulos a receber</span>
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
@@ -162,7 +162,7 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, user, onLo
                                 >
                                     <Link to="/titulos-a-pagar">
                                         <FileOutput />
-                                        <span>Títulos a pagar</span>
+                                        <span className="group-data-[collapsible=icon]:hidden">Títulos a pagar</span>
                                     </Link>
                                 </SidebarMenuButton>
                             </SidebarMenuItem>
@@ -184,15 +184,12 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, user, onLo
                                         }
                                         setOpenCadastros(prev => !prev)
                                     }}
-                                    className="flex justify-between"
                                     tooltip="Cadastrar"
                                 >
-                                    <div className="flex items-center gap-2 min-w-0">
-                                        <FolderPlus className="shrink-0" />
-                                        <span className="group-data-[collapsible=icon]:hidden truncate">Cadastrar</span>
-                                    </div>
+                                    <FolderPlus className="shrink-0" />
+                                    <span className="group-data-[collapsible=icon]:hidden truncate">Cadastrar</span>
                                     <ChevronDown
-                                        className={`h-4 w-4 shrink-0 transition-transform group-data-[collapsible=icon]:hidden ${openCadastros ? "rotate-180" : ""}`}
+                                        className={`ml-auto h-4 w-4 shrink-0 transition-transform group-data-[collapsible=icon]:hidden ${openCadastros ? "rotate-180" : ""}`}
                                     />
                                 </SidebarMenuButton>
 
