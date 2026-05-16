@@ -1,51 +1,40 @@
 # =============================================================================
-# Frontend — React (Create React App)
-# Multi-stage: dev (react-scripts start) | production (nginx serving build)
+# Stage: dev — servidor Vite com hot-reload para desenvolvimento
 # =============================================================================
-
-# ── Estágio base ──────────────────────────────────────────────────────────────
-FROM node:20-alpine AS base
+FROM node:22-alpine AS dev
 
 WORKDIR /app
 
-# Copia apenas os manifestos primeiro para aproveitar cache de camadas
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
-# ── Estágio de desenvolvimento ────────────────────────────────────────────────
-FROM base AS dev
-
-# Código montado via volume em dev; copiamos para fallback
 COPY . .
 
 EXPOSE 3000
 
-ENV HOST=0.0.0.0
+CMD ["npm", "run", "dev"]
 
-CMD ["npm", "start"]
+# =============================================================================
+# Stage: build — compila os assets estáticos
+# =============================================================================
+FROM node:22-alpine AS build
 
-# ── Estágio de build (intermediário para produção) ────────────────────────────
-FROM base AS builder
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
 
 COPY . .
 
-# Variável de ambiente injetada pelo docker-compose.prod.yml se necessário
-ARG REACT_APP_API_URL=/api/v1
-ENV REACT_APP_API_URL=$REACT_APP_API_URL
-
 RUN npm run build
 
-# ── Estágio de produção (nginx serve os estáticos) ───────────────────────────
+# =============================================================================
+# Stage: production — serve os assets via Nginx
+# =============================================================================
 FROM nginx:1.27-alpine AS production
 
-# Remove config padrão do nginx
-RUN rm /etc/nginx/conf.d/default.conf
-
-# Copia config de SPA (trata 404 → index.html para react-router)
-COPY nginx.spa.conf /etc/nginx/conf.d/default.conf
-
-# Copia o build do React
-COPY --from=builder /app/build /usr/share/nginx/html
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 

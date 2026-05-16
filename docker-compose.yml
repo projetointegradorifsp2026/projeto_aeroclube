@@ -9,7 +9,6 @@ services:
   frontend:
     build:
       context: ./frontend
-      target: dev
     networks:
       - aeroclube_network
 
@@ -18,7 +17,6 @@ services:
   backend:
     build:
       context: ./backend
-      target: dev
     networks:
       - aeroclube_network
     depends_on:
