@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { TablePagination } from '@/components/ui/pagination'
-import { Search, UserPlus, Pencil, Trash2, UserCheck, UserX } from 'lucide-react'
+import { Search, UserPlus, Eye, Trash2, UserCheck, UserX } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -14,7 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { UserFormModal, type UserFormData } from '@/components/users/UserFormModal'
-import { getUsers, createUser, updateUser, deleteUser, type User, type UserProfile } from '@/services/usersService'
+import { getUsers, createUser, deleteUser, type User, type UserProfile } from '@/services/usersService'
 import { PROFILE_LABELS } from '@/mocks/users'
 import { cn } from '@/lib/utils'
 
@@ -30,13 +31,13 @@ const fmtDate = (d: string) =>
   new Date(d + 'T00:00:00').toLocaleDateString('pt-BR')
 
 export default function Usuarios() {
+  const navigate = useNavigate()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [profileFilter, setProfileFilter] = useState<UserProfile | 'all'>('all')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
 
-  const [editUser, setEditUser] = useState<User | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -73,13 +74,8 @@ export default function Usuarios() {
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   async function handleSave(data: UserFormData): Promise<void> {
-    if (editUser) {
-      const updated = await updateUser(editUser.id, data)
-      setUsers(prev => prev.map(u => (u.id === editUser.id ? updated : u)))
-    } else {
-      const created = await createUser(data)
-      setUsers(prev => [...prev, created])
-    }
+    const created = await createUser(data)
+    setUsers(prev => [...prev, created])
   }
 
   async function handleDelete() {
@@ -92,12 +88,6 @@ export default function Usuarios() {
   }
 
   function openCreate() {
-    setEditUser(null)
-    setModalOpen(true)
-  }
-
-  function openEdit(user: User) {
-    setEditUser(user)
     setModalOpen(true)
   }
 
@@ -246,10 +236,10 @@ export default function Usuarios() {
                           <Button
                             variant="ghost"
                             size="icon-sm"
-                            onClick={() => openEdit(user)}
-                            title="Editar usuário"
+                            onClick={() => navigate(`/usuarios/${user.id}`)}
+                            title="Ver perfil"
                           >
-                            <Pencil className="h-3.5 w-3.5" />
+                            <Eye className="h-3.5 w-3.5" />
                           </Button>
                           <Button
                             variant="ghost"
@@ -272,9 +262,9 @@ export default function Usuarios() {
         </CardContent>
       </Card>
 
-      {/* Create / Edit Modal */}
+      {/* Create Modal */}
       <UserFormModal
-        user={editUser}
+        user={null}
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onSave={handleSave}

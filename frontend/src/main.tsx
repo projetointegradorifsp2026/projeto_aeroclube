@@ -16,7 +16,9 @@ import Aeronaves from './pages/Aeronaves';
 import Fornecedores from './pages/Fornecedores';
 import ContaFixa from './pages/ContaFixa';
 import Voos from './pages/Voos';
-import VooFormPage from './pages/VooFormPage';
+import VooFormPage from './pages/VooFormPage'
+import UsuarioPerfilPage from './pages/UsuarioPerfilPage'
+import FuncionarioPerfilPage from './pages/FuncionarioPerfilPage';
 
 
 const router = createBrowserRouter([
@@ -30,10 +32,12 @@ const router = createBrowserRouter([
     children: [
       { path: "dashboard", element: <Dashboard /> },
       { path: "usuarios", element: <Usuarios /> },
+      { path: "usuarios/:id", element: <UsuarioPerfilPage /> },
       { path: "movimentacoes", element: <Movimentacoes /> },
       { path: "titulos-a-receber", element: <TitulosReceber /> },
       { path: "titulos-a-pagar", element: <TitulosPagar /> },
       { path: "funcionario", element: <Funcionario /> },
+      { path: "funcionario/:id", element: <FuncionarioPerfilPage /> },
       { path: "clientes", element: <Clientes /> },
       { path: "aeronaves", element: <Aeronaves /> },
       { path: "fornecedores", element: <Fornecedores /> },

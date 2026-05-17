@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { TablePagination } from '@/components/ui/pagination'
-import { Search, Plus, Pencil, Trash2, Users } from 'lucide-react'
+import { Search, Plus, Eye, Trash2, Users } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -20,7 +21,6 @@ import {
 import {
   getEntidades,
   createEntidade,
-  updateEntidade,
   deleteEntidade,
   type Entidade,
 } from '@/services/entidadesService'
@@ -36,13 +36,13 @@ const TIPO_COLORS: Record<'funcionario' | 'instrutor', string> = {
 }
 
 export default function Funcionario() {
+  const navigate = useNavigate()
   const [items, setItems] = useState<Entidade[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [tipoFilter, setTipoFilter] = useState<'all' | 'funcionario' | 'instrutor'>('all')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
 
-  const [editItem, setEditItem] = useState<Entidade | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Entidade | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -81,13 +81,8 @@ export default function Funcionario() {
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   async function handleSave(data: EntidadeFormData) {
-    if (editItem) {
-      const updated = await updateEntidade(editItem.id, data)
-      setItems(prev => prev.map(e => (e.id === editItem.id ? updated : e)))
-    } else {
-      const created = await createEntidade(data)
-      setItems(prev => [...prev, created])
-    }
+    const created = await createEntidade(data)
+    setItems(prev => [...prev, created])
   }
 
   async function handleDelete() {
@@ -100,18 +95,7 @@ export default function Funcionario() {
   }
 
   function openCreate() {
-    setEditItem(null)
     setModalOpen(true)
-  }
-
-  function openEdit(e: Entidade) {
-    setEditItem(e)
-    setModalOpen(true)
-  }
-
-  function handleDeleteRequest() {
-    setModalOpen(false)
-    setDeleteTarget(editItem)
   }
 
   return (
@@ -242,10 +226,10 @@ export default function Funcionario() {
                           <Button
                             variant="ghost"
                             size="icon-sm"
-                            onClick={() => openEdit(e)}
-                            title="Editar colaborador"
+                            onClick={() => navigate(`/funcionario/${e.id}`)}
+                            title="Ver perfil"
                           >
-                            <Pencil className="h-3.5 w-3.5" />
+                            <Eye className="h-3.5 w-3.5" />
                           </Button>
                           <Button
                             variant="ghost"
@@ -269,13 +253,12 @@ export default function Funcionario() {
       </Card>
 
       <EntidadeFormModal
-        entidade={editItem}
+        entidade={null}
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
-        onDeleteRequest={editItem ? handleDeleteRequest : undefined}
         tiposPermitidos={['funcionario', 'instrutor']}
-        titulo={editItem ? 'Editar Colaborador' : 'Novo Colaborador'}
+        titulo="Novo Colaborador"
       />
 
       <Dialog open={!!deleteTarget} onOpenChange={o => !o && setDeleteTarget(null)}>
