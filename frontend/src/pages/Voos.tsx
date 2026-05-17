@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { TablePagination } from '@/components/ui/pagination'
 import { Search, Plus, Pencil, Trash2, Plane } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,13 +13,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { VooFormModal, type VooFormData } from '@/components/voos/VooFormModal'
-import { getVoos, createVoo, updateVoo, deleteVoo, type Voo } from '@/services/voosService'
-import { createTituloReceber } from '@/services/titulosReceberService'
-import { createTituloPagar } from '@/services/titulosPagarService'
+import { getVoos, deleteVoo, type Voo } from '@/services/voosService'
 import { getAeronaves, type Aeronave } from '@/services/aeronavesService'
-import { getEntidades, type Entidade } from '@/services/entidadesService'
-import { getUsers, type User } from '@/services/usersService'
 import { TIPO_VOO_LABELS, type TipoVoo, ALL_TIPOS_VOO } from '@/mocks/voos'
 import { cn } from '@/lib/utils'
 
@@ -37,18 +33,16 @@ const TIPO_VOO_COLORS: Record<TipoVoo, string> = {
 }
 
 export default function Voos() {
+  const navigate = useNavigate()
+
   const [voos, setVoos] = useState<Voo[]>([])
   const [aeronaves, setAeronaves] = useState<Aeronave[]>([])
-  const [usuarios, setUsuarios] = useState<User[]>([])
-  const [instrutores, setInstrutores] = useState<Entidade[]>([])
   const [loading, setLoading] = useState(true)
 
   const [search, setSearch] = useState('')
   const [tipoFilter, setTipoFilter] = useState<TipoVoo | 'all'>('all')
   const [aeronaveFilter, setAeronaveFilter] = useState<string>('all')
 
-  const [editVoo, setEditVoo] = useState<(VooFormData & { id: string }) | null>(null)
-  const [modalOpen, setModalOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Voo | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [page, setPage] = useState(1)
@@ -56,16 +50,9 @@ export default function Voos() {
   useEffect(() => { setPage(1) }, [search, tipoFilter, aeronaveFilter])
 
   useEffect(() => {
-    Promise.all([
-      getVoos(),
-      getAeronaves(),
-      getUsers(),
-      getEntidades('instrutor'),
-    ]).then(([vs, avs, us, insts]) => {
+    Promise.all([getVoos(), getAeronaves()]).then(([vs, avs]) => {
       setVoos(vs)
       setAeronaves(avs)
-      setUsuarios(us)
-      setInstrutores(insts)
       setLoading(false)
     })
   }, [])
@@ -88,52 +75,6 @@ export default function Voos() {
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE)
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
-
-  async function handleSave(data: VooFormData) {
-    if (editVoo) {
-      const updated = await updateVoo(editVoo.id, data)
-      setVoos(prev => prev.map(v => (v.id === editVoo.id ? updated : v)))
-    } else {
-      const voo = await createVoo(data)
-      setVoos(prev => [voo, ...prev])
-
-      const descricaoVoo = `${TIPO_VOO_LABELS[voo.tipo_voo]} – ${voo.tempo_decimal.toFixed(1)}h – ${voo.aeronave_nome}`
-
-      await createTituloReceber({
-        usuario_nome: voo.participante_nome,
-        tipo: 'voo',
-        descricao: descricaoVoo,
-        num_parcela: 1,
-        total_parcelas: 1,
-        valor: voo.tempo_decimal * voo.valor_hora,
-        valor_pago: 0,
-        juros_aplicado: 0,
-        data_emissao: voo.data,
-        data_vencimento: voo.data_vencimento,
-        data_pagamento: null,
-        status: 'em_aberto',
-      })
-
-      if (voo.instrutor_id && voo.instrutor_nome && voo.taxa_instrutor && voo.taxa_instrutor > 0) {
-        const valorInstrutor = voo.tempo_decimal * voo.valor_hora * (voo.taxa_instrutor / 100)
-        await createTituloPagar({
-          tipo: 'instrutor',
-          favorecido: voo.instrutor_nome,
-          descricao: `Instrução – ${descricaoVoo}`,
-          num_parcela: 1,
-          total_parcelas: 1,
-          valor: valorInstrutor,
-          data_emissao: voo.data,
-          data_vencimento: voo.data_vencimento,
-          status: 'em_aberto',
-          valor_pago: null,
-          data_pagamento: null,
-          recorrente: false,
-        })
-      }
-    }
-  }
-
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
@@ -141,21 +82,6 @@ export default function Voos() {
     setVoos(prev => prev.filter(v => v.id !== deleteTarget.id))
     setDeleteTarget(null)
     setDeleting(false)
-  }
-
-  function openCreate() {
-    setEditVoo(null)
-    setModalOpen(true)
-  }
-
-  function openEdit(v: Voo) {
-    setEditVoo({ ...v })
-    setModalOpen(true)
-  }
-
-  function handleDeleteRequest() {
-    setModalOpen(false)
-    if (editVoo) setDeleteTarget(voos.find(v => v.id === editVoo.id) ?? null)
   }
 
   return (
@@ -166,7 +92,6 @@ export default function Voos() {
           Registro e controle de todos os voos realizados
         </p>
       </div>
-
 
       <div className="flex items-center gap-3">
         <div className="relative w-64">
@@ -202,7 +127,7 @@ export default function Voos() {
             </option>
           ))}
         </select>
-        <Button onClick={openCreate} className="ml-auto shrink-0">
+        <Button onClick={() => navigate('/voos/novo')} className="ml-auto shrink-0">
           <Plus className="h-4 w-4" />
           Registrar Voo
         </Button>
@@ -234,30 +159,14 @@ export default function Voos() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/30">
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
-                      Data
-                    </th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">
-                      Tipo
-                    </th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
-                      Participante
-                    </th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">
-                      Instrutor
-                    </th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden lg:table-cell">
-                      Aeronave
-                    </th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
-                      Tempo
-                    </th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
-                      Valor
-                    </th>
-                    <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
-                      Ações
-                    </th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Data</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">Tipo</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Participante</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden md:table-cell">Instrutor</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden lg:table-cell">Aeronave</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Tempo</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Valor</th>
+                    <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -292,17 +201,19 @@ export default function Voos() {
                         </div>
                       </td>
                       <td className="px-4 py-3 font-medium whitespace-nowrap">
-                        {v.tempo_decimal.toFixed(1)}h
+                        {v.tipo_aeronave === 'planador'
+                          ? `${Math.round(v.tempo_decimal * 60)}min`
+                          : `${v.tempo_decimal.toFixed(1)}h`}
                       </td>
                       <td className="px-4 py-3 font-medium whitespace-nowrap">
-                        {fmt(v.tempo_decimal * v.valor_hora)}
+                        {fmt(v.valor_voo)}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
                           <Button
                             variant="ghost"
                             size="icon-sm"
-                            onClick={() => openEdit(v)}
+                            onClick={() => navigate(`/voos/${v.id}/editar`, { state: { voo: v } })}
                             title="Editar voo"
                           >
                             <Pencil className="h-3.5 w-3.5" />
@@ -327,17 +238,6 @@ export default function Voos() {
           <TablePagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </CardContent>
       </Card>
-
-      <VooFormModal
-        voo={editVoo}
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onSave={handleSave}
-        onDeleteRequest={editVoo ? handleDeleteRequest : undefined}
-        aeronaves={aeronaves}
-        usuarios={usuarios}
-        instrutores={instrutores}
-      />
 
       <Dialog open={!!deleteTarget} onOpenChange={o => !o && setDeleteTarget(null)}>
         <DialogContent className="sm:max-w-sm">

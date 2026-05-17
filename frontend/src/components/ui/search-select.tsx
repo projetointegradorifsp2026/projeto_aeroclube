@@ -1,4 +1,5 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronDown, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -29,6 +30,8 @@ export function SearchSelect({
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const [dropdownStyle, setDropdownStyle] = useState<{ top: number; left: number; width: number } | null>(null)
 
   const selected = options.find(o => o.value === value)
 
@@ -37,6 +40,17 @@ export function SearchSelect({
     const q = query.toLowerCase()
     return options.filter(o => o.label.toLowerCase().includes(q))
   }, [options, query])
+
+  useEffect(() => {
+    if (open && wrapperRef.current) {
+      const rect = wrapperRef.current.getBoundingClientRect()
+      setDropdownStyle({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+      })
+    }
+  }, [open])
 
   function handleFocus() {
     setQuery('')
@@ -72,7 +86,7 @@ export function SearchSelect({
   const displayValue = open ? query : (selected?.label ?? '')
 
   return (
-    <div className="relative w-full">
+    <div ref={wrapperRef} className="relative w-full">
       <div className="relative">
         <input
           ref={inputRef}
@@ -114,8 +128,17 @@ export function SearchSelect({
         </div>
       </div>
 
-      {open && (
-        <div className="absolute top-full left-0 right-0 mt-1 z-[200] rounded-lg border border-border bg-popover shadow-md overflow-hidden">
+      {open && dropdownStyle && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            top: dropdownStyle.top,
+            left: dropdownStyle.left,
+            width: dropdownStyle.width,
+            zIndex: 9999,
+          }}
+          className="rounded-lg border border-border bg-popover shadow-md overflow-hidden"
+        >
           <div className="max-h-48 overflow-y-auto">
             {filtered.length === 0 ? (
               <div className="px-3 py-5 text-center text-sm text-muted-foreground">
@@ -147,7 +170,8 @@ export function SearchSelect({
               ))
             )}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   )

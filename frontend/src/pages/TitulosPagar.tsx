@@ -444,60 +444,80 @@ export default function TitulosPagar() {
       />
 
       {/* Baixa Dialog */}
-      <Dialog open={!!baixaTarget} onOpenChange={o => !o && setBaixaTarget(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Dar baixa no título</DialogTitle>
-            <DialogDescription>
-              <strong className="text-foreground">{baixaTarget?.favorecido}</strong>
-              {' — '}
-              {baixaTarget?.descricao}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-1">
-            <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm space-y-1.5">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Valor original</span>
-                <span className="font-medium">{baixaTarget && fmt(baixaTarget.valor)}</span>
+      {(() => {
+        const valorPago = parseFloat(baixaValor)
+        const baixaValorError =
+          baixaTarget && !isNaN(valorPago) && valorPago > baixaTarget.valor
+            ? `O valor não pode ser maior que ${fmt(baixaTarget.valor)}`
+            : null
+        return (
+          <Dialog open={!!baixaTarget} onOpenChange={o => !o && setBaixaTarget(null)}>
+            <DialogContent className="sm:max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Dar baixa no título</DialogTitle>
+                <DialogDescription>
+                  <strong className="text-foreground">{baixaTarget?.favorecido}</strong>
+                  {' — '}
+                  {baixaTarget?.descricao}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-1">
+                <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Valor original</span>
+                    <span className="font-medium">{baixaTarget && fmt(baixaTarget.valor)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Vencimento</span>
+                    <span className={baixaTarget && isAtrasado(baixaTarget) ? 'text-rose-500 font-medium' : ''}>
+                      {baixaTarget && fmtDate(baixaTarget.data_vencimento)}
+                    </span>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Valor pago (R$)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    className={cn(
+                      'h-10 w-full rounded-lg border bg-background px-2.5 text-sm outline-none focus:ring-2 transition-shadow',
+                      baixaValorError
+                        ? 'border-destructive focus:ring-destructive/50'
+                        : 'border-input focus:ring-ring/50',
+                    )}
+                    value={baixaValor}
+                    onChange={e => setBaixaValor(e.target.value)}
+                  />
+                  {baixaValorError && (
+                    <p className="text-xs text-destructive">{baixaValorError}</p>
+                  )}
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Data de pagamento</label>
+                  <input
+                    type="date"
+                    className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
+                    value={baixaData}
+                    onChange={e => setBaixaData(e.target.value)}
+                  />
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Vencimento</span>
-                <span className={baixaTarget && isAtrasado(baixaTarget) ? 'text-rose-500 font-medium' : ''}>
-                  {baixaTarget && fmtDate(baixaTarget.data_vencimento)}
-                </span>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Valor pago (R$)</label>
-              <input
-                type="number"
-                min={0}
-                step={0.01}
-                className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
-                value={baixaValor}
-                onChange={e => setBaixaValor(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Data de pagamento</label>
-              <input
-                type="date"
-                className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
-                value={baixaData}
-                onChange={e => setBaixaData(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setBaixaTarget(null)} disabled={baixando}>
-              Cancelar
-            </Button>
-            <Button onClick={handleBaixa} disabled={baixando || !baixaValor || !baixaData}>
-              {baixando ? 'Baixando...' : 'Confirmar Baixa'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setBaixaTarget(null)} disabled={baixando}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleBaixa}
+                  disabled={baixando || !baixaValor || !baixaData || !!baixaValorError}
+                >
+                  {baixando ? 'Baixando...' : 'Confirmar Baixa'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )
+      })()}
 
       {/* Delete Dialog */}
       <Dialog open={!!deleteTarget} onOpenChange={o => !o && setDeleteTarget(null)}>

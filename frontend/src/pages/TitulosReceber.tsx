@@ -452,78 +452,96 @@ export default function TitulosReceber() {
       />
 
       {/* Baixa Dialog */}
-      <Dialog open={!!baixaTarget} onOpenChange={o => !o && setBaixaTarget(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Registrar recebimento</DialogTitle>
-            <DialogDescription>
-              <strong className="text-foreground">{baixaTarget?.usuario_nome}</strong>
-              {' — '}
-              {baixaTarget?.descricao}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-1">
-            <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm space-y-1.5">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Valor original</span>
-                <span className="font-medium">{baixaTarget && fmt(baixaTarget.valor)}</span>
-              </div>
-              {baixaTarget && baixaTarget.juros_aplicado > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Juros</span>
-                  <span className="text-rose-500">+{fmt(baixaTarget.juros_aplicado)}</span>
+      {(() => {
+        const valorRecebido = parseFloat(baixaValor)
+        const baixaValorError =
+          baixaTarget && !isNaN(valorRecebido) && valorRecebido > restanteBaixa
+            ? `O valor não pode ser maior que o saldo restante (${fmt(restanteBaixa)})`
+            : null
+        return (
+          <Dialog open={!!baixaTarget} onOpenChange={o => !o && setBaixaTarget(null)}>
+            <DialogContent className="sm:max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Registrar recebimento</DialogTitle>
+                <DialogDescription>
+                  <strong className="text-foreground">{baixaTarget?.usuario_nome}</strong>
+                  {' — '}
+                  {baixaTarget?.descricao}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-1">
+                <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Valor original</span>
+                    <span className="font-medium">{baixaTarget && fmt(baixaTarget.valor)}</span>
+                  </div>
+                  {baixaTarget && baixaTarget.juros_aplicado > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Juros</span>
+                      <span className="text-rose-500">+{fmt(baixaTarget.juros_aplicado)}</span>
+                    </div>
+                  )}
+                  {baixaTarget && baixaTarget.valor_pago > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Já recebido</span>
+                      <span className="text-emerald-600">−{fmt(baixaTarget.valor_pago)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between border-t border-border pt-1.5 mt-1">
+                    <span className="text-muted-foreground font-medium">Saldo restante</span>
+                    <span className="font-semibold">{fmt(restanteBaixa)}</span>
+                  </div>
                 </div>
-              )}
-              {baixaTarget && baixaTarget.valor_pago > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Já recebido</span>
-                  <span className="text-emerald-600">−{fmt(baixaTarget.valor_pago)}</span>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Valor a receber (R$)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    className={cn(
+                      'h-10 w-full rounded-lg border bg-background px-2.5 text-sm outline-none focus:ring-2 transition-shadow',
+                      baixaValorError
+                        ? 'border-destructive focus:ring-destructive/50'
+                        : 'border-input focus:ring-ring/50',
+                    )}
+                    value={baixaValor}
+                    onChange={e => setBaixaValor(e.target.value)}
+                  />
+                  {baixaValorError ? (
+                    <p className="text-xs text-destructive">{baixaValorError}</p>
+                  ) : (
+                    valorRecebido > 0 && valorRecebido < restanteBaixa && (
+                      <p className="text-xs text-muted-foreground">
+                        Baixa parcial — saldo de {fmt(restanteBaixa - valorRecebido)} permanecerá em aberto
+                      </p>
+                    )
+                  )}
                 </div>
-              )}
-              <div className="flex justify-between border-t border-border pt-1.5 mt-1">
-                <span className="text-muted-foreground font-medium">Saldo restante</span>
-                <span className="font-semibold">{fmt(restanteBaixa)}</span>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Data de recebimento</label>
+                  <input
+                    type="date"
+                    className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
+                    value={baixaData}
+                    onChange={e => setBaixaData(e.target.value)}
+                  />
+                </div>
               </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Valor a receber (R$)</label>
-              <input
-                type="number"
-                min={0}
-                step={0.01}
-                className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
-                value={baixaValor}
-                onChange={e => setBaixaValor(e.target.value)}
-              />
-              {parseFloat(baixaValor) > 0 && parseFloat(baixaValor) < restanteBaixa && (
-                <p className="text-xs text-muted-foreground">
-                  Baixa parcial — saldo de {fmt(restanteBaixa - parseFloat(baixaValor))} permanecerá em aberto
-                </p>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Data de recebimento</label>
-              <input
-                type="date"
-                className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
-                value={baixaData}
-                onChange={e => setBaixaData(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setBaixaTarget(null)} disabled={baixando}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleBaixa}
-              disabled={baixando || !baixaValor || !baixaData || parseFloat(baixaValor) <= 0}
-            >
-              {baixando ? 'Registrando...' : 'Confirmar Recebimento'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setBaixaTarget(null)} disabled={baixando}>
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleBaixa}
+                  disabled={baixando || !baixaValor || !baixaData || valorRecebido <= 0 || !!baixaValorError}
+                >
+                  {baixando ? 'Registrando...' : 'Confirmar Recebimento'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )
+      })()}
 
       {/* Delete Dialog */}
       <Dialog open={!!deleteTarget} onOpenChange={o => !o && setDeleteTarget(null)}>

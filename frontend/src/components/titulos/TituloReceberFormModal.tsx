@@ -264,7 +264,7 @@ export function TituloReceberFormModal({
                 onChange={e => setVencimento(0, e.target.value)}
               />
             ) : (
-              <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+              <div className="space-y-2">
                 {Array.from({ length: form.total_parcelas }, (_, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <span className="text-xs text-muted-foreground w-20 shrink-0">

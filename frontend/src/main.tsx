@@ -16,6 +16,7 @@ import Aeronaves from './pages/Aeronaves';
 import Fornecedores from './pages/Fornecedores';
 import ContaFixa from './pages/ContaFixa';
 import Voos from './pages/Voos';
+import VooFormPage from './pages/VooFormPage';
 
 
 const router = createBrowserRouter([
@@ -37,7 +38,9 @@ const router = createBrowserRouter([
       { path: "aeronaves", element: <Aeronaves /> },
       { path: "fornecedores", element: <Fornecedores /> },
       { path: "conta-fixa", element: <ContaFixa /> },
-      { path: "voos", element: <Voos /> }
+      { path: "voos", element: <Voos /> },
+      { path: "voos/novo", element: <VooFormPage /> },
+      { path: "voos/:id/editar", element: <VooFormPage /> },
     ]
   }
 ])
