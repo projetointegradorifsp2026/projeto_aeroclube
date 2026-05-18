@@ -46,12 +46,13 @@ const todayStr = () => new Date().toISOString().split('T')[0]
 
 type MovRow = {
   id: string
-  tipo: 'entrada' | 'saida'
+  tipo: 'entrada' | 'saida' | 'carteira'
   data: string
   descricao: string
   valor: number
   valor_pago: number
   status: 'em_aberto' | 'pago_parcial' | 'baixado'
+  carteira_debito?: boolean
 }
 
 const PROFILE_COLORS: Record<UserProfile, string> = {
@@ -113,16 +114,27 @@ export default function UsuarioPerfilPage() {
 
   async function reloadMovimentacoes(nomeUsuario: string) {
     const [allReceber, allPagar] = await Promise.all([getTitulosReceber(), getTitulosPagar()])
-    const userReceber = allReceber.filter(t => t.usuario_id === id && t.status === 'baixado')
+    const userReceber = allReceber.filter(t => t.usuario_id === id && t.status === 'baixado' && t.tipo !== 'carteira' && !(t.valor_carteira && t.valor_carteira >= t.valor))
+    const userCarteira = allReceber.filter(t => t.usuario_id === id && t.tipo === 'carteira')
     const userPagar = allPagar.filter(t => t.favorecido === nomeUsuario && t.status === 'baixado')
     const entradas: MovRow[] = userReceber.map(t => ({
       id: `r-${t.id}`,
       tipo: 'entrada' as const,
       data: t.data_emissao,
       descricao: t.descricao,
-      valor: t.valor + t.juros_aplicado,
+      valor: t.valor,
       valor_pago: t.valor_pago,
       status: t.status,
+    }))
+    const carteiraRows: MovRow[] = userCarteira.map(t => ({
+      id: `c-${t.id}`,
+      tipo: 'carteira' as const,
+      data: t.data_emissao,
+      descricao: t.descricao,
+      valor: t.valor,
+      valor_pago: t.valor_pago,
+      status: t.status,
+      carteira_debito: t.carteira_debito,
     }))
     const saidas: MovRow[] = userPagar.map(t => ({
       id: `p-${t.id}`,
@@ -133,7 +145,7 @@ export default function UsuarioPerfilPage() {
       valor_pago: t.valor_pago ?? 0,
       status: t.status,
     }))
-    setMovimentacoes([...entradas, ...saidas].sort((a, b) => b.data.localeCompare(a.data)))
+    setMovimentacoes([...entradas, ...carteiraRows, ...saidas].sort((a, b) => b.data.localeCompare(a.data)))
     setMovPage(1)
   }
 
@@ -144,7 +156,8 @@ export default function UsuarioPerfilPage() {
         const found = users.find(u => u.id === id)
         if (!found) { navigate('/usuarios'); return }
 
-        const userReceber = allReceber.filter(t => t.usuario_id === id && t.status === 'baixado')
+        const userReceber = allReceber.filter(t => t.usuario_id === id && t.status === 'baixado' && t.tipo !== 'carteira' && !(t.valor_carteira && t.valor_carteira >= t.valor))
+        const userCarteira = allReceber.filter(t => t.usuario_id === id && t.tipo === 'carteira')
         const userPagar = allPagar.filter(t => t.favorecido === found.nome && t.status === 'baixado')
 
         const entradas: MovRow[] = userReceber.map(t => ({
@@ -152,9 +165,19 @@ export default function UsuarioPerfilPage() {
           tipo: 'entrada' as const,
           data: t.data_emissao,
           descricao: t.descricao,
-          valor: t.valor + t.juros_aplicado,
+          valor: t.valor,
           valor_pago: t.valor_pago,
           status: t.status,
+        }))
+        const carteiraRows: MovRow[] = userCarteira.map(t => ({
+          id: `c-${t.id}`,
+          tipo: 'carteira' as const,
+          data: t.data_emissao,
+          descricao: t.descricao,
+          valor: t.valor,
+          valor_pago: t.valor_pago,
+          status: t.status,
+          carteira_debito: t.carteira_debito,
         }))
         const saidas: MovRow[] = userPagar.map(t => ({
           id: `p-${t.id}`,
@@ -168,7 +191,7 @@ export default function UsuarioPerfilPage() {
 
         setUser(found)
         setMovimentacoes(
-          [...entradas, ...saidas].sort((a, b) => b.data.localeCompare(a.data)),
+          [...entradas, ...carteiraRows, ...saidas].sort((a, b) => b.data.localeCompare(a.data)),
         )
         setTitulos(
           allReceber
@@ -192,7 +215,7 @@ export default function UsuarioPerfilPage() {
   const someSelected = selectableTitulos.some(t => selectedIds.has(t.id)) && !allSelected
   const selectedTitulos = titulos.filter(t => selectedIds.has(t.id))
   const totalBatch = selectedTitulos.reduce(
-    (sum, t) => sum + (t.valor + t.juros_aplicado - t.valor_pago),
+    (sum, t) => sum + (t.valor - t.valor_pago),
     0,
   )
 
@@ -298,7 +321,7 @@ export default function UsuarioPerfilPage() {
     setBatchBaixando(true)
     const updates = await Promise.all(
       selectedTitulos.map(t => {
-        const remaining = t.valor + t.juros_aplicado - t.valor_pago
+        const remaining = t.valor - t.valor_pago
         return baixarTituloReceber(t.id, remaining, batchData)
       }),
     )
@@ -529,20 +552,25 @@ export default function UsuarioPerfilPage() {
                           'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
                           m.tipo === 'entrada'
                             ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                            : m.tipo === 'carteira'
+                            ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
                             : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
                         )}>
-                          {m.tipo === 'entrada' ? 'Entrada' : 'Saída'}
+                          {m.tipo === 'entrada' ? 'Entrada' : m.tipo === 'carteira' ? 'Carteira' : 'Saída'}
                         </span>
                       </td>
                       <td className="px-4 py-3 max-w-[200px]">
                         <p className="truncate font-medium">{m.descricao}</p>
                       </td>
                       <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
-                        <span className={m.tipo === 'entrada'
-                          ? 'text-emerald-600 dark:text-emerald-400'
-                          : 'text-rose-600 dark:text-rose-400'
+                        <span className={
+                          m.tipo === 'entrada'
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : m.tipo === 'carteira'
+                            ? 'text-teal-600 dark:text-teal-400'
+                            : 'text-rose-600 dark:text-rose-400'
                         }>
-                          {m.tipo === 'entrada' ? '+' : '-'}{fmt(m.valor)}
+                          {m.tipo === 'entrada' ? '+' : m.tipo === 'carteira' ? (m.carteira_debito ? '−' : '+') : '−'}{fmt(m.valor)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell whitespace-nowrap">
@@ -634,7 +662,7 @@ export default function UsuarioPerfilPage() {
                       <td className="px-4 py-3 text-muted-foreground max-w-xs truncate">{t.descricao}</td>
                       <td className="px-4 py-3 whitespace-nowrap hidden sm:table-cell">{t.num_parcela}/{t.total_parcelas}</td>
                       <td className="px-4 py-3 whitespace-nowrap hidden md:table-cell">{fmtDate(t.data_vencimento)}</td>
-                      <td className="px-4 py-3 text-right font-medium whitespace-nowrap">{fmt(t.valor + t.juros_aplicado)}</td>
+                      <td className="px-4 py-3 text-right font-medium whitespace-nowrap">{fmt(t.valor)}</td>
                       <td className="px-4 py-3 text-right whitespace-nowrap text-muted-foreground hidden sm:table-cell">{fmt(t.valor_pago)}</td>
                       <td className="px-4 py-3">
                         <span className={cn('inline-flex rounded-full px-2 py-0.5 text-xs font-medium', TITULO_STATUS_COLORS[t.status])}>
@@ -796,7 +824,7 @@ export default function UsuarioPerfilPage() {
       {(() => {
         const valorRecebido = parseFloat(baixaValor)
         const restante = baixaTarget
-          ? baixaTarget.valor + baixaTarget.juros_aplicado - baixaTarget.valor_pago
+          ? baixaTarget.valor - baixaTarget.valor_pago
           : 0
         const baixaValorError =
           baixaTarget && !isNaN(valorRecebido) && valorRecebido > restante
@@ -860,7 +888,7 @@ export default function UsuarioPerfilPage() {
           <div className="space-y-3 py-1">
             <div className="max-h-48 overflow-y-auto divide-y divide-border rounded-lg border border-border">
               {selectedTitulos.map(t => {
-                const restante = t.valor + t.juros_aplicado - t.valor_pago
+                const restante = t.valor - t.valor_pago
                 return (
                   <div key={t.id} className="flex items-center justify-between px-3 py-2 text-sm">
                     <span className="text-muted-foreground flex-1 truncate pr-4">{t.descricao}</span>

@@ -152,10 +152,14 @@ export function SearchSelect({
             width: dropdownStyle.width,
             zIndex: 9999,
           }}
-          // stopPropagation prevents Radix UI DismissableLayer from intercepting
-          // pointer events on the portal, which would block option selection
-          onPointerDown={e => e.stopPropagation()}
-          onMouseDown={e => e.stopPropagation()}
+          onPointerDown={e => {
+            e.stopPropagation()
+            e.nativeEvent.stopImmediatePropagation()
+          }}
+          onMouseDown={e => {
+            e.stopPropagation()
+            e.nativeEvent.stopImmediatePropagation()
+          }}
           data-search-select-portal="true"
           className="rounded-lg border border-border bg-popover shadow-md overflow-hidden"
         >

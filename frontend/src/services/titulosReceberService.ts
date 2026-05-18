@@ -37,18 +37,24 @@ export async function baixarTituloReceber(
   id: string,
   valorNovoPagamento: number,
   dataPagamento: string,
+  multa = 0,
+  valorCarteira = 0,
 ): Promise<TituloReceber> {
   await delay()
   const idx = store.findIndex(t => t.id === id)
   if (idx === -1) throw new Error('Título não encontrado')
   const current = store[idx]
   const totalPago = current.valor_pago + valorNovoPagamento
-  const isBaixado = totalPago >= current.valor + current.juros_aplicado
+  const isBaixado = totalPago >= current.valor + multa
   const updated: TituloReceber = {
     ...current,
     valor_pago: totalPago,
+    multa,
     status: isBaixado ? 'baixado' : 'pago_parcial',
     data_pagamento: isBaixado ? dataPagamento : null,
+    ...(valorCarteira > 0
+      ? { valor_carteira: (current.valor_carteira ?? 0) + valorCarteira }
+      : {}),
   }
   store = store.map(t => (t.id === id ? updated : t))
   return updated

@@ -32,6 +32,9 @@ export interface TituloReceber {
   valor: number
   valor_pago: number
   juros_aplicado: number
+  multa?: number
+  valor_carteira?: number
+  carteira_debito?: boolean
   data_emissao: string
   data_vencimento: string
   data_pagamento: string | null

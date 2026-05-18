@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { Trash2 } from 'lucide-react'
 import {
   Dialog,
@@ -14,7 +14,6 @@ import {
   type TituloReceber,
   type TituloReceberTipo,
   TITULO_RECEBER_TIPO_LABELS,
-  ALL_TITULO_RECEBER_TIPOS,
 } from '@/mocks/titulos'
 import { cn } from '@/lib/utils'
 
@@ -24,9 +23,10 @@ export interface TituloReceberFormData {
   descricao: string
   total_parcelas: number
   valor: number
-  juros_aplicado: number
+  multa: number
   data_emissao: string
   parcela_vencimentos: string[]
+  parcela_valores: number[]
 }
 
 interface TituloReceberFormModalProps {
@@ -37,18 +37,43 @@ interface TituloReceberFormModalProps {
   onDeleteRequest?: () => void
 }
 
+const TIPOS_FORM: TituloReceberTipo[] = ['mensalidade', 'pontual', 'servico']
+
 const todayStr = () => new Date().toISOString().split('T')[0]
 
+function addMonths(dateStr: string, months: number): string {
+  const d = new Date(dateStr + 'T00:00:00')
+  d.setMonth(d.getMonth() + months)
+  return d.toISOString().split('T')[0]
+}
+
+function distributeValor(total: number, count: number): number[] {
+  if (count <= 0) return []
+  if (count === 1) return [total]
+  const totalRounded = Math.round(total)
+  if (Math.abs(total - totalRounded) < 0.005) {
+    const base = Math.floor(totalRounded / count)
+    const remainder = totalRounded - base * count
+    return Array.from({ length: count }, (_, i) => (i < remainder ? base + 1 : base))
+  }
+  const totalCents = Math.round(total * 100)
+  const base = Math.floor(totalCents / count)
+  const remainder = totalCents - base * count
+  return Array.from({ length: count }, (_, i) => (i < remainder ? base + 1 : base) / 100)
+}
+
 function makeEmptyForm(): TituloReceberFormData {
+  const hoje = todayStr()
   return {
     usuario_nome: '',
     tipo: 'mensalidade',
     descricao: '',
     total_parcelas: 1,
     valor: 0,
-    juros_aplicado: 0,
-    data_emissao: todayStr(),
-    parcela_vencimentos: [''],
+    multa: 0,
+    data_emissao: hoje,
+    parcela_vencimentos: [addMonths(hoje, 1)],
+    parcela_valores: [0],
   }
 }
 
@@ -78,6 +103,12 @@ export function TituloReceberFormModal({
   const [saving, setSaving] = useState(false)
   const isEdit = !!titulo
 
+  const isTituloAtrasado =
+    titulo != null &&
+    titulo.status !== 'baixado' &&
+    new Date(titulo.data_vencimento + 'T00:00:00') < new Date()
+  const showMultaField = isEdit && (titulo?.status === 'baixado' || isTituloAtrasado)
+
   useEffect(() => {
     if (open) {
       setForm(
@@ -88,9 +119,10 @@ export function TituloReceberFormModal({
               descricao: titulo.descricao,
               total_parcelas: 1,
               valor: titulo.valor,
-              juros_aplicado: titulo.juros_aplicado,
+              multa: titulo.multa ?? 0,
               data_emissao: titulo.data_emissao,
               parcela_vencimentos: [titulo.data_vencimento],
+              parcela_valores: [titulo.valor],
             }
           : makeEmptyForm(),
       )
@@ -98,12 +130,32 @@ export function TituloReceberFormModal({
     }
   }, [titulo, open])
 
+  function handleValorChange(val: number) {
+    setForm(p => ({
+      ...p,
+      valor: val,
+      parcela_valores: distributeValor(val, p.total_parcelas),
+    }))
+  }
+
+  function handleDataEmissaoChange(date: string) {
+    setForm(p => ({
+      ...p,
+      data_emissao: date,
+      parcela_vencimentos: Array.from({ length: p.total_parcelas }, (_, i) => addMonths(date, i + 1)),
+    }))
+  }
+
   function handleTotalParcelasChange(val: number) {
     const n = Math.max(1, Math.min(24, val || 1))
     setForm(prev => ({
       ...prev,
       total_parcelas: n,
-      parcela_vencimentos: Array.from({ length: n }, (_, i) => prev.parcela_vencimentos[i] ?? ''),
+      parcela_vencimentos: Array.from(
+        { length: n },
+        (_, i) => prev.parcela_vencimentos[i] || addMonths(prev.data_emissao, i + 1),
+      ),
+      parcela_valores: distributeValor(prev.valor || 0, n),
     }))
   }
 
@@ -112,6 +164,14 @@ export function TituloReceberFormModal({
       const arr = [...prev.parcela_vencimentos]
       arr[i] = value
       return { ...prev, parcela_vencimentos: arr }
+    })
+  }
+
+  function setParcelaValor(i: number, val: number) {
+    setForm(prev => {
+      const arr = [...prev.parcela_valores]
+      arr[i] = val
+      return { ...prev, parcela_valores: arr }
     })
   }
 
@@ -142,9 +202,11 @@ export function TituloReceberFormModal({
     }
   }
 
+  const count = form.total_parcelas
+
   return (
     <Dialog open={open} onOpenChange={o => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEdit ? 'Editar Título a Receber' : 'Novo Título a Receber'}
@@ -176,7 +238,7 @@ export function TituloReceberFormModal({
                 value={form.tipo}
                 onChange={e => setForm(p => ({ ...p, tipo: e.target.value as TituloReceberTipo }))}
               >
-                {ALL_TITULO_RECEBER_TIPOS.map(t => (
+                {TIPOS_FORM.map(t => (
                   <option key={t} value={t}>
                     {TITULO_RECEBER_TIPO_LABELS[t]}
                   </option>
@@ -197,41 +259,28 @@ export function TituloReceberFormModal({
             />
           </div>
 
-          {/* Valor + Juros + Emissão + Parcelas */}
-          <div className={cn('grid gap-3', isEdit ? 'grid-cols-3' : 'grid-cols-4')}>
+          {/* Valor Total + Emissão + Parcelas */}
+          <div className={cn('grid gap-3', isEdit ? 'grid-cols-2' : 'grid-cols-3')}>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Valor (R$)</label>
+              <label className="text-sm font-medium">Valor Total (R$)</label>
               <Input
                 type="number"
                 min={0}
                 step={0.01}
                 placeholder="0,00"
                 value={form.valor || ''}
-                onChange={e => setForm(p => ({ ...p, valor: parseFloat(e.target.value) || 0 }))}
+                onChange={e => handleValorChange(parseFloat(e.target.value) || 0)}
                 hasError={!!errors.valor}
                 helper={errors.valor}
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Juros (R$)</label>
-              <Input
-                type="number"
-                min={0}
-                step={0.01}
-                placeholder="0,00"
-                value={form.juros_aplicado || ''}
-                onChange={e =>
-                  setForm(p => ({ ...p, juros_aplicado: parseFloat(e.target.value) || 0 }))
-                }
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Emissão</label>
+              <label className="text-sm font-medium">Data de emissão</label>
               <input
                 type="date"
                 className={dateCls}
                 value={form.data_emissao}
-                onChange={e => setForm(p => ({ ...p, data_emissao: e.target.value }))}
+                onChange={e => handleDataEmissaoChange(e.target.value)}
               />
               {errors.data_emissao && (
                 <p className="text-xs text-destructive">{errors.data_emissao}</p>
@@ -251,30 +300,48 @@ export function TituloReceberFormModal({
             )}
           </div>
 
-          {/* Vencimentos por parcela */}
+          {/* Vencimentos + Valores por parcela */}
           <div className="space-y-2">
-            <label className="text-sm font-medium">
-              {form.total_parcelas === 1 ? 'Data de vencimento' : 'Vencimentos por parcela'}
-            </label>
-            {form.total_parcelas === 1 ? (
-              <input
-                type="date"
-                className={dateCls}
-                value={form.parcela_vencimentos[0] ?? ''}
-                onChange={e => setVencimento(0, e.target.value)}
-              />
+            <div className="grid grid-cols-[calc(50%+16px)_calc(50%-26px)]">
+              <label className="text-sm font-medium">Vencimento</label>
+              <label className="text-sm font-medium">Valor (R$)</label>
+            </div>
+            {count === 1 ? (
+              <div className="grid grid-cols-[12px_1fr_1fr] items-center gap-2">
+                <span className="text-xs text-muted-foreground shrink-0">1</span>
+                <input
+                  type="date"
+                  className={dateCls}
+                  value={form.parcela_vencimentos[0] ?? ''}
+                  onChange={e => setVencimento(0, e.target.value)}
+                />
+                <Input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  placeholder="0,00"
+                  value={form.parcela_valores[0] ?? ''}
+                  onChange={e => setParcelaValor(0, parseFloat(e.target.value) || 0)}
+                />
+              </div>
             ) : (
-              <div className="space-y-2">
-                {Array.from({ length: form.total_parcelas }, (_, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground w-20 shrink-0">
-                      Parcela {i + 1}
-                    </span>
+              <div className="space-y-1.5">
+                {Array.from({ length: count }, (_, i) => (
+                  <div key={i} className="grid grid-cols-[12px_1fr_1fr] items-center gap-2">
+                    <span className="text-xs text-muted-foreground shrink-0">{i + 1}</span>
                     <input
                       type="date"
-                      className={cn(dateCls, 'flex-1')}
+                      className={dateCls}
                       value={form.parcela_vencimentos[i] ?? ''}
                       onChange={e => setVencimento(i, e.target.value)}
+                    />
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      placeholder="0,00"
+                      value={form.parcela_valores[i] ?? ''}
+                      onChange={e => setParcelaValor(i, parseFloat(e.target.value) || 0)}
                     />
                   </div>
                 ))}
@@ -284,6 +351,21 @@ export function TituloReceberFormModal({
               <p className="text-xs text-destructive">{errors.parcela_vencimentos}</p>
             )}
           </div>
+
+          {/* Multa — only for overdue or already paid titles */}
+          {showMultaField && (
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Multa (R$)</label>
+              <Input
+                type="number"
+                min={0}
+                step={0.01}
+                placeholder="0,00"
+                value={form.multa || ''}
+                onChange={e => setForm(p => ({ ...p, multa: parseFloat(e.target.value) || 0 }))}
+              />
+            </div>
+          )}
 
           <DialogFooter>
             <div className="flex w-full items-center gap-2">

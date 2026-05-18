@@ -362,6 +362,22 @@ export default function VooFormPage() {
         // Debit wallet if used
         if (carteiraUsadaNum > 0) {
           await debitarCarteira(voo.participante_id, carteiraUsadaNum)
+          await createTituloReceber({
+            usuario_id: voo.participante_id,
+            usuario_nome: voo.participante_nome,
+            tipo: 'carteira',
+            descricao: `Débito carteira – ${descricaoVoo}`,
+            num_parcela: 1,
+            total_parcelas: 1,
+            valor: carteiraUsadaNum,
+            valor_pago: carteiraUsadaNum,
+            juros_aplicado: 0,
+            data_emissao: voo.data,
+            data_vencimento: voo.data,
+            data_pagamento: voo.data,
+            status: 'baixado',
+            carteira_debito: true,
+          })
         }
 
         if (valorTitulo > 0) {
@@ -380,13 +396,14 @@ export default function VooFormPage() {
             valor: valorTitulo,
             valor_pago: 0,
             juros_aplicado: 0,
+            valor_carteira: carteiraUsadaNum > 0 ? carteiraUsadaNum : undefined,
             data_emissao: voo.data,
             data_vencimento: voo.data_vencimento,
             data_pagamento: null,
             status: 'em_aberto',
           })
         } else if (carteiraUsadaNum > 0) {
-          // Full wallet coverage — create a baixado título as record in movimentações
+          // Full wallet coverage — create a baixado título as record
           await createTituloReceber({
             usuario_id: voo.participante_id,
             usuario_nome: voo.participante_nome,
@@ -397,6 +414,7 @@ export default function VooFormPage() {
             valor: voo.valor_voo,
             valor_pago: voo.valor_voo,
             juros_aplicado: 0,
+            valor_carteira: voo.valor_voo,
             data_emissao: voo.data,
             data_vencimento: voo.data_vencimento,
             data_pagamento: voo.data,
