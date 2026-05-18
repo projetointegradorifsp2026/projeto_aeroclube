@@ -7,6 +7,11 @@ import {
   UserX,
   Receipt,
   CheckSquare,
+  Wallet,
+  Eye,
+  EyeOff,
+  Plus,
+  Minus,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -22,10 +27,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { getUsers, updateUser, type User } from '@/services/usersService'
+import { getUsers, updateUser, addSaldoCarteira, debitarCarteira, type User } from '@/services/usersService'
 import { UserFormModal, type UserFormData } from '@/components/users/UserFormModal'
-import { getTitulosReceber, baixarTituloReceber, type TituloReceber } from '@/services/titulosReceberService'
-import { getTitulosPagar } from '@/services/titulosPagarService'
+import {
+  getTitulosReceber,
+  baixarTituloReceber,
+  createTituloReceber,
+  type TituloReceber,
+} from '@/services/titulosReceberService'
+import { getTitulosPagar, createTituloPagar } from '@/services/titulosPagarService'
 import { PROFILE_LABELS, type UserProfile } from '@/mocks/users'
 import { TITULO_RECEBER_TIPO_LABELS, type TituloReceberStatus } from '@/mocks/titulos'
 import { cn } from '@/lib/utils'
@@ -74,6 +84,17 @@ export default function UsuarioPerfilPage() {
   const [loadingUser, setLoadingUser] = useState(true)
   const [editOpen, setEditOpen] = useState(false)
 
+  // Carteira
+  const [saldoVisible, setSaldoVisible] = useState(false)
+  const [addSaldoOpen, setAddSaldoOpen] = useState(false)
+  const [addSaldoValor, setAddSaldoValor] = useState('')
+  const [addSaldoData, setAddSaldoData] = useState(todayStr())
+  const [addSaldoSaving, setAddSaldoSaving] = useState(false)
+  const [removeSaldoOpen, setRemoveSaldoOpen] = useState(false)
+  const [removeSaldoValor, setRemoveSaldoValor] = useState('')
+  const [removeSaldoData, setRemoveSaldoData] = useState(todayStr())
+  const [removeSaldoSaving, setRemoveSaldoSaving] = useState(false)
+
   const [movimentacoes, setMovimentacoes] = useState<MovRow[]>([])
   const [movPage, setMovPage] = useState(1)
 
@@ -90,6 +111,32 @@ export default function UsuarioPerfilPage() {
   const [batchData, setBatchData] = useState(todayStr())
   const [batchBaixando, setBatchBaixando] = useState(false)
 
+  async function reloadMovimentacoes(nomeUsuario: string) {
+    const [allReceber, allPagar] = await Promise.all([getTitulosReceber(), getTitulosPagar()])
+    const userReceber = allReceber.filter(t => t.usuario_id === id && t.status === 'baixado')
+    const userPagar = allPagar.filter(t => t.favorecido === nomeUsuario && t.status === 'baixado')
+    const entradas: MovRow[] = userReceber.map(t => ({
+      id: `r-${t.id}`,
+      tipo: 'entrada' as const,
+      data: t.data_emissao,
+      descricao: t.descricao,
+      valor: t.valor + t.juros_aplicado,
+      valor_pago: t.valor_pago,
+      status: t.status,
+    }))
+    const saidas: MovRow[] = userPagar.map(t => ({
+      id: `p-${t.id}`,
+      tipo: 'saida' as const,
+      data: t.data_emissao,
+      descricao: t.descricao,
+      valor: t.valor,
+      valor_pago: t.valor_pago ?? 0,
+      status: t.status,
+    }))
+    setMovimentacoes([...entradas, ...saidas].sort((a, b) => b.data.localeCompare(a.data)))
+    setMovPage(1)
+  }
+
   useEffect(() => {
     if (!id) return
     Promise.all([getUsers(), getTitulosReceber(), getTitulosPagar()]).then(
@@ -97,13 +144,13 @@ export default function UsuarioPerfilPage() {
         const found = users.find(u => u.id === id)
         if (!found) { navigate('/usuarios'); return }
 
-        const userReceber = allReceber.filter(t => t.usuario_id === id)
-        const userPagar = allPagar.filter(t => t.favorecido === found.nome)
+        const userReceber = allReceber.filter(t => t.usuario_id === id && t.status === 'baixado')
+        const userPagar = allPagar.filter(t => t.favorecido === found.nome && t.status === 'baixado')
 
         const entradas: MovRow[] = userReceber.map(t => ({
           id: `r-${t.id}`,
           tipo: 'entrada' as const,
-          data: t.data_vencimento,
+          data: t.data_emissao,
           descricao: t.descricao,
           valor: t.valor + t.juros_aplicado,
           valor_pago: t.valor_pago,
@@ -112,7 +159,7 @@ export default function UsuarioPerfilPage() {
         const saidas: MovRow[] = userPagar.map(t => ({
           id: `p-${t.id}`,
           tipo: 'saida' as const,
-          data: t.data_vencimento,
+          data: t.data_emissao,
           descricao: t.descricao,
           valor: t.valor,
           valor_pago: t.valor_pago ?? 0,
@@ -123,7 +170,11 @@ export default function UsuarioPerfilPage() {
         setMovimentacoes(
           [...entradas, ...saidas].sort((a, b) => b.data.localeCompare(a.data)),
         )
-        setTitulos(userReceber.filter(t => t.status !== 'baixado'))
+        setTitulos(
+          userReceber
+            .filter(t => t.status !== 'baixado')
+            .sort((a, b) => b.data_vencimento.localeCompare(a.data_vencimento)),
+        )
         setLoadingUser(false)
       },
     )
@@ -168,12 +219,74 @@ export default function UsuarioPerfilPage() {
     setUser(updated)
   }
 
+  async function handleAddSaldo() {
+    if (!user) return
+    const valor = parseFloat(addSaldoValor)
+    if (!valor || valor <= 0 || !addSaldoData) return
+    setAddSaldoSaving(true)
+    const [updatedUser] = await Promise.all([
+      addSaldoCarteira(user.id, valor),
+      createTituloReceber({
+        usuario_id: user.id,
+        usuario_nome: user.nome,
+        tipo: 'carteira',
+        descricao: `Recarga de carteira`,
+        num_parcela: 1,
+        total_parcelas: 1,
+        valor,
+        valor_pago: valor,
+        juros_aplicado: 0,
+        data_emissao: addSaldoData,
+        data_vencimento: addSaldoData,
+        data_pagamento: addSaldoData,
+        status: 'baixado',
+      }),
+    ])
+    setUser(updatedUser)
+    await reloadMovimentacoes(updatedUser.nome)
+    setAddSaldoOpen(false)
+    setAddSaldoValor('')
+    setAddSaldoSaving(false)
+  }
+
+  async function handleRemoveSaldo() {
+    if (!user) return
+    const valor = parseFloat(removeSaldoValor)
+    if (!valor || valor <= 0 || valor > user.saldo_carteira || !removeSaldoData) return
+    setRemoveSaldoSaving(true)
+    const [updatedUser] = await Promise.all([
+      debitarCarteira(user.id, valor),
+      createTituloPagar({
+        tipo: 'outros',
+        favorecido: user.nome,
+        descricao: `Remoção de saldo da carteira`,
+        num_parcela: 1,
+        total_parcelas: 1,
+        valor,
+        data_emissao: removeSaldoData,
+        data_vencimento: removeSaldoData,
+        status: 'baixado',
+        valor_pago: valor,
+        data_pagamento: removeSaldoData,
+        recorrente: false,
+      }),
+    ])
+    setUser(updatedUser)
+    await reloadMovimentacoes(updatedUser.nome)
+    setRemoveSaldoOpen(false)
+    setRemoveSaldoValor('')
+    setRemoveSaldoSaving(false)
+  }
+
   async function handleBaixa() {
     if (!baixaTarget) return
     setBaixando(true)
     const updated = await baixarTituloReceber(baixaTarget.id, parseFloat(baixaValor), baixaData)
     setTitulos(prev =>
-      prev.map(t => (t.id === updated.id ? updated : t)).filter(t => t.status !== 'baixado'),
+      prev
+        .map(t => (t.id === updated.id ? updated : t))
+        .filter(t => t.status !== 'baixado')
+        .sort((a, b) => b.data_vencimento.localeCompare(a.data_vencimento)),
     )
     setBaixaTarget(null)
     setBaixaValor('')
@@ -191,7 +304,8 @@ export default function UsuarioPerfilPage() {
     setTitulos(prev =>
       prev
         .map(t => updates.find(u => u.id === t.id) ?? t)
-        .filter(t => t.status !== 'baixado'),
+        .filter(t => t.status !== 'baixado')
+        .sort((a, b) => b.data_vencimento.localeCompare(a.data_vencimento)),
     )
     setSelectedIds(new Set())
     setBatchOpen(false)
@@ -208,18 +322,41 @@ export default function UsuarioPerfilPage() {
             <Skeleton className="h-4 w-32" />
           </div>
         </div>
-        <Card>
-          <CardContent className="p-4 space-y-3">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-12 w-full" />
-            ))}
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-2">
+            <CardContent className="p-4 space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 space-y-3">
+              <Skeleton className="h-8 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     )
   }
 
   if (!user) return null
+
+  const addSaldoNum = parseFloat(addSaldoValor)
+  const addSaldoError =
+    addSaldoValor && !isNaN(addSaldoNum) && addSaldoNum <= 0
+      ? 'O valor deve ser maior que zero'
+      : null
+
+  const removeSaldoNum = parseFloat(removeSaldoValor)
+  const removeSaldoError = (() => {
+    if (!removeSaldoValor) return null
+    if (isNaN(removeSaldoNum) || removeSaldoNum <= 0) return 'O valor deve ser maior que zero'
+    if (removeSaldoNum > user.saldo_carteira)
+      return `Saldo insuficiente (máximo: ${fmt(user.saldo_carteira)})`
+    return null
+  })()
 
   return (
     <div className="pt-2 space-y-6">
@@ -234,70 +371,126 @@ export default function UsuarioPerfilPage() {
         </div>
       </div>
 
-      {/* Dados do Usuário */}
-      <Card>
-        <CardHeader className="border-b pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base font-semibold">Dados do Usuário</CardTitle>
-            <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-              <Pencil className="h-3.5 w-3.5" />
-              Editar
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-5 pb-5">
-          <dl className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-8 gap-y-5">
-            <div>
-              <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Nome</dt>
-              <dd className="mt-1 text-sm font-medium">{user.nome}</dd>
+      {/* Dados + Carteira lado a lado */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Dados do Usuário */}
+        <Card className="lg:col-span-2">
+          <CardHeader className="border-b pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-semibold">Dados do Usuário</CardTitle>
+              <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                <Pencil className="h-3.5 w-3.5" />
+                Editar
+              </Button>
             </div>
-            <div>
-              <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide">E-mail</dt>
-              <dd className="mt-1 text-sm">{user.email}</dd>
+          </CardHeader>
+          <CardContent className="pt-5 pb-5">
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+              <div>
+                <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Nome</dt>
+                <dd className="mt-1 text-sm font-medium">{user.nome}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide">E-mail</dt>
+                <dd className="mt-1 text-sm">{user.email}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide">CPF</dt>
+                <dd className="mt-1 text-sm">{user.cpf}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Data de cadastro</dt>
+                <dd className="mt-1 text-sm">{fmtDate(user.created_at)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</dt>
+                <dd className="mt-1">
+                  {user.is_active ? (
+                    <Badge variant="success" className="gap-1">
+                      <UserCheck className="h-3 w-3" />Ativo
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="gap-1 text-muted-foreground">
+                      <UserX className="h-3 w-3" />Inativo
+                    </Badge>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Perfis</dt>
+                <dd className="mt-1 flex flex-wrap gap-1">
+                  {user.perfis.map(p => (
+                    <span
+                      key={p}
+                      className={cn(
+                        'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
+                        PROFILE_COLORS[p],
+                        user.perfil_ativo === p && 'ring-1 ring-current ring-offset-1',
+                      )}
+                      title={user.perfil_ativo === p ? 'Perfil ativo' : undefined}
+                    >
+                      {PROFILE_LABELS[p]}
+                    </span>
+                  ))}
+                </dd>
+              </div>
+            </dl>
+          </CardContent>
+        </Card>
+
+        {/* Carteira */}
+        <Card className="lg:col-span-1">
+          <CardHeader className="border-b pb-3">
+            <div className="flex items-center gap-2">
+              <Wallet className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-base font-semibold">Carteira</CardTitle>
             </div>
+          </CardHeader>
+          <CardContent className="pt-5 pb-5 space-y-5">
             <div>
-              <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide">CPF</dt>
-              <dd className="mt-1 text-sm">{user.cpf}</dd>
+              <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+                Saldo disponível
+              </dt>
+              <div className="flex items-center gap-2">
+                <span className="text-2xl font-bold text-foreground">
+                  {saldoVisible ? fmt(user.saldo_carteira) : 'R$ ••••••'}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setSaldoVisible(v => !v)}
+                  title={saldoVisible ? 'Ocultar saldo' : 'Mostrar saldo'}
+                >
+                  {saldoVisible ? (
+                    <EyeOff className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  )}
+                </Button>
+              </div>
             </div>
-            <div>
-              <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Data de cadastro</dt>
-              <dd className="mt-1 text-sm">{fmtDate(user.created_at)}</dd>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { setAddSaldoValor(''); setAddSaldoData(todayStr()); setAddSaldoOpen(true) }}
+              >
+                <Plus className="h-4 w-4" />
+                Adicionar
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => { setRemoveSaldoValor(''); setRemoveSaldoData(todayStr()); setRemoveSaldoOpen(true) }}
+                disabled={user.saldo_carteira <= 0}
+              >
+                <Minus className="h-4 w-4" />
+                Remover
+              </Button>
             </div>
-            <div>
-              <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</dt>
-              <dd className="mt-1">
-                {user.is_active ? (
-                  <Badge variant="success" className="gap-1">
-                    <UserCheck className="h-3 w-3" />Ativo
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="gap-1 text-muted-foreground">
-                    <UserX className="h-3 w-3" />Inativo
-                  </Badge>
-                )}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Perfis</dt>
-              <dd className="mt-1 flex flex-wrap gap-1">
-                {user.perfis.map(p => (
-                  <span
-                    key={p}
-                    className={cn(
-                      'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
-                      PROFILE_COLORS[p],
-                      user.perfil_ativo === p && 'ring-1 ring-current ring-offset-1',
-                    )}
-                    title={user.perfil_ativo === p ? 'Perfil ativo' : undefined}
-                  >
-                    {PROFILE_LABELS[p]}
-                  </span>
-                ))}
-              </dd>
-            </div>
-          </dl>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Movimentações */}
       <Card>
@@ -468,6 +661,135 @@ export default function UsuarioPerfilPage() {
 
       {/* Modal de edição */}
       <UserFormModal user={user} open={editOpen} onClose={() => setEditOpen(false)} onSave={handleSaveUser} />
+
+      {/* Dialog: Adicionar Saldo */}
+      <Dialog open={addSaldoOpen} onOpenChange={o => !o && setAddSaldoOpen(false)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Adicionar Saldo</DialogTitle>
+            <DialogDescription>
+              Um título baixado será gerado como comprovante do crédito adicionado.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Valor a adicionar (R$)</label>
+              <Input
+                type="number"
+                min={0.01}
+                step={0.01}
+                placeholder="0,00"
+                value={addSaldoValor}
+                onChange={e => setAddSaldoValor(e.target.value)}
+                hasError={!!addSaldoError}
+                helper={addSaldoError ?? undefined}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Data</label>
+              <Input
+                type="date"
+                value={addSaldoData}
+                onChange={e => setAddSaldoData(e.target.value)}
+              />
+            </div>
+            <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm">
+              <span className="text-muted-foreground">Saldo atual: </span>
+              <span className="font-medium">{fmt(user.saldo_carteira)}</span>
+              {addSaldoValor && !addSaldoError && parseFloat(addSaldoValor) > 0 && (
+                <>
+                  <span className="text-muted-foreground mx-1.5">→</span>
+                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                    {fmt(user.saldo_carteira + parseFloat(addSaldoValor))}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddSaldoOpen(false)} disabled={addSaldoSaving}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleAddSaldo}
+              disabled={
+                addSaldoSaving ||
+                !addSaldoValor ||
+                !!addSaldoError ||
+                parseFloat(addSaldoValor) <= 0 ||
+                !addSaldoData
+              }
+            >
+              {addSaldoSaving ? 'Salvando...' : 'Confirmar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Remover Saldo */}
+      <Dialog open={removeSaldoOpen} onOpenChange={o => !o && setRemoveSaldoOpen(false)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Remover Saldo</DialogTitle>
+            <DialogDescription>
+              O valor será debitado da carteira e registrado como saída nas movimentações.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-1">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Valor a remover (R$)</label>
+              <Input
+                type="number"
+                min={0.01}
+                step={0.01}
+                max={user.saldo_carteira}
+                placeholder="0,00"
+                value={removeSaldoValor}
+                onChange={e => setRemoveSaldoValor(e.target.value)}
+                hasError={!!removeSaldoError}
+                helper={removeSaldoError ?? undefined}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Data</label>
+              <Input
+                type="date"
+                value={removeSaldoData}
+                onChange={e => setRemoveSaldoData(e.target.value)}
+              />
+            </div>
+            <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm">
+              <span className="text-muted-foreground">Saldo atual: </span>
+              <span className="font-medium">{fmt(user.saldo_carteira)}</span>
+              {removeSaldoValor && !removeSaldoError && parseFloat(removeSaldoValor) > 0 && (
+                <>
+                  <span className="text-muted-foreground mx-1.5">→</span>
+                  <span className="font-semibold text-rose-600 dark:text-rose-400">
+                    {fmt(user.saldo_carteira - parseFloat(removeSaldoValor))}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRemoveSaldoOpen(false)} disabled={removeSaldoSaving}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleRemoveSaldo}
+              disabled={
+                removeSaldoSaving ||
+                !removeSaldoValor ||
+                !!removeSaldoError ||
+                parseFloat(removeSaldoValor) <= 0 ||
+                !removeSaldoData
+              }
+            >
+              {removeSaldoSaving ? 'Salvando...' : 'Confirmar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dialog: Baixa individual */}
       {(() => {

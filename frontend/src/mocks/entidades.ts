@@ -20,6 +20,7 @@ export interface Entidade {
 }
 
 export const mockEntidades: Entidade[] = [
+  // Fornecedores
   {
     id: '1',
     nome: 'ABC Combustíveis Ltda',
@@ -49,15 +50,61 @@ export const mockEntidades: Entidade[] = [
   },
   {
     id: '4',
+    nome: 'Telecom Brasil',
+    cpf_cnpj: '23.456.789/0001-34',
+    email: 'empresas@telecombrasil.com.br',
+    contato: '(11) 4002-8922',
+    tipo: 'fornecedor',
+    is_active: true,
+  },
+  {
+    id: '5',
+    nome: 'Seguradora Aérea S/A',
+    cpf_cnpj: '67.890.123/0001-45',
+    email: 'contratos@seguradoraaerea.com.br',
+    contato: '(11) 97654-3210',
+    tipo: 'fornecedor',
+    is_active: true,
+  },
+  {
+    id: '6',
+    nome: 'GLP Gás & Serviços',
+    cpf_cnpj: '34.567.890/0001-56',
+    email: 'comercial@glpgas.com.br',
+    contato: '(19) 98877-6655',
+    tipo: 'fornecedor',
+    is_active: true,
+  },
+  {
+    id: '7',
     nome: 'Papelaria Central',
-    cpf_cnpj: '78.901.234/0001-56',
+    cpf_cnpj: '78.901.234/0001-67',
     email: 'contato@papelariacentral.com.br',
     contato: '(11) 3456-7890',
     tipo: 'fornecedor',
     is_active: false,
   },
+  // Clientes
   {
     id: '9',
+    nome: 'Empresa Aero Turismo Ltda',
+    cpf_cnpj: '56.789.012/0001-78',
+    email: 'operacoes@aeroturismo.com.br',
+    contato: '(11) 95544-3322',
+    tipo: 'cliente',
+    is_active: true,
+  },
+  {
+    id: '10',
+    nome: 'Escola de Pilotos SP',
+    cpf_cnpj: '89.012.345/0001-89',
+    email: 'adm@escoladepilotos.com.br',
+    contato: '(11) 92233-4455',
+    tipo: 'cliente',
+    is_active: true,
+  },
+  {
+    id: '11',
     nome: 'João Pedro Oliveira',
     cpf_cnpj: '321.654.987-00',
     email: 'joao.oliveira@email.com',
@@ -66,7 +113,7 @@ export const mockEntidades: Entidade[] = [
     is_active: true,
   },
   {
-    id: '10',
+    id: '12',
     nome: 'Maria Fernanda Lima',
     cpf_cnpj: '654.321.098-11',
     email: 'maria.lima@email.com',
@@ -75,7 +122,7 @@ export const mockEntidades: Entidade[] = [
     is_active: true,
   },
   {
-    id: '11',
+    id: '13',
     nome: 'Roberto Souza',
     cpf_cnpj: '111.222.333-44',
     email: 'roberto.souza@email.com',
@@ -83,6 +130,7 @@ export const mockEntidades: Entidade[] = [
     tipo: 'cliente',
     is_active: false,
   },
+  // Funcionários (IDs 101+)
   {
     id: '101',
     nome: 'Carlos Eduardo Silva',
@@ -103,6 +151,25 @@ export const mockEntidades: Entidade[] = [
   },
   {
     id: '103',
+    nome: 'Lucas Araújo',
+    cpf_cnpj: '445.566.778-88',
+    email: 'lucas.araujo@aeroclube.com',
+    contato: '(11) 94444-3333',
+    tipo: 'funcionario',
+    is_active: true,
+  },
+  // Instrutores (IDs 104+)
+  {
+    id: '104',
+    nome: 'Ricardo Almeida',
+    cpf_cnpj: '456.789.123-33',
+    email: 'ricardo.almeida@aeroclube.com',
+    contato: '(11) 96666-5555',
+    tipo: 'instrutor',
+    is_active: true,
+  },
+  {
+    id: '105',
     nome: 'Ana Paula Santos',
     cpf_cnpj: '987.654.321-11',
     email: 'ana.santos@aeroclube.com',
@@ -111,11 +178,11 @@ export const mockEntidades: Entidade[] = [
     is_active: true,
   },
   {
-    id: '104',
-    nome: 'Ricardo Almeida',
-    cpf_cnpj: '456.789.123-33',
-    email: 'ricardo.almeida@aeroclube.com',
-    contato: '(11) 96666-5555',
+    id: '106',
+    nome: 'Fernando Rocha',
+    cpf_cnpj: '558.669.770-22',
+    email: 'fernando.rocha@aeroclube.com',
+    contato: '(11) 93333-2222',
     tipo: 'instrutor',
     is_active: true,
   },

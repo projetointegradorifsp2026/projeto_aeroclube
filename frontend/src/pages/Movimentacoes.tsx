@@ -51,26 +51,30 @@ export default function Movimentacoes() {
 
   useEffect(() => {
     Promise.all([getTitulosPagar(), getTitulosReceber()]).then(([pagar, receber]) => {
-      const entradas: MovRow[] = receber.map(t => ({
-        id: `r-${t.id}`,
-        tipo: 'entrada',
-        data: t.data_vencimento,
-        descricao: t.descricao,
-        pessoa: t.usuario_nome,
-        valor: t.valor + t.juros_aplicado,
-        valor_pago: t.valor_pago,
-        status: t.status as MovStatus,
-      }))
-      const saidas: MovRow[] = pagar.map(t => ({
-        id: `p-${t.id}`,
-        tipo: 'saida',
-        data: t.data_vencimento,
-        descricao: t.descricao,
-        pessoa: t.favorecido,
-        valor: t.valor,
-        valor_pago: t.valor_pago ?? 0,
-        status: t.status as MovStatus,
-      }))
+      const entradas: MovRow[] = receber
+        .filter(t => t.status === 'baixado')
+        .map(t => ({
+          id: `r-${t.id}`,
+          tipo: 'entrada',
+          data: t.data_emissao,
+          descricao: t.descricao,
+          pessoa: t.usuario_nome,
+          valor: t.valor + t.juros_aplicado,
+          valor_pago: t.valor_pago,
+          status: t.status as MovStatus,
+        }))
+      const saidas: MovRow[] = pagar
+        .filter(t => t.status === 'baixado')
+        .map(t => ({
+          id: `p-${t.id}`,
+          tipo: 'saida',
+          data: t.data_emissao,
+          descricao: t.descricao,
+          pessoa: t.favorecido,
+          valor: t.valor,
+          valor_pago: t.valor_pago ?? 0,
+          status: t.status as MovStatus,
+        }))
       setRows([...entradas, ...saidas].sort((a, b) => b.data.localeCompare(a.data)))
       setLoading(false)
     })

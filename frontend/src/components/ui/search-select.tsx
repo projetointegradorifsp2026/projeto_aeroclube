@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect } from 'react'
+import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -31,7 +31,11 @@ export function SearchSelect({
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
-  const [dropdownStyle, setDropdownStyle] = useState<{ top: number; left: number; width: number } | null>(null)
+  const [dropdownStyle, setDropdownStyle] = useState<{
+    top: number
+    left: number
+    width: number
+  } | null>(null)
 
   const selected = options.find(o => o.value === value)
 
@@ -41,16 +45,27 @@ export function SearchSelect({
     return options.filter(o => o.label.toLowerCase().includes(q))
   }, [options, query])
 
-  useEffect(() => {
-    if (open && wrapperRef.current) {
+  const updatePosition = useCallback(() => {
+    if (wrapperRef.current) {
       const rect = wrapperRef.current.getBoundingClientRect()
-      setDropdownStyle({
-        top: rect.bottom + 4,
-        left: rect.left,
-        width: rect.width,
-      })
+      setDropdownStyle({ top: rect.bottom + 4, left: rect.left, width: rect.width })
     }
-  }, [open])
+  }, [])
+
+  useEffect(() => {
+    if (!open) {
+      setDropdownStyle(null)
+      return
+    }
+    updatePosition()
+    // Update position whenever any ancestor scrolls or the window resizes
+    window.addEventListener('scroll', updatePosition, { capture: true, passive: true })
+    window.addEventListener('resize', updatePosition, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', updatePosition, { capture: true })
+      window.removeEventListener('resize', updatePosition)
+    }
+  }, [open, updatePosition])
 
   function handleFocus() {
     setQuery('')
@@ -96,7 +111,7 @@ export function SearchSelect({
           spellCheck={false}
           placeholder={open ? 'Digite para buscar...' : placeholder}
           value={displayValue}
-          onFocus={handleFocus}
+          onFocus={() => { handleFocus(); setOpen(true) }}
           onBlur={handleBlur}
           onChange={handleInputChange}
           className={cn(
@@ -137,6 +152,11 @@ export function SearchSelect({
             width: dropdownStyle.width,
             zIndex: 9999,
           }}
+          // stopPropagation prevents Radix UI DismissableLayer from intercepting
+          // pointer events on the portal, which would block option selection
+          onPointerDown={e => e.stopPropagation()}
+          onMouseDown={e => e.stopPropagation()}
+          data-search-select-portal="true"
           className="rounded-lg border border-border bg-popover shadow-md overflow-hidden"
         >
           <div className="max-h-48 overflow-y-auto">
@@ -151,6 +171,7 @@ export function SearchSelect({
                   type="button"
                   onMouseDown={e => {
                     e.preventDefault()
+                    e.stopPropagation()
                     handleSelect(opt.value)
                   }}
                   className={cn(

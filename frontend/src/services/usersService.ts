@@ -37,4 +37,22 @@ export async function deleteUser(id: string): Promise<void> {
   store = store.filter(u => u.id !== id)
 }
 
+export async function addSaldoCarteira(id: string, valor: number): Promise<User> {
+  await delay()
+  const idx = store.findIndex(u => u.id === id)
+  if (idx === -1) throw new Error('Usuário não encontrado')
+  const updated = { ...store[idx], saldo_carteira: store[idx].saldo_carteira + valor }
+  store = store.map(u => (u.id === id ? updated : u))
+  return updated
+}
+
+export async function debitarCarteira(id: string, valor: number): Promise<User> {
+  await delay()
+  const idx = store.findIndex(u => u.id === id)
+  if (idx === -1) throw new Error('Usuário não encontrado')
+  const updated = { ...store[idx], saldo_carteira: Math.max(0, store[idx].saldo_carteira - valor) }
+  store = store.map(u => (u.id === id ? updated : u))
+  return updated
+}
+
 export type { User, UserProfile }

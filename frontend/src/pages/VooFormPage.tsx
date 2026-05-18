@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo, type FormEvent } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { ArrowLeft, Trash2 } from 'lucide-react'
+import { ArrowLeft, Trash2, Wallet } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { SearchSelect } from '@/components/ui/search-select'
@@ -28,6 +28,7 @@ import { getUsers, type User } from '@/services/usersService'
 import { createVoo, updateVoo, deleteVoo } from '@/services/voosService'
 import { createTituloReceber } from '@/services/titulosReceberService'
 import { createTituloPagar } from '@/services/titulosPagarService'
+import { debitarCarteira } from '@/services/usersService'
 import { cn } from '@/lib/utils'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -150,6 +151,9 @@ export default function VooFormPage() {
   const [usuarios, setUsuarios] = useState<User[]>([])
   const [instrutores, setInstrutores] = useState<Entidade[]>([])
 
+  const [usarCarteira, setUsarCarteira] = useState(false)
+  const [carteiraValor, setCarteiraValor] = useState('')
+
   const autoVencimento = useRef<string>('')
 
   useEffect(() => {
@@ -268,6 +272,14 @@ export default function VooFormPage() {
       ? valorVoo * (form.taxa_instrutor / 100)
       : 0
 
+  const participanteSaldo = useMemo(
+    () => usuarios.find(u => u.id === form.participante_id)?.saldo_carteira ?? 0,
+    [form.participante_id, usuarios],
+  )
+  const carteiraMaxUsavel = Math.min(participanteSaldo, valorVoo)
+  const carteiraUsadaNum = usarCarteira ? Math.min(parseFloat(carteiraValor) || 0, carteiraMaxUsavel) : 0
+  const valorTitulo = valorVoo - carteiraUsadaNum
+
   // ─── Handlers ───────────────────────────────────────────────────────────────
 
   function handleTipoAeronaveChange(tipo: TipoAeronave) {
@@ -293,6 +305,8 @@ export default function VooFormPage() {
   function handleParticipanteChange(uid: string) {
     const u = usuarios.find(u => u.id === uid)
     setForm(p => ({ ...p, participante_id: uid, participante_nome: u?.nome ?? '' }))
+    setUsarCarteira(false)
+    setCarteiraValor('')
   }
 
   function handleInstrutorChange(instId: string) {
@@ -345,20 +359,50 @@ export default function VooFormPage() {
             : `${voo.tempo_decimal.toFixed(1)}h`
         const descricaoVoo = `${TIPO_VOO_LABELS[voo.tipo_voo]} – ${tempoDisplay} – ${voo.aeronave_nome}`
 
-        await createTituloReceber({
-          usuario_nome: voo.participante_nome,
-          tipo: 'voo',
-          descricao: descricaoVoo,
-          num_parcela: 1,
-          total_parcelas: 1,
-          valor: voo.valor_voo,
-          valor_pago: 0,
-          juros_aplicado: 0,
-          data_emissao: voo.data,
-          data_vencimento: voo.data_vencimento,
-          data_pagamento: null,
-          status: 'em_aberto',
-        })
+        // Debit wallet if used
+        if (carteiraUsadaNum > 0) {
+          await debitarCarteira(voo.participante_id, carteiraUsadaNum)
+        }
+
+        if (valorTitulo > 0) {
+          // Partial wallet or no wallet — pending título for remaining amount
+          const descricaoFinal =
+            carteiraUsadaNum > 0
+              ? `${descricaoVoo} (${fmt(carteiraUsadaNum)} via carteira)`
+              : descricaoVoo
+          await createTituloReceber({
+            usuario_id: voo.participante_id,
+            usuario_nome: voo.participante_nome,
+            tipo: 'voo',
+            descricao: descricaoFinal,
+            num_parcela: 1,
+            total_parcelas: 1,
+            valor: valorTitulo,
+            valor_pago: 0,
+            juros_aplicado: 0,
+            data_emissao: voo.data,
+            data_vencimento: voo.data_vencimento,
+            data_pagamento: null,
+            status: 'em_aberto',
+          })
+        } else if (carteiraUsadaNum > 0) {
+          // Full wallet coverage — create a baixado título as record in movimentações
+          await createTituloReceber({
+            usuario_id: voo.participante_id,
+            usuario_nome: voo.participante_nome,
+            tipo: 'voo',
+            descricao: `${descricaoVoo} (pago via carteira)`,
+            num_parcela: 1,
+            total_parcelas: 1,
+            valor: voo.valor_voo,
+            valor_pago: voo.valor_voo,
+            juros_aplicado: 0,
+            data_emissao: voo.data,
+            data_vencimento: voo.data_vencimento,
+            data_pagamento: voo.data,
+            status: 'baixado',
+          })
+        }
 
         if (voo.instrutor_id && voo.instrutor_nome && voo.taxa_instrutor && voo.taxa_instrutor > 0) {
           await createTituloPagar({
@@ -740,6 +784,85 @@ export default function VooFormPage() {
                     <span className="font-medium text-amber-600 dark:text-amber-400">
                       {fmt(valorInstrutor)}
                     </span>
+                  </div>
+                )}
+
+                {/* Carteira — só no cadastro, com participante selecionado */}
+                {!isEdit && form.participante_id && (
+                  <div className="border-t pt-3 space-y-2.5">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground flex items-center gap-1.5">
+                        <Wallet className="h-3.5 w-3.5" />
+                        Saldo da carteira
+                      </span>
+                      <span className={cn(
+                        'font-medium',
+                        participanteSaldo > 0 ? 'text-foreground' : 'text-muted-foreground',
+                      )}>
+                        {fmt(participanteSaldo)}
+                      </span>
+                    </div>
+
+                    {participanteSaldo > 0 ? (
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
+                            checked={usarCarteira}
+                            onChange={e => {
+                              setUsarCarteira(e.target.checked)
+                              if (!e.target.checked) setCarteiraValor('')
+                              else setCarteiraValor(carteiraMaxUsavel.toFixed(2))
+                            }}
+                          />
+                          Usar saldo da carteira
+                        </label>
+
+                        {usarCarteira && (
+                          <div className="pl-6 space-y-1.5">
+                            <Input
+                              type="number"
+                              min={0.01}
+                              step={0.01}
+                              max={carteiraMaxUsavel}
+                              placeholder={carteiraMaxUsavel.toFixed(2)}
+                              value={carteiraValor}
+                              onChange={e => setCarteiraValor(e.target.value)}
+                            />
+                            {(() => {
+                              const inputNum = parseFloat(carteiraValor) || 0
+                              if (inputNum > carteiraMaxUsavel) {
+                                return (
+                                  <p className="text-xs text-destructive">
+                                    Máximo disponível: {fmt(carteiraMaxUsavel)}
+                                  </p>
+                                )
+                              }
+                              if (carteiraUsadaNum >= valorVoo) {
+                                return (
+                                  <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                                    Saldo suficiente — nenhum título será gerado.
+                                  </p>
+                                )
+                              }
+                              if (carteiraUsadaNum > 0) {
+                                return (
+                                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                                    Título de {fmt(valorTitulo)} será gerado para o valor restante.
+                                  </p>
+                                )
+                              }
+                              return null
+                            })()}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Usuário sem saldo na carteira — título será gerado normalmente.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

@@ -42,7 +42,6 @@ const TIPO_COLORS: Record<TituloPagarTipo, string> = {
   folha: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   conta_fixa: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   outros: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
-  instrutor: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
 }
 
 function TipoBadge({ tipo }: { tipo: TituloPagarTipo }) {
@@ -61,12 +60,13 @@ const inputCls =
 interface TableProps {
   items: TituloPagar[]
   showBaixa: boolean
+  showMulta: boolean
   onBaixa: (t: TituloPagar) => void
   onEdit: (t: TituloPagar) => void
   emptyMessage: string
 }
 
-function TitulosTable({ items, showBaixa, onBaixa, onEdit, emptyMessage }: TableProps) {
+function TitulosTable({ items, showBaixa, showMulta, onBaixa, onEdit, emptyMessage }: TableProps) {
   const [page, setPage] = useState(1)
   useEffect(() => { setPage(1) }, [items])
   const PAGE_SIZE = 10
@@ -106,6 +106,11 @@ function TitulosTable({ items, showBaixa, onBaixa, onEdit, emptyMessage }: Table
               <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
                 Valor
               </th>
+              {showMulta && (
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">
+                  Multa
+                </th>
+              )}
               <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
                 Ações
               </th>
@@ -146,6 +151,13 @@ function TitulosTable({ items, showBaixa, onBaixa, onEdit, emptyMessage }: Table
               <td className="px-4 py-3 font-medium whitespace-nowrap">
                 {fmt(t.valor)}
               </td>
+              {showMulta && (
+                <td className="px-4 py-3 hidden sm:table-cell whitespace-nowrap">
+                  {t.multa > 0
+                    ? <span className="text-rose-500 font-medium">{fmt(t.multa)}</span>
+                    : <span className="text-muted-foreground">—</span>}
+                </td>
+              )}
               <td className="px-4 py-3">
                 <div className="flex items-center justify-end gap-2">
                   <Button
@@ -188,7 +200,7 @@ export default function TitulosPagar() {
   const [deleting, setDeleting] = useState(false)
 
   const [baixaTarget, setBaixaTarget] = useState<TituloPagar | null>(null)
-  const [baixaValor, setBaixaValor] = useState('')
+  const [baixaMulta, setBaixaMulta] = useState('0')
   const [baixaData, setBaixaData] = useState('')
   const [baixando, setBaixando] = useState(false)
 
@@ -226,6 +238,7 @@ export default function TitulosPagar() {
         num_parcela: editTitulo.num_parcela,
         total_parcelas: editTitulo.total_parcelas,
         valor: data.valor,
+        multa: data.multa,
         data_emissao: data.data_emissao,
         data_vencimento: data.parcela_vencimentos[0],
         recorrente: data.recorrente,
@@ -240,7 +253,8 @@ export default function TitulosPagar() {
             descricao: data.descricao,
             num_parcela: i + 1,
             total_parcelas: data.total_parcelas,
-            valor: data.valor,
+            valor: data.recorrente ? (data.parcela_valores[i] ?? data.valor) : data.valor,
+            multa: 0,
             data_emissao: data.data_emissao,
             data_vencimento: venc,
             status: 'em_aberto',
@@ -280,18 +294,16 @@ export default function TitulosPagar() {
 
   function openBaixa(t: TituloPagar) {
     setBaixaTarget(t)
-    setBaixaValor(t.valor.toFixed(2))
+    setBaixaMulta((t.multa ?? 0).toFixed(2))
     setBaixaData(todayStr())
   }
 
   async function handleBaixa() {
     if (!baixaTarget) return
     setBaixando(true)
-    const updated = await baixarTituloPagar(
-      baixaTarget.id,
-      parseFloat(baixaValor),
-      baixaData,
-    )
+    const multa = parseFloat(baixaMulta) || 0
+    const valorPago = baixaTarget.valor + multa
+    const updated = await baixarTituloPagar(baixaTarget.id, valorPago, baixaData, multa)
     setTitulos(prev => prev.map(t => (t.id === baixaTarget.id ? updated : t)))
     setBaixaTarget(null)
     setBaixando(false)
@@ -327,7 +339,6 @@ export default function TitulosPagar() {
           <option value="fornecedor">Fornecedor</option>
           <option value="folha">Folha de Pagamento</option>
           <option value="conta_fixa">Conta Fixa</option>
-          <option value="instrutor">Instrutor</option>
           <option value="outros">Outros</option>
         </select>
         <Button onClick={openCreate} className="ml-auto shrink-0">
@@ -386,6 +397,7 @@ export default function TitulosPagar() {
                 <TitulosTable
                   items={emAbertoList}
                   showBaixa
+                  showMulta={false}
                   onBaixa={openBaixa}
                   onEdit={openEdit}
                   emptyMessage="Nenhum título em aberto"
@@ -405,6 +417,7 @@ export default function TitulosPagar() {
                 <TitulosTable
                   items={emAtrasoList}
                   showBaixa
+                  showMulta
                   onBaixa={openBaixa}
                   onEdit={openEdit}
                   emptyMessage="Nenhum título em atraso"
@@ -424,6 +437,7 @@ export default function TitulosPagar() {
                 <TitulosTable
                   items={baixadoList}
                   showBaixa={false}
+                  showMulta
                   onBaixa={openBaixa}
                   onEdit={openEdit}
                   emptyMessage="Nenhum título baixado"
@@ -445,11 +459,9 @@ export default function TitulosPagar() {
 
       {/* Baixa Dialog */}
       {(() => {
-        const valorPago = parseFloat(baixaValor)
-        const baixaValorError =
-          baixaTarget && !isNaN(valorPago) && valorPago > baixaTarget.valor
-            ? `O valor não pode ser maior que ${fmt(baixaTarget.valor)}`
-            : null
+        const atrasado = !!baixaTarget && isAtrasado(baixaTarget)
+        const multa = parseFloat(baixaMulta) || 0
+        const totalAPagar = (baixaTarget?.valor ?? 0) + multa
         return (
           <Dialog open={!!baixaTarget} onOpenChange={o => !o && setBaixaTarget(null)}>
             <DialogContent className="sm:max-w-sm">
@@ -469,30 +481,39 @@ export default function TitulosPagar() {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Vencimento</span>
-                    <span className={baixaTarget && isAtrasado(baixaTarget) ? 'text-rose-500 font-medium' : ''}>
+                    <span className={atrasado ? 'text-rose-500 font-medium' : ''}>
                       {baixaTarget && fmtDate(baixaTarget.data_vencimento)}
                     </span>
                   </div>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium">Valor pago (R$)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    className={cn(
-                      'h-10 w-full rounded-lg border bg-background px-2.5 text-sm outline-none focus:ring-2 transition-shadow',
-                      baixaValorError
-                        ? 'border-destructive focus:ring-destructive/50'
-                        : 'border-input focus:ring-ring/50',
-                    )}
-                    value={baixaValor}
-                    onChange={e => setBaixaValor(e.target.value)}
-                  />
-                  {baixaValorError && (
-                    <p className="text-xs text-destructive">{baixaValorError}</p>
+                  {atrasado && multa > 0 && (
+                    <div className="flex justify-between pt-1 border-t border-border">
+                      <span className="text-muted-foreground">Total c/ multa</span>
+                      <span className="font-medium">{fmt(totalAPagar)}</span>
+                    </div>
                   )}
                 </div>
+
+                {atrasado && (
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Multa (R$)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow"
+                      value={baixaMulta}
+                      onChange={e => setBaixaMulta(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Valor a pagar (R$)</label>
+                  <div className="h-10 flex items-center rounded-lg border border-input bg-muted/40 px-2.5 text-sm font-medium">
+                    {fmt(totalAPagar)}
+                  </div>
+                </div>
+
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">Data de pagamento</label>
                   <input
@@ -507,10 +528,7 @@ export default function TitulosPagar() {
                 <Button variant="outline" onClick={() => setBaixaTarget(null)} disabled={baixando}>
                   Cancelar
                 </Button>
-                <Button
-                  onClick={handleBaixa}
-                  disabled={baixando || !baixaValor || !baixaData || !!baixaValorError}
-                >
+                <Button onClick={handleBaixa} disabled={baixando || !baixaData}>
                   {baixando ? 'Baixando...' : 'Confirmar Baixa'}
                 </Button>
               </DialogFooter>

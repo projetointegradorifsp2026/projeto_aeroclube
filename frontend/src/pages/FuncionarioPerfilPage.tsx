@@ -100,12 +100,12 @@ export default function FuncionarioPerfilPage() {
           return
         }
         setItem(found)
-        const itemReceber = allReceber.filter(t => t.usuario_id === id)
-        const itemPagar = allPagar.filter(t => t.favorecido === found.nome)
+        const itemReceber = allReceber.filter(t => t.usuario_id === id && t.status === 'baixado')
+        const itemPagar = allPagar.filter(t => t.favorecido === found.nome && t.status === 'baixado')
         const entradas: MovRow[] = itemReceber.map(t => ({
           id: `r-${t.id}`,
           tipo: 'entrada',
-          data: t.data_vencimento,
+          data: t.data_emissao,
           descricao: t.descricao,
           valor: t.valor + t.juros_aplicado,
           valor_pago: t.valor_pago,
@@ -114,14 +114,18 @@ export default function FuncionarioPerfilPage() {
         const saidas: MovRow[] = itemPagar.map(t => ({
           id: `p-${t.id}`,
           tipo: 'saida',
-          data: t.data_vencimento,
+          data: t.data_emissao,
           descricao: t.descricao,
           valor: t.valor,
           valor_pago: t.valor_pago ?? 0,
           status: t.status as 'em_aberto' | 'baixado',
         }))
         setMovimentacoes([...entradas, ...saidas].sort((a, b) => b.data.localeCompare(a.data)))
-        setTitulos(itemReceber.filter(t => t.status !== 'baixado'))
+        setTitulos(
+          itemReceber
+            .filter(t => t.status !== 'baixado')
+            .sort((a, b) => b.data_vencimento.localeCompare(a.data_vencimento)),
+        )
         setLoading(false)
       },
     )
@@ -170,7 +174,12 @@ export default function FuncionarioPerfilPage() {
     if (!baixaTarget) return
     setBaixando(true)
     const updated = await baixarTituloReceber(baixaTarget.id, parseFloat(baixaValor), baixaData)
-    setTitulos(prev => prev.map(t => (t.id === updated.id ? updated : t)).filter(t => t.status !== 'baixado'))
+    setTitulos(prev =>
+      prev
+        .map(t => (t.id === updated.id ? updated : t))
+        .filter(t => t.status !== 'baixado')
+        .sort((a, b) => b.data_vencimento.localeCompare(a.data_vencimento)),
+    )
     setBaixaTarget(null)
     setBaixaValor('')
     setBaixando(false)
@@ -184,7 +193,12 @@ export default function FuncionarioPerfilPage() {
         return baixarTituloReceber(t.id, remaining, batchData)
       }),
     )
-    setTitulos(prev => prev.map(t => updates.find(u => u.id === t.id) ?? t).filter(t => t.status !== 'baixado'))
+    setTitulos(prev =>
+      prev
+        .map(t => updates.find(u => u.id === t.id) ?? t)
+        .filter(t => t.status !== 'baixado')
+        .sort((a, b) => b.data_vencimento.localeCompare(a.data_vencimento)),
+    )
     setSelectedIds(new Set())
     setBatchOpen(false)
     setBatchBaixando(false)

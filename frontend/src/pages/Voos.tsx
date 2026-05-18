@@ -59,16 +59,18 @@ export default function Voos() {
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
-    return voos.filter(v => {
-      const matchSearch =
-        !q ||
-        v.participante_nome.toLowerCase().includes(q) ||
-        v.aeronave_nome.toLowerCase().includes(q) ||
-        (v.instrutor_nome?.toLowerCase().includes(q) ?? false)
-      const matchTipo = tipoFilter === 'all' || v.tipo_voo === tipoFilter
-      const matchAeronave = aeronaveFilter === 'all' || v.aeronave_id === aeronaveFilter
-      return matchSearch && matchTipo && matchAeronave
-    })
+    return voos
+      .filter(v => {
+        const matchSearch =
+          !q ||
+          v.participante_nome.toLowerCase().includes(q) ||
+          v.aeronave_nome.toLowerCase().includes(q) ||
+          (v.instrutor_nome?.toLowerCase().includes(q) ?? false)
+        const matchTipo = tipoFilter === 'all' || v.tipo_voo === tipoFilter
+        const matchAeronave = aeronaveFilter === 'all' || v.aeronave_id === aeronaveFilter
+        return matchSearch && matchTipo && matchAeronave
+      })
+      .sort((a, b) => b.data.localeCompare(a.data) || b.inicio.localeCompare(a.inicio))
   }, [voos, search, tipoFilter, aeronaveFilter])
 
   const PAGE_SIZE = 10
