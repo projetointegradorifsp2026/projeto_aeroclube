@@ -1,5 +1,4 @@
-import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
-import { createPortal } from 'react-dom'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import { ChevronDown, Check, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -31,11 +30,6 @@ export function SearchSelect({
   const [query, setQuery] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
-  const [dropdownStyle, setDropdownStyle] = useState<{
-    top: number
-    left: number
-    width: number
-  } | null>(null)
 
   const selected = options.find(o => o.value === value)
 
@@ -45,49 +39,24 @@ export function SearchSelect({
     return options.filter(o => o.label.toLowerCase().includes(q))
   }, [options, query])
 
-  const updatePosition = useCallback(() => {
-    if (wrapperRef.current) {
-      const rect = wrapperRef.current.getBoundingClientRect()
-      setDropdownStyle({ top: rect.bottom + 4, left: rect.left, width: rect.width })
-    }
-  }, [])
-
+  // Close dropdown when clicking outside the wrapper entirely
   useEffect(() => {
-    if (!open) {
-      setDropdownStyle(null)
-      return
+    if (!open) return
+    const handleClick = (e: MouseEvent) => {
+      if (!wrapperRef.current?.contains(e.target as Node)) {
+        setOpen(false)
+        setQuery('')
+      }
     }
-    updatePosition()
-    // Update position whenever any ancestor scrolls or the window resizes
-    window.addEventListener('scroll', updatePosition, { capture: true, passive: true })
-    window.addEventListener('resize', updatePosition, { passive: true })
-    return () => {
-      window.removeEventListener('scroll', updatePosition, { capture: true })
-      window.removeEventListener('resize', updatePosition)
-    }
-  }, [open, updatePosition])
-
-  function handleFocus() {
-    setQuery('')
-  }
-
-  function handleBlur() {
-    setTimeout(() => {
-      setOpen(false)
-      setQuery('')
-    }, 150)
-  }
-
-  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const val = e.target.value
-    setQuery(val)
-    setOpen(val.length > 0)
-  }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [open])
 
   function handleSelect(val: string) {
     onChange(val)
     setOpen(false)
     setQuery('')
+    inputRef.current?.blur()
   }
 
   function handleClear(e: React.MouseEvent) {
@@ -95,6 +64,7 @@ export function SearchSelect({
     e.stopPropagation()
     onChange('')
     setQuery('')
+    setOpen(false)
     inputRef.current?.focus()
   }
 
@@ -111,9 +81,14 @@ export function SearchSelect({
           spellCheck={false}
           placeholder={open ? 'Digite para buscar...' : placeholder}
           value={displayValue}
-          onFocus={() => { handleFocus(); setOpen(true) }}
-          onBlur={handleBlur}
-          onChange={handleInputChange}
+          onFocus={() => {
+            setQuery('')
+            setOpen(true)
+          }}
+          onChange={e => {
+            setQuery(e.target.value)
+            setOpen(true)
+          }}
           className={cn(
             'h-10 w-full rounded-lg border border-input bg-background px-2.5 pr-8 text-sm',
             'outline-none transition-shadow',
@@ -143,25 +118,9 @@ export function SearchSelect({
         </div>
       </div>
 
-      {open && dropdownStyle && createPortal(
+      {open && (
         <div
-          style={{
-            position: 'fixed',
-            top: dropdownStyle.top,
-            left: dropdownStyle.left,
-            width: dropdownStyle.width,
-            zIndex: 9999,
-          }}
-          onPointerDown={e => {
-            e.stopPropagation()
-            e.nativeEvent.stopImmediatePropagation()
-          }}
-          onMouseDown={e => {
-            e.stopPropagation()
-            e.nativeEvent.stopImmediatePropagation()
-          }}
-          data-search-select-portal="true"
-          className="rounded-lg border border-border bg-popover shadow-md overflow-hidden"
+          className="absolute left-0 right-0 top-full mt-1 z-[9999] rounded-lg border border-border bg-popover shadow-md overflow-hidden"
         >
           <div className="max-h-48 overflow-y-auto">
             {filtered.length === 0 ? (
@@ -175,7 +134,6 @@ export function SearchSelect({
                   type="button"
                   onMouseDown={e => {
                     e.preventDefault()
-                    e.stopPropagation()
                     handleSelect(opt.value)
                   }}
                   className={cn(
@@ -195,8 +153,7 @@ export function SearchSelect({
               ))
             )}
           </div>
-        </div>,
-        document.body,
+        </div>
       )}
     </div>
   )
