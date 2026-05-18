@@ -1,7 +1,8 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TablePagination } from '@/components/ui/pagination'
-import { Search, Plus, Pencil, Trash2, Plane } from 'lucide-react'
+import { Plus, Pencil, Trash2, Plane } from 'lucide-react'
+import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -96,19 +97,14 @@ export default function Voos() {
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="relative w-64">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <input
-            className={cn(inputCls, 'w-full pl-8 pr-3')}
-            placeholder="Buscar por participante, aeronave ou instrutor..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-        <select
-          className={inputCls}
+        <FilterInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Buscar por participante, aeronave ou instrutor..."
+        />
+        <FilterSelect
           value={tipoFilter}
-          onChange={e => setTipoFilter(e.target.value as TipoVoo | 'all')}
+          onChange={v => setTipoFilter(v as TipoVoo | 'all')}
         >
           <option value="all">Todos os tipos</option>
           {ALL_TIPOS_VOO.map(t => (
@@ -116,11 +112,10 @@ export default function Voos() {
               {TIPO_VOO_LABELS[t]}
             </option>
           ))}
-        </select>
-        <select
-          className={inputCls}
+        </FilterSelect>
+        <FilterSelect
           value={aeronaveFilter}
-          onChange={e => setAeronaveFilter(e.target.value)}
+          onChange={setAeronaveFilter}
         >
           <option value="all">Todas as aeronaves</option>
           {aeronaves.map(a => (
@@ -128,7 +123,7 @@ export default function Voos() {
               {a.nome}
             </option>
           ))}
-        </select>
+        </FilterSelect>
         <Button onClick={() => navigate('/voos/novo')} className="ml-auto shrink-0">
           <Plus className="h-4 w-4" />
           Registrar Voo

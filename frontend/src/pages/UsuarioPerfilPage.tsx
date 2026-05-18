@@ -171,8 +171,8 @@ export default function UsuarioPerfilPage() {
           [...entradas, ...saidas].sort((a, b) => b.data.localeCompare(a.data)),
         )
         setTitulos(
-          userReceber
-            .filter(t => t.status !== 'baixado')
+          allReceber
+            .filter(t => t.usuario_id === id && t.status !== 'baixado')
             .sort((a, b) => b.data_vencimento.localeCompare(a.data_vencimento)),
         )
         setLoadingUser(false)
@@ -263,12 +263,13 @@ export default function UsuarioPerfilPage() {
         num_parcela: 1,
         total_parcelas: 1,
         valor,
+        multa: 0,
         data_emissao: removeSaldoData,
         data_vencimento: removeSaldoData,
         status: 'baixado',
         valor_pago: valor,
         data_pagamento: removeSaldoData,
-        recorrente: false,
+        recorrente: false
       }),
     ])
     setUser(updatedUser)

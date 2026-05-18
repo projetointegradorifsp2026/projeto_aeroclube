@@ -1,7 +1,8 @@
 ﻿import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TablePagination } from '@/components/ui/pagination'
-import { Search, UserPlus, Eye, Trash2, UserCheck, UserX } from 'lucide-react'
+import { UserPlus, Eye, Trash2, UserCheck, UserX } from 'lucide-react'
+import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -101,19 +102,14 @@ export default function Usuarios() {
 
       {/* Filters */}
       <div className="flex items-center gap-3">
-        <div className="relative w-64">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <input
-            className="h-10 w-full rounded-lg border border-input bg-background pl-8 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring/50 placeholder:text-muted-foreground transition-shadow"
-            placeholder="Buscar por nome, e-mail ou CPF..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-        <select
-          className="h-10 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow"
+        <FilterInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Buscar por nome, e-mail ou CPF..."
+        />
+        <FilterSelect
           value={profileFilter}
-          onChange={e => setProfileFilter(e.target.value as UserProfile | 'all')}
+          onChange={v => setProfileFilter(v as UserProfile | 'all')}
         >
           <option value="all">Todos os perfis</option>
           <option value="administrador">Administrador</option>
@@ -121,16 +117,15 @@ export default function Usuarios() {
           <option value="socio">Sócio</option>
           <option value="cliente_externo">Cliente Externo</option>
           <option value="colaborador">Colaborador</option>
-        </select>
-        <select
-          className="h-10 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow"
+        </FilterSelect>
+        <FilterSelect
           value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}
+          onChange={v => setStatusFilter(v as typeof statusFilter)}
         >
           <option value="all">Todos os status</option>
           <option value="active">Ativos</option>
           <option value="inactive">Inativos</option>
-        </select>
+        </FilterSelect>
         <Button onClick={openCreate} className="ml-auto shrink-0">
           <UserPlus className="h-4 w-4" />
           Novo Usuário

@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { TablePagination } from '@/components/ui/pagination'
-import { Search, Plus, Pencil, ArrowDownToLine, CircleAlert, CircleDollarSign } from 'lucide-react'
+import { Plus, Pencil, ArrowDownToLine, CircleAlert, CircleDollarSign } from 'lucide-react'
+import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -321,26 +322,23 @@ export default function TitulosPagar() {
 
       {/* Filters */}
       <div className="flex items-center gap-3">
-        <div className="relative w-64">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <input
-            className={cn(inputCls, 'w-full pl-8 pr-3')}
-            placeholder="Buscar por favorecido ou descrição..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-        <select
-          className={inputCls}
+        <FilterInput
+          size="sm"
+          value={search}
+          onChange={setSearch}
+          placeholder="Buscar por favorecido ou descrição..."
+        />
+        <FilterSelect
+          size="sm"
           value={tipoFilter}
-          onChange={e => setTipoFilter(e.target.value as TipoFilter)}
+          onChange={v => setTipoFilter(v as TipoFilter)}
         >
           <option value="all">Todos os tipos</option>
           <option value="fornecedor">Fornecedor</option>
           <option value="folha">Folha de Pagamento</option>
           <option value="conta_fixa">Conta Fixa</option>
           <option value="outros">Outros</option>
-        </select>
+        </FilterSelect>
         <Button onClick={openCreate} className="ml-auto shrink-0">
           <Plus className="h-4 w-4" />
           Novo Título

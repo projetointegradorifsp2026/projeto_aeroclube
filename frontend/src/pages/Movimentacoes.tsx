@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { TablePagination } from '@/components/ui/pagination'
-import { Search, Receipt } from 'lucide-react'
+import { Receipt } from 'lucide-react'
+import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
@@ -105,34 +106,28 @@ export default function Movimentacoes() {
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="relative w-64">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <input
-            className={cn(inputCls, 'w-full pl-8 pr-3')}
-            placeholder="Buscar por participante ou descrição..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-        <select
-          className={inputCls}
+        <FilterInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Buscar por participante ou descrição..."
+        />
+        <FilterSelect
           value={tipoFilter}
-          onChange={e => setTipoFilter(e.target.value as MovTipo | 'all')}
+          onChange={v => setTipoFilter(v as MovTipo | 'all')}
         >
           <option value="all">Entradas e saídas</option>
           <option value="entrada">Somente entradas</option>
           <option value="saida">Somente saídas</option>
-        </select>
-        <select
-          className={inputCls}
+        </FilterSelect>
+        <FilterSelect
           value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value as MovStatus | 'all')}
+          onChange={v => setStatusFilter(v as MovStatus | 'all')}
         >
           <option value="all">Todos os status</option>
           <option value="em_aberto">Em Aberto</option>
           <option value="pago_parcial">Pago Parcial</option>
           <option value="baixado">Baixado</option>
-        </select>
+        </FilterSelect>
       </div>
 
       <Card>

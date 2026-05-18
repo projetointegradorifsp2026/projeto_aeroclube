@@ -237,7 +237,6 @@ export function TituloPagarFormModal({
   function validate(): boolean {
     const e: FormErrors = {}
     if (!form.favorecido.trim()) e.favorecido = 'Favorecido é obrigatório'
-    if (!form.descricao.trim()) e.descricao = 'Descrição é obrigatória'
     if (!form.valor || form.valor <= 0) e.valor = 'Valor deve ser maior que zero'
     if (!form.data_emissao) e.data_emissao = 'Data de emissão é obrigatória'
     if (form.parcela_vencimentos.some(d => !d))
@@ -364,7 +363,7 @@ export function TituloPagarFormModal({
                 onChange={e => handleRecorrenteChange(e.target.checked)}
                 className="h-4 w-4 rounded border-input accent-primary"
               />
-              <span className="text-sm">Título recorrente (gera 12 parcelas mensais)</span>
+              <span className="text-sm">Título recorrente (gera 12 parcelas)</span>
             </label>
           )}
 
@@ -412,11 +411,18 @@ export function TituloPagarFormModal({
           {/* Parcelas — recorrente: scrollable 12 rows */}
           {form.recorrente && !isEdit && (
             <div className="space-y-2">
-              <label className="text-sm font-medium">Parcelas (12 meses)</label>
-              <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1 rounded border border-border p-2">
+              <div className="grid grid-cols-[calc(50%+16px)_calc(50%-26px)]">
+                <label className="text-sm font-medium">Vencimento (12 meses)</label>
+                <label className="text-sm font-medium">
+                  Valor (R$)
+                </label>
+              </div>
+
+
+              <div className="space-y-1.5">
                 {Array.from({ length: 12 }, (_, i) => (
-                  <div key={i} className="grid grid-cols-[52px_1fr_1fr] items-center gap-2">
-                    <span className="text-xs text-muted-foreground shrink-0">Parc. {i + 1}</span>
+                  <div key={i} className="grid grid-cols-[12px_1fr_1fr] items-center gap-2">
+                    <span className="text-xs text-muted-foreground shrink-0">{i + 1}</span>
                     <input
                       type="date"
                       className={dateCls}
@@ -443,11 +449,19 @@ export function TituloPagarFormModal({
           {/* Parcelas — non-recorrente: single or multi rows each with date + valor */}
           {!form.recorrente && (
             <div className="space-y-2">
-              <label className="text-sm font-medium">
-                {count === 1 ? 'Vencimento' : 'Parcelas'}
-              </label>
+              <div className="grid grid-cols-[calc(50%+16px)_calc(50%-26px)]">
+                <label className="text-sm font-medium">
+                  Vencimento
+                </label>
+                <label className="text-sm font-medium">
+                  Valor (R$)
+                </label>
+              </div>
+
+
               {count === 1 ? (
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-[12px_1fr_1fr] items-center gap-2">
+                  <span className="text-xs text-muted-foreground shrink-0">{1}</span>
                   <input
                     type="date"
                     className={dateCls}
@@ -466,8 +480,8 @@ export function TituloPagarFormModal({
               ) : (
                 <div className="space-y-1.5">
                   {Array.from({ length: count }, (_, i) => (
-                    <div key={i} className="grid grid-cols-[52px_1fr_1fr] items-center gap-2">
-                      <span className="text-xs text-muted-foreground shrink-0">Parc. {i + 1}</span>
+                    <div key={i} className="grid grid-cols-[12px_1fr_1fr] items-center gap-2">
+                      <span className="text-xs text-muted-foreground shrink-0">{i + 1}</span>
                       <input
                         type="date"
                         className={dateCls}

@@ -12,6 +12,7 @@ export async function getUsers(): Promise<User[]> {
 export async function createUser(data: Omit<User, 'id' | 'created_at'>): Promise<User> {
   await delay()
   const user: User = {
+    saldo_carteira: 0,
     ...data,
     id: crypto.randomUUID(),
     created_at: new Date().toISOString().split('T')[0],
