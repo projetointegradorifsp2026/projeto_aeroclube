@@ -168,15 +168,17 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onEdit, emptyMessa
               )}
               <td className="px-4 py-3">
                 <div className="flex items-center justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => onEdit(t)}
-                    title="Editar título"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                  </Button>
-                  {showBaixa && (
+                  {t.tipo !== 'carteira' && (
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => onEdit(t)}
+                      title="Editar título"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                  {showBaixa && t.tipo !== 'carteira' && (
                     <Button size="sm" onClick={() => onBaixa(t)}>
                       Dar baixa
                       <CircleDollarSign className="h-3.5 w-3.5" />
@@ -226,7 +228,6 @@ export default function TitulosReceber() {
   const filtered = useMemo(() => {
     const q = search.toLowerCase()
     return titulos
-      .filter(t => t.tipo !== 'carteira')
       .filter(t => {
         const matchSearch =
           !q ||
@@ -396,6 +397,8 @@ export default function TitulosReceber() {
           <option value="mensalidade">Mensalidade</option>
           <option value="pontual">Pontual</option>
           <option value="servico">Serviço</option>
+          <option value="voo">Voo</option>
+          <option value="carteira">Carteira</option>
         </FilterSelect>
         <Button onClick={openCreate} className="ml-auto shrink-0">
           <Plus className="h-4 w-4" />
