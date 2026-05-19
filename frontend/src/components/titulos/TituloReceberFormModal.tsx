@@ -10,11 +10,14 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { SearchSelect } from '@/components/ui/search-select'
 import {
   type TituloReceber,
   type TituloReceberTipo,
   TITULO_RECEBER_TIPO_LABELS,
 } from '@/mocks/titulos'
+import { mockUsers } from '@/mocks/users'
+import { mockEntidades } from '@/mocks/entidades'
 import { cn } from '@/lib/utils'
 
 export interface TituloReceberFormData {
@@ -91,6 +94,17 @@ const selectCls =
 const dateCls =
   'h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
 
+// Opções para mensalidade e pontual: alunos, sócios e clientes externos ativos
+const clientePerfis = ['aluno', 'socio', 'cliente_externo'] as const
+const usuariosOptions = mockUsers
+  .filter(u => u.is_active && u.perfis.some(p => clientePerfis.includes(p as typeof clientePerfis[number])))
+  .map(u => ({ value: u.nome, label: u.nome }))
+
+// Opções para serviço: tabela de clientes
+const clientesOptions = mockEntidades
+  .filter(e => e.tipo === 'cliente' && e.is_active)
+  .map(e => ({ value: e.nome, label: e.nome }))
+
 export function TituloReceberFormModal({
   titulo,
   open,
@@ -129,6 +143,10 @@ export function TituloReceberFormModal({
       setErrors({})
     }
   }, [titulo, open])
+
+  function handleTipoChange(newTipo: TituloReceberTipo) {
+    setForm(p => ({ ...p, tipo: newTipo, usuario_nome: '' }))
+  }
 
   function handleValorChange(val: number) {
     setForm(p => ({
@@ -202,6 +220,21 @@ export function TituloReceberFormModal({
     }
   }
 
+  function renderDevedorField() {
+    const options = form.tipo === 'servico' ? clientesOptions : usuariosOptions
+    const placeholder =
+      form.tipo === 'servico' ? 'Selecione o cliente' : 'Selecione o devedor'
+    return (
+      <SearchSelect
+        options={options}
+        value={form.usuario_nome}
+        onChange={v => setForm(p => ({ ...p, usuario_nome: v }))}
+        placeholder={placeholder}
+        hasError={!!errors.usuario_nome}
+      />
+    )
+  }
+
   const count = form.total_parcelas
 
   return (
@@ -219,24 +252,14 @@ export function TituloReceberFormModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-1">
-          {/* Devedor + Tipo */}
+          {/* Tipo + Devedor */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Devedor</label>
-              <Input
-                placeholder="Nome do devedor"
-                value={form.usuario_nome}
-                onChange={e => setForm(p => ({ ...p, usuario_nome: e.target.value }))}
-                hasError={!!errors.usuario_nome}
-                helper={errors.usuario_nome}
-              />
-            </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Tipo</label>
               <select
                 className={selectCls}
                 value={form.tipo}
-                onChange={e => setForm(p => ({ ...p, tipo: e.target.value as TituloReceberTipo }))}
+                onChange={e => handleTipoChange(e.target.value as TituloReceberTipo)}
               >
                 {TIPOS_FORM.map(t => (
                   <option key={t} value={t}>
@@ -244,6 +267,13 @@ export function TituloReceberFormModal({
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Devedor</label>
+              {renderDevedorField()}
+              {errors.usuario_nome && (
+                <p className="text-xs text-destructive">{errors.usuario_nome}</p>
+              )}
             </div>
           </div>
 

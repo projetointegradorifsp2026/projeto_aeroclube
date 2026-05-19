@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { TablePagination } from '@/components/ui/pagination'
-import { Plus, Pencil, ArrowDownToLine, CircleAlert, CircleDollarSign } from 'lucide-react'
+import { Plus, Eye, ArrowDownToLine, CircleAlert, CircleDollarSign } from 'lucide-react'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -19,6 +19,7 @@ import {
   TituloPagarFormModal,
   type TituloPagarFormData,
 } from '@/components/titulos/TituloPagarFormModal'
+import { TituloPagarDetailModal } from '@/components/titulos/TituloPagarDetailModal'
 import {
   getTitulosPagar,
   createTituloPagar,
@@ -63,11 +64,11 @@ interface TableProps {
   showBaixa: boolean
   showMulta: boolean
   onBaixa: (t: TituloPagar) => void
-  onEdit: (t: TituloPagar) => void
+  onView: (t: TituloPagar) => void
   emptyMessage: string
 }
 
-function TitulosTable({ items, showBaixa, showMulta, onBaixa, onEdit, emptyMessage }: TableProps) {
+function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessage }: TableProps) {
   const [page, setPage] = useState(1)
   useEffect(() => { setPage(1) }, [items])
   const PAGE_SIZE = 10
@@ -164,10 +165,10 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onEdit, emptyMessa
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    onClick={() => onEdit(t)}
-                    title="Editar título"
+                    onClick={() => onView(t)}
+                    title="Ver detalhes"
                   >
-                    <Pencil className="h-3.5 w-3.5" />
+                    <Eye className="h-3.5 w-3.5" />
                   </Button>
                   {showBaixa && (
                     <Button size="sm" onClick={() => onBaixa(t)}>
@@ -204,6 +205,8 @@ export default function TitulosPagar() {
   const [baixaMulta, setBaixaMulta] = useState('0')
   const [baixaData, setBaixaData] = useState('')
   const [baixando, setBaixando] = useState(false)
+
+  const [viewTitulo, setViewTitulo] = useState<TituloPagar | null>(null)
 
   useEffect(() => {
     getTitulosPagar().then(data => {
@@ -297,6 +300,25 @@ export default function TitulosPagar() {
     setBaixaTarget(t)
     setBaixaMulta((t.multa ?? 0).toFixed(2))
     setBaixaData(todayStr())
+  }
+
+  function openView(t: TituloPagar) {
+    setViewTitulo(t)
+  }
+
+  function handleViewEdit(t: TituloPagar) {
+    setViewTitulo(null)
+    openEdit(t)
+  }
+
+  function handleViewBaixa(t: TituloPagar) {
+    setViewTitulo(null)
+    openBaixa(t)
+  }
+
+  function handleViewDeleteRequest(t: TituloPagar) {
+    setViewTitulo(null)
+    setDeleteTarget(t)
   }
 
   async function handleBaixa() {
@@ -397,7 +419,7 @@ export default function TitulosPagar() {
                   showBaixa
                   showMulta={false}
                   onBaixa={openBaixa}
-                  onEdit={openEdit}
+                  onView={openView}
                   emptyMessage="Nenhum título em aberto"
                 />
               </CardContent>
@@ -417,7 +439,7 @@ export default function TitulosPagar() {
                   showBaixa
                   showMulta
                   onBaixa={openBaixa}
-                  onEdit={openEdit}
+                  onView={openView}
                   emptyMessage="Nenhum título em atraso"
                 />
               </CardContent>
@@ -437,7 +459,7 @@ export default function TitulosPagar() {
                   showBaixa={false}
                   showMulta
                   onBaixa={openBaixa}
-                  onEdit={openEdit}
+                  onView={openView}
                   emptyMessage="Nenhum título baixado"
                 />
               </CardContent>
@@ -453,6 +475,17 @@ export default function TitulosPagar() {
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
         onDeleteRequest={editTitulo ? handleDeleteRequest : undefined}
+      />
+
+      {/* Detail Modal */}
+      <TituloPagarDetailModal
+        titulo={viewTitulo}
+        allTitulos={titulos}
+        open={!!viewTitulo}
+        onClose={() => setViewTitulo(null)}
+        onEdit={handleViewEdit}
+        onBaixa={handleViewBaixa}
+        onDeleteRequest={handleViewDeleteRequest}
       />
 
       {/* Baixa Dialog */}

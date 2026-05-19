@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { TablePagination } from '@/components/ui/pagination'
-import { Plus, Pencil, CircleDollarSign, CircleAlert, Wallet } from 'lucide-react'
+import { Plus, Eye, CircleDollarSign, CircleAlert, Wallet } from 'lucide-react'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -19,6 +19,7 @@ import {
   TituloReceberFormModal,
   type TituloReceberFormData,
 } from '@/components/titulos/TituloReceberFormModal'
+import { TituloReceberDetailModal } from '@/components/titulos/TituloReceberDetailModal'
 import {
   getTitulosReceber,
   createTituloReceber,
@@ -65,11 +66,11 @@ interface TableProps {
   showBaixa: boolean
   showMulta: boolean
   onBaixa: (t: TituloReceber) => void
-  onEdit: (t: TituloReceber) => void
+  onView: (t: TituloReceber) => void
   emptyMessage: string
 }
 
-function TitulosTable({ items, showBaixa, showMulta, onBaixa, onEdit, emptyMessage }: TableProps) {
+function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessage }: TableProps) {
   const [page, setPage] = useState(1)
   useEffect(() => { setPage(1) }, [items])
   const PAGE_SIZE = 10
@@ -168,16 +169,14 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onEdit, emptyMessa
               )}
               <td className="px-4 py-3">
                 <div className="flex items-center justify-end gap-2">
-                  {t.tipo !== 'carteira' && (
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={() => onEdit(t)}
-                      title="Editar título"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={() => onView(t)}
+                    title="Ver detalhes"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                  </Button>
                   {showBaixa && t.tipo !== 'carteira' && (
                     <Button size="sm" onClick={() => onBaixa(t)}>
                       Dar baixa
@@ -217,6 +216,8 @@ export default function TitulosReceber() {
   const [baixaUsarCarteira, setBaixaUsarCarteira] = useState(false)
   const [baixaCarteiraValor, setBaixaCarteiraValor] = useState('')
   const [baixaUserSaldo, setBaixaUserSaldo] = useState<number | null>(null)
+
+  const [viewTitulo, setViewTitulo] = useState<TituloReceber | null>(null)
 
   useEffect(() => {
     getTitulosReceber().then(data => {
@@ -323,6 +324,25 @@ export default function TitulosReceber() {
         setBaixaUserSaldo(user?.saldo_carteira ?? 0)
       })
     }
+  }
+
+  function openView(t: TituloReceber) {
+    setViewTitulo(t)
+  }
+
+  function handleViewEdit(t: TituloReceber) {
+    setViewTitulo(null)
+    openEdit(t)
+  }
+
+  function handleViewBaixa(t: TituloReceber) {
+    setViewTitulo(null)
+    openBaixa(t)
+  }
+
+  function handleViewDeleteRequest(t: TituloReceber) {
+    setViewTitulo(null)
+    setDeleteTarget(t)
   }
 
   async function handleBaixa() {
@@ -458,7 +478,7 @@ export default function TitulosReceber() {
                   showBaixa
                   showMulta={false}
                   onBaixa={openBaixa}
-                  onEdit={openEdit}
+                  onView={openView}
                   emptyMessage="Nenhum título em aberto"
                 />
               </CardContent>
@@ -478,7 +498,7 @@ export default function TitulosReceber() {
                   showBaixa
                   showMulta
                   onBaixa={openBaixa}
-                  onEdit={openEdit}
+                  onView={openView}
                   emptyMessage="Nenhum título em atraso"
                 />
               </CardContent>
@@ -498,7 +518,7 @@ export default function TitulosReceber() {
                   showBaixa={false}
                   showMulta
                   onBaixa={openBaixa}
-                  onEdit={openEdit}
+                  onView={openView}
                   emptyMessage="Nenhum título baixado"
                 />
               </CardContent>
@@ -514,6 +534,17 @@ export default function TitulosReceber() {
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
         onDeleteRequest={editTitulo ? handleDeleteRequest : undefined}
+      />
+
+      {/* Detail Modal */}
+      <TituloReceberDetailModal
+        titulo={viewTitulo}
+        allTitulos={titulos}
+        open={!!viewTitulo}
+        onClose={() => setViewTitulo(null)}
+        onEdit={handleViewEdit}
+        onBaixa={handleViewBaixa}
+        onDeleteRequest={handleViewDeleteRequest}
       />
 
       {/* Baixa Dialog */}
