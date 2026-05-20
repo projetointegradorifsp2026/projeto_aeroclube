@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\LucasCamposRegonha\\\\OneDrive - Pecege\\\\Área de Trabalho\\\\Projeto Aero Clube\\\\projeto_aeroclube\\\\frontend\\\\src\" -Recurse -Force)",
+      "Bash(Select-Object FullName, PSIsContainer)",
+      "Bash(Sort-Object FullName)"
+    ]
+  }
+}
