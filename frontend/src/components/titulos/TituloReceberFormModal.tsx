@@ -221,15 +221,36 @@ export function TituloReceberFormModal({
   }
 
   function renderDevedorField() {
-    const options = form.tipo === 'servico' ? clientesOptions : usuariosOptions
-    const placeholder =
-      form.tipo === 'servico' ? 'Selecione o cliente' : 'Selecione o devedor'
+    if (form.tipo === 'servico') {
+      return (
+        <SearchSelect
+          options={clientesOptions}
+          value={form.usuario_nome}
+          onChange={v => setForm(p => ({ ...p, usuario_nome: v }))}
+          placeholder="Selecione o cliente"
+          hasError={!!errors.usuario_nome}
+        />
+      )
+    }
+    if (form.tipo === 'pontual') {
+      return (
+        <SearchSelect
+          options={usuariosOptions}
+          value={form.usuario_nome}
+          onChange={v => setForm(p => ({ ...p, usuario_nome: v }))}
+          placeholder="Selecione ou digite o devedor"
+          hasError={!!errors.usuario_nome}
+          allowFreeText
+        />
+      )
+    }
+    // mensalidade
     return (
       <SearchSelect
-        options={options}
+        options={usuariosOptions}
         value={form.usuario_nome}
         onChange={v => setForm(p => ({ ...p, usuario_nome: v }))}
-        placeholder={placeholder}
+        placeholder="Selecione o devedor"
         hasError={!!errors.usuario_nome}
       />
     )

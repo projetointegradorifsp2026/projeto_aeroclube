@@ -15,6 +15,7 @@ interface SearchSelectProps {
   disabled?: boolean
   hasError?: boolean
   emptyMessage?: string
+  allowFreeText?: boolean
 }
 
 export function SearchSelect({
@@ -25,6 +26,7 @@ export function SearchSelect({
   disabled = false,
   hasError = false,
   emptyMessage = 'Nenhum item encontrado',
+  allowFreeText = false,
 }: SearchSelectProps) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -32,6 +34,9 @@ export function SearchSelect({
   const wrapperRef = useRef<HTMLDivElement>(null)
 
   const selected = options.find(o => o.value === value)
+
+  // For free-text mode, the value may not match any option
+  const displayLabel = selected?.label ?? (allowFreeText ? value : '')
 
   const filtered = useMemo(() => {
     if (!query) return options
@@ -68,7 +73,13 @@ export function SearchSelect({
     inputRef.current?.focus()
   }
 
-  const displayValue = open ? query : (selected?.label ?? '')
+  const displayValue = open ? query : displayLabel
+
+  const freeTextQuery = query.trim()
+  const showFreeTextOption =
+    allowFreeText &&
+    freeTextQuery !== '' &&
+    !options.some(o => o.label.toLowerCase() === freeTextQuery.toLowerCase())
 
   return (
     <div ref={wrapperRef} className="relative w-full">
@@ -99,7 +110,7 @@ export function SearchSelect({
           )}
         />
         <div className="absolute right-0 top-0 h-10 flex items-center pr-2.5 gap-0.5 pointer-events-none">
-          {selected && !open && (
+          {(selected || (allowFreeText && value)) && !open && (
             <button
               type="button"
               tabIndex={-1}
@@ -123,34 +134,54 @@ export function SearchSelect({
           className="absolute left-0 right-0 top-full mt-1 z-[9999] rounded-lg border border-border bg-popover shadow-md overflow-hidden"
         >
           <div className="max-h-48 overflow-y-auto">
-            {filtered.length === 0 ? (
+            {filtered.length === 0 && !showFreeTextOption ? (
               <div className="px-3 py-5 text-center text-sm text-muted-foreground">
                 {emptyMessage}
               </div>
             ) : (
-              filtered.map(opt => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onMouseDown={e => {
-                    e.preventDefault()
-                    handleSelect(opt.value)
-                  }}
-                  className={cn(
-                    'w-full flex items-center gap-2 px-3 py-2 text-sm text-left',
-                    'hover:bg-muted/50 active:bg-muted transition-colors',
-                    opt.value === value && 'bg-primary/5 text-primary font-medium',
-                  )}
-                >
-                  <Check
+              <>
+                {filtered.map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onMouseDown={e => {
+                      e.preventDefault()
+                      handleSelect(opt.value)
+                    }}
                     className={cn(
-                      'h-3.5 w-3.5 shrink-0',
-                      opt.value === value ? 'opacity-100' : 'opacity-0',
+                      'w-full flex items-center gap-2 px-3 py-2 text-sm text-left',
+                      'hover:bg-muted/50 active:bg-muted transition-colors',
+                      opt.value === value && 'bg-primary/5 text-primary font-medium',
                     )}
-                  />
-                  {opt.label}
-                </button>
-              ))
+                  >
+                    <Check
+                      className={cn(
+                        'h-3.5 w-3.5 shrink-0',
+                        opt.value === value ? 'opacity-100' : 'opacity-0',
+                      )}
+                    />
+                    {opt.label}
+                  </button>
+                ))}
+                {showFreeTextOption && (
+                  <button
+                    type="button"
+                    onMouseDown={e => {
+                      e.preventDefault()
+                      handleSelect(freeTextQuery)
+                    }}
+                    className={cn(
+                      'w-full flex items-center gap-2 px-3 py-2 text-sm text-left',
+                      'hover:bg-muted/50 active:bg-muted transition-colors',
+                      filtered.length > 0 && 'border-t border-border',
+                    )}
+                  >
+                    <Check className="h-3.5 w-3.5 shrink-0 opacity-0" />
+                    <span className="text-muted-foreground">Usar</span>
+                    <span className="font-medium">"{freeTextQuery}"</span>
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
