@@ -226,7 +226,12 @@ export default function TitulosPagar() {
         const matchTipo = tipoFilter === 'all' || t.tipo === tipoFilter
         return matchSearch && matchTipo
       })
-      .sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento))
+      .sort((a, b) => {
+        const today = Date.now()
+        const aTime = new Date(a.data_vencimento + 'T00:00:00').getTime()
+        const bTime = new Date(b.data_vencimento + 'T00:00:00').getTime()
+        return Math.abs(aTime - today) - Math.abs(bTime - today)
+      })
   }, [titulos, search, tipoFilter])
 
   const emAbertoList = filtered.filter(t => t.status === 'em_aberto' && !isAtrasado(t))

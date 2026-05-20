@@ -12,6 +12,7 @@ import {
   EyeOff,
   Plus,
   Minus,
+  Clock,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -36,9 +37,12 @@ import {
   type TituloReceber,
 } from '@/services/titulosReceberService'
 import { getTitulosPagar, createTituloPagar } from '@/services/titulosPagarService'
+import { getAeronaves, type Aeronave } from '@/services/aeronavesService'
 import { PROFILE_LABELS, type UserProfile } from '@/mocks/users'
 import { TITULO_RECEBER_TIPO_LABELS, type TituloReceberStatus } from '@/mocks/titulos'
 import { cn } from '@/lib/utils'
+import { AdicionarSaldoModal, type AddSaldoData } from '@/components/carteira/AdicionarSaldoModal'
+import { SaldoHorasModal, type CarteiraLancamento } from '@/components/carteira/SaldoHorasModal'
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR')
@@ -53,6 +57,7 @@ type MovRow = {
   valor_pago: number
   status: 'em_aberto' | 'pago_parcial' | 'baixado'
   carteira_debito?: boolean
+  data_vencimento?: string
 }
 
 const PROFILE_COLORS: Record<UserProfile, string> = {
@@ -88,9 +93,8 @@ export default function UsuarioPerfilPage() {
   // Carteira
   const [saldoVisible, setSaldoVisible] = useState(false)
   const [addSaldoOpen, setAddSaldoOpen] = useState(false)
-  const [addSaldoValor, setAddSaldoValor] = useState('')
-  const [addSaldoData, setAddSaldoData] = useState(todayStr())
-  const [addSaldoSaving, setAddSaldoSaving] = useState(false)
+  const [horasModalOpen, setHorasModalOpen] = useState(false)
+  const [aeronaves, setAeronaves] = useState<Aeronave[]>([])
   const [removeSaldoOpen, setRemoveSaldoOpen] = useState(false)
   const [removeSaldoValor, setRemoveSaldoValor] = useState('')
   const [removeSaldoData, setRemoveSaldoData] = useState(todayStr())
@@ -135,6 +139,7 @@ export default function UsuarioPerfilPage() {
       valor_pago: t.valor_pago,
       status: t.status,
       carteira_debito: t.carteira_debito,
+      data_vencimento: t.data_vencimento,
     }))
     const saidas: MovRow[] = userPagar.map(t => ({
       id: `p-${t.id}`,
@@ -151,8 +156,9 @@ export default function UsuarioPerfilPage() {
 
   useEffect(() => {
     if (!id) return
-    Promise.all([getUsers(), getTitulosReceber(), getTitulosPagar()]).then(
-      ([users, allReceber, allPagar]) => {
+    Promise.all([getUsers(), getTitulosReceber(), getTitulosPagar(), getAeronaves()]).then(
+      ([users, allReceber, allPagar, allAeronaves]) => {
+        setAeronaves(allAeronaves)
         const found = users.find(u => u.id === id)
         if (!found) { navigate('/usuarios'); return }
 
@@ -178,6 +184,7 @@ export default function UsuarioPerfilPage() {
           valor_pago: t.valor_pago,
           status: t.status,
           carteira_debito: t.carteira_debito,
+          data_vencimento: t.data_vencimento,
         }))
         const saidas: MovRow[] = userPagar.map(t => ({
           id: `p-${t.id}`,
@@ -242,34 +249,28 @@ export default function UsuarioPerfilPage() {
     setUser(updated)
   }
 
-  async function handleAddSaldo() {
+  async function handleAddSaldo(data: AddSaldoData) {
     if (!user) return
-    const valor = parseFloat(addSaldoValor)
-    if (!valor || valor <= 0 || !addSaldoData) return
-    setAddSaldoSaving(true)
     const [updatedUser] = await Promise.all([
-      addSaldoCarteira(user.id, valor),
+      addSaldoCarteira(user.id, data.valor),
       createTituloReceber({
         usuario_id: user.id,
         usuario_nome: user.nome,
         tipo: 'carteira',
-        descricao: `Recarga de carteira`,
+        descricao: data.descricao,
         num_parcela: 1,
         total_parcelas: 1,
-        valor,
-        valor_pago: valor,
+        valor: data.valor,
+        valor_pago: data.valor,
         juros_aplicado: 0,
-        data_emissao: addSaldoData,
-        data_vencimento: addSaldoData,
-        data_pagamento: addSaldoData,
+        data_emissao: data.data_transacao,
+        data_vencimento: data.data_vencimento,
+        data_pagamento: data.data_transacao,
         status: 'baixado',
       }),
     ])
     setUser(updatedUser)
     await reloadMovimentacoes(updatedUser.nome)
-    setAddSaldoOpen(false)
-    setAddSaldoValor('')
-    setAddSaldoSaving(false)
   }
 
   async function handleRemoveSaldo() {
@@ -366,12 +367,6 @@ export default function UsuarioPerfilPage() {
   }
 
   if (!user) return null
-
-  const addSaldoNum = parseFloat(addSaldoValor)
-  const addSaldoError =
-    addSaldoValor && !isNaN(addSaldoNum) && addSaldoNum <= 0
-      ? 'O valor deve ser maior que zero'
-      : null
 
   const removeSaldoNum = parseFloat(removeSaldoValor)
   const removeSaldoError = (() => {
@@ -491,13 +486,21 @@ export default function UsuarioPerfilPage() {
                     <Eye className="h-4 w-4 text-muted-foreground" />
                   )}
                 </Button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setHorasModalOpen(true)}
+                  title="Ver saldo em horas de voo"
+                >
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                </Button>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => { setAddSaldoValor(''); setAddSaldoData(todayStr()); setAddSaldoOpen(true) }}
+                onClick={() => setAddSaldoOpen(true)}
               >
                 <Plus className="h-4 w-4" />
                 Adicionar
@@ -561,6 +564,11 @@ export default function UsuarioPerfilPage() {
                       </td>
                       <td className="px-4 py-3 max-w-[200px]">
                         <p className="truncate font-medium">{m.descricao}</p>
+                        {m.tipo === 'carteira' && !m.carteira_debito && m.data_vencimento && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Venc.: {fmtDate(m.data_vencimento)}
+                          </p>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
                         <span className={
@@ -691,69 +699,30 @@ export default function UsuarioPerfilPage() {
       {/* Modal de edição */}
       <UserFormModal user={user} open={editOpen} onClose={() => setEditOpen(false)} onSave={handleSaveUser} />
 
-      {/* Dialog: Adicionar Saldo */}
-      <Dialog open={addSaldoOpen} onOpenChange={o => !o && setAddSaldoOpen(false)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Adicionar Saldo</DialogTitle>
-            <DialogDescription>
-              Um título baixado será gerado como comprovante do crédito adicionado.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3 py-1">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Valor a adicionar (R$)</label>
-              <Input
-                type="number"
-                min={0.01}
-                step={0.01}
-                placeholder="0,00"
-                value={addSaldoValor}
-                onChange={e => setAddSaldoValor(e.target.value)}
-                hasError={!!addSaldoError}
-                helper={addSaldoError ?? undefined}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Data</label>
-              <Input
-                type="date"
-                value={addSaldoData}
-                onChange={e => setAddSaldoData(e.target.value)}
-              />
-            </div>
-            <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm">
-              <span className="text-muted-foreground">Saldo atual: </span>
-              <span className="font-medium">{fmt(user.saldo_carteira)}</span>
-              {addSaldoValor && !addSaldoError && parseFloat(addSaldoValor) > 0 && (
-                <>
-                  <span className="text-muted-foreground mx-1.5">→</span>
-                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                    {fmt(user.saldo_carteira + parseFloat(addSaldoValor))}
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddSaldoOpen(false)} disabled={addSaldoSaving}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleAddSaldo}
-              disabled={
-                addSaldoSaving ||
-                !addSaldoValor ||
-                !!addSaldoError ||
-                parseFloat(addSaldoValor) <= 0 ||
-                !addSaldoData
-              }
-            >
-              {addSaldoSaving ? 'Salvando...' : 'Confirmar'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Modal: Saldo em Horas de Voo */}
+      <SaldoHorasModal
+        open={horasModalOpen}
+        onClose={() => setHorasModalOpen(false)}
+        lancamentos={movimentacoes
+          .filter(m => m.tipo === 'carteira' && !m.carteira_debito)
+          .map<CarteiraLancamento>(m => ({
+            id: m.id,
+            descricao: m.descricao,
+            valor: m.valor,
+            data_emissao: m.data,
+            data_vencimento: m.data_vencimento ?? '',
+          }))}
+        aeronaves={aeronaves}
+      />
+
+      {/* Modal: Adicionar Saldo */}
+      <AdicionarSaldoModal
+        open={addSaldoOpen}
+        onClose={() => setAddSaldoOpen(false)}
+        onSave={handleAddSaldo}
+        aeronaves={aeronaves}
+        currentSaldo={user.saldo_carteira}
+      />
 
       {/* Dialog: Remover Saldo */}
       <Dialog open={removeSaldoOpen} onOpenChange={o => !o && setRemoveSaldoOpen(false)}>
