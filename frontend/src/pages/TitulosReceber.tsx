@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { TablePagination } from '@/components/ui/pagination'
-import { Search, Plus, Pencil, CircleDollarSign, CircleAlert } from 'lucide-react'
+import { Plus, Eye, CircleDollarSign, CircleAlert, Wallet } from 'lucide-react'
+import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,6 +19,7 @@ import {
   TituloReceberFormModal,
   type TituloReceberFormData,
 } from '@/components/titulos/TituloReceberFormModal'
+import { TituloReceberDetailModal } from '@/components/titulos/TituloReceberDetailModal'
 import {
   getTitulosReceber,
   createTituloReceber,
@@ -26,6 +28,7 @@ import {
   baixarTituloReceber,
   type TituloReceber,
 } from '@/services/titulosReceberService'
+import { getUsers, debitarCarteira } from '@/services/usersService'
 import { TITULO_RECEBER_TIPO_LABELS, type TituloReceberTipo } from '@/mocks/titulos'
 import { cn } from '@/lib/utils'
 
@@ -42,6 +45,7 @@ const TIPO_COLORS: Record<TituloReceberTipo, string> = {
   pontual: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   servico: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   voo: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400',
+  carteira: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
 }
 
 function TipoBadge({ tipo }: { tipo: TituloReceberTipo }) {
@@ -60,12 +64,13 @@ const inputCls =
 interface TableProps {
   items: TituloReceber[]
   showBaixa: boolean
+  showMulta: boolean
   onBaixa: (t: TituloReceber) => void
-  onEdit: (t: TituloReceber) => void
+  onView: (t: TituloReceber) => void
   emptyMessage: string
 }
 
-function TitulosTable({ items, showBaixa, onBaixa, onEdit, emptyMessage }: TableProps) {
+function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessage }: TableProps) {
   const [page, setPage] = useState(1)
   useEffect(() => { setPage(1) }, [items])
   const PAGE_SIZE = 10
@@ -105,6 +110,11 @@ function TitulosTable({ items, showBaixa, onBaixa, onEdit, emptyMessage }: Table
               <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
                 Valor
               </th>
+              {showMulta && (
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">
+                  Multa
+                </th>
+              )}
               <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
                 Ações
               </th>
@@ -144,21 +154,30 @@ function TitulosTable({ items, showBaixa, onBaixa, onEdit, emptyMessage }: Table
                     Pago: {fmt(t.valor_pago)}
                   </p>
                 )}
-                {t.juros_aplicado > 0 && (
-                  <p className="text-xs text-rose-500">+{fmt(t.juros_aplicado)} juros</p>
+                {t.valor_carteira && t.valor_carteira > 0 && (
+                  <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400 mt-0.5">
+                    {fmt(t.valor_carteira)} via carteira
+                  </span>
                 )}
               </td>
+              {showMulta && (
+                <td className="px-4 py-3 hidden sm:table-cell whitespace-nowrap">
+                  {(t.multa ?? 0) > 0
+                    ? <span className="text-rose-500 font-medium">{fmt(t.multa!)}</span>
+                    : <span className="text-muted-foreground">—</span>}
+                </td>
+              )}
               <td className="px-4 py-3">
                 <div className="flex items-center justify-end gap-2">
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    onClick={() => onEdit(t)}
-                    title="Editar título"
+                    onClick={() => onView(t)}
+                    title="Ver detalhes"
                   >
-                    <Pencil className="h-3.5 w-3.5" />
+                    <Eye className="h-3.5 w-3.5" />
                   </Button>
-                  {showBaixa && (
+                  {showBaixa && t.tipo !== 'carteira' && (
                     <Button size="sm" onClick={() => onBaixa(t)}>
                       Dar baixa
                       <CircleDollarSign className="h-3.5 w-3.5" />
@@ -191,8 +210,14 @@ export default function TitulosReceber() {
 
   const [baixaTarget, setBaixaTarget] = useState<TituloReceber | null>(null)
   const [baixaValor, setBaixaValor] = useState('')
+  const [baixaMulta, setBaixaMulta] = useState('0')
   const [baixaData, setBaixaData] = useState('')
   const [baixando, setBaixando] = useState(false)
+  const [baixaUsarCarteira, setBaixaUsarCarteira] = useState(false)
+  const [baixaCarteiraValor, setBaixaCarteiraValor] = useState('')
+  const [baixaUserSaldo, setBaixaUserSaldo] = useState<number | null>(null)
+
+  const [viewTitulo, setViewTitulo] = useState<TituloReceber | null>(null)
 
   useEffect(() => {
     getTitulosReceber().then(data => {
@@ -212,7 +237,7 @@ export default function TitulosReceber() {
         const matchTipo = tipoFilter === 'all' || t.tipo === tipoFilter
         return matchSearch && matchTipo
       })
-      .sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento))
+      .sort((a, b) => b.data_vencimento.localeCompare(a.data_vencimento))
   }, [titulos, search, tipoFilter])
 
   const emAbertoList = filtered.filter(
@@ -230,7 +255,7 @@ export default function TitulosReceber() {
         num_parcela: editTitulo.num_parcela,
         total_parcelas: editTitulo.total_parcelas,
         valor: data.valor,
-        juros_aplicado: data.juros_aplicado,
+        multa: data.multa,
         data_emissao: data.data_emissao,
         data_vencimento: data.parcela_vencimentos[0],
       })
@@ -244,9 +269,10 @@ export default function TitulosReceber() {
             descricao: data.descricao,
             num_parcela: i + 1,
             total_parcelas: data.total_parcelas,
-            valor: data.valor,
+            valor: data.parcela_valores[i] ?? data.valor,
             valor_pago: 0,
-            juros_aplicado: data.juros_aplicado,
+            juros_aplicado: 0,
+            multa: 0,
             data_emissao: data.data_emissao,
             data_vencimento: venc,
             data_pagamento: null,
@@ -283,19 +309,77 @@ export default function TitulosReceber() {
   }
 
   function openBaixa(t: TituloReceber) {
-    const restante = t.valor + t.juros_aplicado - t.valor_pago
+    const multaVal = t.multa ?? 0
+    const restante = t.valor + multaVal - t.valor_pago
     setBaixaTarget(t)
+    setBaixaMulta(multaVal.toFixed(2))
     setBaixaValor(restante.toFixed(2))
     setBaixaData(todayStr())
+    setBaixaUsarCarteira(false)
+    setBaixaCarteiraValor('')
+    setBaixaUserSaldo(null)
+    if (t.usuario_id) {
+      getUsers().then(users => {
+        const user = users.find(u => u.id === t.usuario_id)
+        setBaixaUserSaldo(user?.saldo_carteira ?? 0)
+      })
+    }
+  }
+
+  function openView(t: TituloReceber) {
+    setViewTitulo(t)
+  }
+
+  function handleViewEdit(t: TituloReceber) {
+    setViewTitulo(null)
+    openEdit(t)
+  }
+
+  function handleViewBaixa(t: TituloReceber) {
+    setViewTitulo(null)
+    openBaixa(t)
+  }
+
+  function handleViewDeleteRequest(t: TituloReceber) {
+    setViewTitulo(null)
+    setDeleteTarget(t)
   }
 
   async function handleBaixa() {
     if (!baixaTarget) return
     setBaixando(true)
+    const multa = parseFloat(baixaMulta) || 0
+    const carteiraAmount = baixaUsarCarteira ? (parseFloat(baixaCarteiraValor) || 0) : 0
+
+    if (carteiraAmount > 0 && baixaTarget.usuario_id) {
+      await Promise.all([
+        debitarCarteira(baixaTarget.usuario_id, carteiraAmount),
+        createTituloReceber({
+          usuario_id: baixaTarget.usuario_id,
+          usuario_nome: baixaTarget.usuario_nome,
+          tipo: 'carteira',
+          descricao: `Débito carteira – ${baixaTarget.descricao}`,
+          num_parcela: 1,
+          total_parcelas: 1,
+          valor: carteiraAmount,
+          valor_pago: carteiraAmount,
+          juros_aplicado: 0,
+          data_emissao: baixaData,
+          data_vencimento: baixaData,
+          data_pagamento: baixaData,
+          status: 'baixado',
+          carteira_debito: true,
+        }),
+      ])
+    }
+
+    const totalPayment = (parseFloat(baixaValor) || 0) + carteiraAmount
     const updated = await baixarTituloReceber(
       baixaTarget.id,
-      parseFloat(baixaValor),
+      totalPayment,
       baixaData,
+      multa,
+      carteiraAmount,
     )
     setTitulos(prev => prev.map(t => (t.id === baixaTarget.id ? updated : t)))
     setBaixaTarget(null)
@@ -303,7 +387,7 @@ export default function TitulosReceber() {
   }
 
   const restanteBaixa = baixaTarget
-    ? baixaTarget.valor + baixaTarget.juros_aplicado - baixaTarget.valor_pago
+    ? baixaTarget.valor + (parseFloat(baixaMulta) || 0) - baixaTarget.valor_pago
     : 0
 
   return (
@@ -318,26 +402,24 @@ export default function TitulosReceber() {
 
       {/* Filters */}
       <div className="flex items-center gap-3">
-        <div className="relative w-64">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <input
-            className={cn(inputCls, 'w-full pl-8 pr-3')}
-            placeholder="Buscar por devedor ou descrição..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-        <select
-          className={inputCls}
+        <FilterInput
+          size="sm"
+          value={search}
+          onChange={setSearch}
+          placeholder="Buscar por devedor ou descrição..."
+        />
+        <FilterSelect
+          size="sm"
           value={tipoFilter}
-          onChange={e => setTipoFilter(e.target.value as TipoFilter)}
+          onChange={v => setTipoFilter(v as TipoFilter)}
         >
           <option value="all">Todos os tipos</option>
           <option value="mensalidade">Mensalidade</option>
           <option value="pontual">Pontual</option>
           <option value="servico">Serviço</option>
           <option value="voo">Voo</option>
-        </select>
+          <option value="carteira">Carteira</option>
+        </FilterSelect>
         <Button onClick={openCreate} className="ml-auto shrink-0">
           <Plus className="h-4 w-4" />
           Novo Título
@@ -394,8 +476,9 @@ export default function TitulosReceber() {
                 <TitulosTable
                   items={emAbertoList}
                   showBaixa
+                  showMulta={false}
                   onBaixa={openBaixa}
-                  onEdit={openEdit}
+                  onView={openView}
                   emptyMessage="Nenhum título em aberto"
                 />
               </CardContent>
@@ -413,8 +496,9 @@ export default function TitulosReceber() {
                 <TitulosTable
                   items={emAtrasoList}
                   showBaixa
+                  showMulta
                   onBaixa={openBaixa}
-                  onEdit={openEdit}
+                  onView={openView}
                   emptyMessage="Nenhum título em atraso"
                 />
               </CardContent>
@@ -432,8 +516,9 @@ export default function TitulosReceber() {
                 <TitulosTable
                   items={baixadoList}
                   showBaixa={false}
+                  showMulta
                   onBaixa={openBaixa}
-                  onEdit={openEdit}
+                  onView={openView}
                   emptyMessage="Nenhum título baixado"
                 />
               </CardContent>
@@ -451,79 +536,213 @@ export default function TitulosReceber() {
         onDeleteRequest={editTitulo ? handleDeleteRequest : undefined}
       />
 
+      {/* Detail Modal */}
+      <TituloReceberDetailModal
+        titulo={viewTitulo}
+        allTitulos={titulos}
+        open={!!viewTitulo}
+        onClose={() => setViewTitulo(null)}
+        onEdit={handleViewEdit}
+        onBaixa={handleViewBaixa}
+        onDeleteRequest={handleViewDeleteRequest}
+      />
+
       {/* Baixa Dialog */}
-      <Dialog open={!!baixaTarget} onOpenChange={o => !o && setBaixaTarget(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Registrar recebimento</DialogTitle>
-            <DialogDescription>
-              <strong className="text-foreground">{baixaTarget?.usuario_nome}</strong>
-              {' — '}
-              {baixaTarget?.descricao}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-1">
-            <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm space-y-1.5">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Valor original</span>
-                <span className="font-medium">{baixaTarget && fmt(baixaTarget.valor)}</span>
-              </div>
-              {baixaTarget && baixaTarget.juros_aplicado > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Juros</span>
-                  <span className="text-rose-500">+{fmt(baixaTarget.juros_aplicado)}</span>
+      {(() => {
+        const cashAmount = parseFloat(baixaValor) || 0
+        const multaVal = parseFloat(baixaMulta) || 0
+        const carteiraUsadaNum = baixaUsarCarteira ? (parseFloat(baixaCarteiraValor) || 0) : 0
+        const totalBaixa = cashAmount + carteiraUsadaNum
+        const carteiraMaxUsavel = Math.min(baixaUserSaldo ?? 0, restanteBaixa)
+        const atrasado = !!baixaTarget && isAtrasado(baixaTarget)
+
+        const carteiraError =
+          carteiraUsadaNum > (baixaUserSaldo ?? 0)
+            ? `Saldo insuficiente (máximo: ${fmt(baixaUserSaldo ?? 0)})`
+            : carteiraUsadaNum > restanteBaixa
+            ? `Maior que o saldo restante (${fmt(restanteBaixa)})`
+            : null
+
+        const baixaValorError =
+          totalBaixa > restanteBaixa
+            ? `A soma (${fmt(totalBaixa)}) excede o saldo restante (${fmt(restanteBaixa)})`
+            : null
+
+        const canConfirm =
+          !baixando &&
+          !!baixaData &&
+          !baixaValorError &&
+          !carteiraError &&
+          totalBaixa > 0
+
+        return (
+          <Dialog open={!!baixaTarget} onOpenChange={o => { if (!o) { setBaixaTarget(null); setBaixaUsarCarteira(false); setBaixaCarteiraValor('') } }}>
+            <DialogContent className="sm:max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Registrar recebimento</DialogTitle>
+                <DialogDescription>
+                  <strong className="text-foreground">{baixaTarget?.usuario_nome}</strong>
+                  {' — '}
+                  {baixaTarget?.descricao}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-1">
+                <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Valor original</span>
+                    <span className="font-medium">{baixaTarget && fmt(baixaTarget.valor)}</span>
+                  </div>
+                  {atrasado && multaVal > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Multa</span>
+                      <span className="text-rose-500">+{fmt(multaVal)}</span>
+                    </div>
+                  )}
+                  {baixaTarget && baixaTarget.valor_pago > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Já recebido</span>
+                      <span className="text-emerald-600">−{fmt(baixaTarget.valor_pago)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between border-t border-border pt-1.5 mt-1">
+                    <span className="text-muted-foreground font-medium">Saldo restante</span>
+                    <span className="font-semibold">{fmt(restanteBaixa)}</span>
+                  </div>
                 </div>
-              )}
-              {baixaTarget && baixaTarget.valor_pago > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Já recebido</span>
-                  <span className="text-emerald-600">−{fmt(baixaTarget.valor_pago)}</span>
+
+                {/* Carteira option */}
+                {baixaUserSaldo !== null && baixaUserSaldo > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="flex items-center gap-1.5 text-muted-foreground">
+                        <Wallet className="h-3.5 w-3.5" />
+                        Saldo da carteira
+                      </span>
+                      <span className="font-medium">{fmt(baixaUserSaldo)}</span>
+                    </div>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
+                        checked={baixaUsarCarteira}
+                        onChange={e => {
+                          const checked = e.target.checked
+                          setBaixaUsarCarteira(checked)
+                          if (!checked) {
+                            setBaixaCarteiraValor('')
+                            setBaixaValor(restanteBaixa.toFixed(2))
+                          } else {
+                            const c = carteiraMaxUsavel
+                            setBaixaCarteiraValor(c.toFixed(2))
+                            setBaixaValor(Math.max(0, restanteBaixa - c).toFixed(2))
+                          }
+                        }}
+                      />
+                      Usar saldo da carteira
+                    </label>
+                    {baixaUsarCarteira && (
+                      <div className="pl-6 space-y-1.5">
+                        <label className="text-sm font-medium">Valor da carteira (R$)</label>
+                        <input
+                          type="number"
+                          min={0.01}
+                          step={0.01}
+                          max={carteiraMaxUsavel}
+                          className={cn(
+                            'h-10 w-full rounded-lg border bg-background px-2.5 text-sm outline-none focus:ring-2 transition-shadow',
+                            carteiraError
+                              ? 'border-destructive focus:ring-destructive/50'
+                              : 'border-input focus:ring-ring/50',
+                          )}
+                          value={baixaCarteiraValor}
+                          onChange={e => {
+                            const c = parseFloat(e.target.value) || 0
+                            setBaixaCarteiraValor(e.target.value)
+                            setBaixaValor(Math.max(0, restanteBaixa - c).toFixed(2))
+                          }}
+                        />
+                        {carteiraError && (
+                          <p className="text-xs text-destructive">{carteiraError}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {atrasado && (
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Multa (R$)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow"
+                      value={baixaMulta}
+                      onChange={e => setBaixaMulta(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">
+                    {baixaUsarCarteira ? 'Valor em dinheiro (R$)' : 'Valor a receber (R$)'}
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    className={cn(
+                      'h-10 w-full rounded-lg border bg-background px-2.5 text-sm outline-none focus:ring-2 transition-shadow',
+                      baixaValorError
+                        ? 'border-destructive focus:ring-destructive/50'
+                        : 'border-input focus:ring-ring/50',
+                    )}
+                    value={baixaValor}
+                    onChange={e => setBaixaValor(e.target.value)}
+                  />
+                  {baixaValorError ? (
+                    <p className="text-xs text-destructive">{baixaValorError}</p>
+                  ) : baixaUsarCarteira ? (
+                    totalBaixa > 0 && totalBaixa < restanteBaixa ? (
+                      <p className="text-xs text-muted-foreground">
+                        Total: {fmt(totalBaixa)} — baixa parcial, restará {fmt(restanteBaixa - totalBaixa)}
+                      </p>
+                    ) : totalBaixa >= restanteBaixa && !baixaValorError ? (
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                        Total: {fmt(totalBaixa)} — quita o saldo restante
+                      </p>
+                    ) : null
+                  ) : (
+                    cashAmount > 0 && cashAmount < restanteBaixa && (
+                      <p className="text-xs text-muted-foreground">
+                        Baixa parcial — restará {fmt(restanteBaixa - cashAmount)}
+                      </p>
+                    )
+                  )}
                 </div>
-              )}
-              <div className="flex justify-between border-t border-border pt-1.5 mt-1">
-                <span className="text-muted-foreground font-medium">Saldo restante</span>
-                <span className="font-semibold">{fmt(restanteBaixa)}</span>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Data de recebimento</label>
+                  <input
+                    type="date"
+                    className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
+                    value={baixaData}
+                    onChange={e => setBaixaData(e.target.value)}
+                  />
+                </div>
               </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Valor a receber (R$)</label>
-              <input
-                type="number"
-                min={0}
-                step={0.01}
-                className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
-                value={baixaValor}
-                onChange={e => setBaixaValor(e.target.value)}
-              />
-              {parseFloat(baixaValor) > 0 && parseFloat(baixaValor) < restanteBaixa && (
-                <p className="text-xs text-muted-foreground">
-                  Baixa parcial — saldo de {fmt(restanteBaixa - parseFloat(baixaValor))} permanecerá em aberto
-                </p>
-              )}
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Data de recebimento</label>
-              <input
-                type="date"
-                className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
-                value={baixaData}
-                onChange={e => setBaixaData(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setBaixaTarget(null)} disabled={baixando}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleBaixa}
-              disabled={baixando || !baixaValor || !baixaData || parseFloat(baixaValor) <= 0}
-            >
-              {baixando ? 'Registrando...' : 'Confirmar Recebimento'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setBaixaTarget(null)} disabled={baixando}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleBaixa} disabled={!canConfirm}>
+                  {baixando ? 'Registrando...' : 'Confirmar Recebimento'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )
+      })()}
 
       {/* Delete Dialog */}
       <Dialog open={!!deleteTarget} onOpenChange={o => !o && setDeleteTarget(null)}>

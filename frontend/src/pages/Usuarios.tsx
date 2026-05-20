@@ -1,6 +1,8 @@
 ﻿import { useEffect, useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { TablePagination } from '@/components/ui/pagination'
-import { Search, UserPlus, Pencil, Trash2, UserCheck, UserX } from 'lucide-react'
+import { UserPlus, Eye, Trash2, UserCheck, UserX } from 'lucide-react'
+import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -14,7 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { UserFormModal, type UserFormData } from '@/components/users/UserFormModal'
-import { getUsers, createUser, updateUser, deleteUser, type User, type UserProfile } from '@/services/usersService'
+import { getUsers, createUser, deleteUser, type User, type UserProfile } from '@/services/usersService'
 import { PROFILE_LABELS } from '@/mocks/users'
 import { cn } from '@/lib/utils'
 
@@ -30,13 +32,13 @@ const fmtDate = (d: string) =>
   new Date(d + 'T00:00:00').toLocaleDateString('pt-BR')
 
 export default function Usuarios() {
+  const navigate = useNavigate()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [profileFilter, setProfileFilter] = useState<UserProfile | 'all'>('all')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
 
-  const [editUser, setEditUser] = useState<User | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -73,13 +75,8 @@ export default function Usuarios() {
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   async function handleSave(data: UserFormData): Promise<void> {
-    if (editUser) {
-      const updated = await updateUser(editUser.id, data)
-      setUsers(prev => prev.map(u => (u.id === editUser.id ? updated : u)))
-    } else {
-      const created = await createUser(data)
-      setUsers(prev => [...prev, created])
-    }
+    const created = await createUser(data)
+    setUsers(prev => [...prev, created])
   }
 
   async function handleDelete() {
@@ -92,12 +89,6 @@ export default function Usuarios() {
   }
 
   function openCreate() {
-    setEditUser(null)
-    setModalOpen(true)
-  }
-
-  function openEdit(user: User) {
-    setEditUser(user)
     setModalOpen(true)
   }
 
@@ -111,19 +102,14 @@ export default function Usuarios() {
 
       {/* Filters */}
       <div className="flex items-center gap-3">
-        <div className="relative w-64">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <input
-            className="h-10 w-full rounded-lg border border-input bg-background pl-8 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring/50 placeholder:text-muted-foreground transition-shadow"
-            placeholder="Buscar por nome, e-mail ou CPF..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-        <select
-          className="h-10 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow"
+        <FilterInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Buscar por nome, e-mail ou CPF..."
+        />
+        <FilterSelect
           value={profileFilter}
-          onChange={e => setProfileFilter(e.target.value as UserProfile | 'all')}
+          onChange={v => setProfileFilter(v as UserProfile | 'all')}
         >
           <option value="all">Todos os perfis</option>
           <option value="administrador">Administrador</option>
@@ -131,16 +117,15 @@ export default function Usuarios() {
           <option value="socio">Sócio</option>
           <option value="cliente_externo">Cliente Externo</option>
           <option value="colaborador">Colaborador</option>
-        </select>
-        <select
-          className="h-10 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow"
+        </FilterSelect>
+        <FilterSelect
           value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}
+          onChange={v => setStatusFilter(v as typeof statusFilter)}
         >
           <option value="all">Todos os status</option>
           <option value="active">Ativos</option>
           <option value="inactive">Inativos</option>
-        </select>
+        </FilterSelect>
         <Button onClick={openCreate} className="ml-auto shrink-0">
           <UserPlus className="h-4 w-4" />
           Novo Usuário
@@ -246,10 +231,10 @@ export default function Usuarios() {
                           <Button
                             variant="ghost"
                             size="icon-sm"
-                            onClick={() => openEdit(user)}
-                            title="Editar usuário"
+                            onClick={() => navigate(`/usuarios/${user.id}`)}
+                            title="Ver perfil"
                           >
-                            <Pencil className="h-3.5 w-3.5" />
+                            <Eye className="h-3.5 w-3.5" />
                           </Button>
                           <Button
                             variant="ghost"
@@ -272,9 +257,9 @@ export default function Usuarios() {
         </CardContent>
       </Card>
 
-      {/* Create / Edit Modal */}
+      {/* Create Modal */}
       <UserFormModal
-        user={editUser}
+        user={null}
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onSave={handleSave}

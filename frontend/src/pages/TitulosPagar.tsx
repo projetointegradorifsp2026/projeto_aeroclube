@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { TablePagination } from '@/components/ui/pagination'
-import { Search, Plus, Pencil, ArrowDownToLine, CircleAlert, CircleDollarSign } from 'lucide-react'
+import { Plus, Eye, ArrowDownToLine, CircleAlert, CircleDollarSign } from 'lucide-react'
+import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -18,6 +19,7 @@ import {
   TituloPagarFormModal,
   type TituloPagarFormData,
 } from '@/components/titulos/TituloPagarFormModal'
+import { TituloPagarDetailModal } from '@/components/titulos/TituloPagarDetailModal'
 import {
   getTitulosPagar,
   createTituloPagar,
@@ -60,12 +62,13 @@ const inputCls =
 interface TableProps {
   items: TituloPagar[]
   showBaixa: boolean
+  showMulta: boolean
   onBaixa: (t: TituloPagar) => void
-  onEdit: (t: TituloPagar) => void
+  onView: (t: TituloPagar) => void
   emptyMessage: string
 }
 
-function TitulosTable({ items, showBaixa, onBaixa, onEdit, emptyMessage }: TableProps) {
+function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessage }: TableProps) {
   const [page, setPage] = useState(1)
   useEffect(() => { setPage(1) }, [items])
   const PAGE_SIZE = 10
@@ -105,6 +108,11 @@ function TitulosTable({ items, showBaixa, onBaixa, onEdit, emptyMessage }: Table
               <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
                 Valor
               </th>
+              {showMulta && (
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">
+                  Multa
+                </th>
+              )}
               <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
                 Ações
               </th>
@@ -145,15 +153,22 @@ function TitulosTable({ items, showBaixa, onBaixa, onEdit, emptyMessage }: Table
               <td className="px-4 py-3 font-medium whitespace-nowrap">
                 {fmt(t.valor)}
               </td>
+              {showMulta && (
+                <td className="px-4 py-3 hidden sm:table-cell whitespace-nowrap">
+                  {t.multa > 0
+                    ? <span className="text-rose-500 font-medium">{fmt(t.multa)}</span>
+                    : <span className="text-muted-foreground">—</span>}
+                </td>
+              )}
               <td className="px-4 py-3">
                 <div className="flex items-center justify-end gap-2">
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    onClick={() => onEdit(t)}
-                    title="Editar título"
+                    onClick={() => onView(t)}
+                    title="Ver detalhes"
                   >
-                    <Pencil className="h-3.5 w-3.5" />
+                    <Eye className="h-3.5 w-3.5" />
                   </Button>
                   {showBaixa && (
                     <Button size="sm" onClick={() => onBaixa(t)}>
@@ -187,9 +202,11 @@ export default function TitulosPagar() {
   const [deleting, setDeleting] = useState(false)
 
   const [baixaTarget, setBaixaTarget] = useState<TituloPagar | null>(null)
-  const [baixaValor, setBaixaValor] = useState('')
+  const [baixaMulta, setBaixaMulta] = useState('0')
   const [baixaData, setBaixaData] = useState('')
   const [baixando, setBaixando] = useState(false)
+
+  const [viewTitulo, setViewTitulo] = useState<TituloPagar | null>(null)
 
   useEffect(() => {
     getTitulosPagar().then(data => {
@@ -225,6 +242,7 @@ export default function TitulosPagar() {
         num_parcela: editTitulo.num_parcela,
         total_parcelas: editTitulo.total_parcelas,
         valor: data.valor,
+        multa: data.multa,
         data_emissao: data.data_emissao,
         data_vencimento: data.parcela_vencimentos[0],
         recorrente: data.recorrente,
@@ -239,7 +257,8 @@ export default function TitulosPagar() {
             descricao: data.descricao,
             num_parcela: i + 1,
             total_parcelas: data.total_parcelas,
-            valor: data.valor,
+            valor: data.recorrente ? (data.parcela_valores[i] ?? data.valor) : data.valor,
+            multa: 0,
             data_emissao: data.data_emissao,
             data_vencimento: venc,
             status: 'em_aberto',
@@ -279,18 +298,35 @@ export default function TitulosPagar() {
 
   function openBaixa(t: TituloPagar) {
     setBaixaTarget(t)
-    setBaixaValor(t.valor.toFixed(2))
+    setBaixaMulta((t.multa ?? 0).toFixed(2))
     setBaixaData(todayStr())
+  }
+
+  function openView(t: TituloPagar) {
+    setViewTitulo(t)
+  }
+
+  function handleViewEdit(t: TituloPagar) {
+    setViewTitulo(null)
+    openEdit(t)
+  }
+
+  function handleViewBaixa(t: TituloPagar) {
+    setViewTitulo(null)
+    openBaixa(t)
+  }
+
+  function handleViewDeleteRequest(t: TituloPagar) {
+    setViewTitulo(null)
+    setDeleteTarget(t)
   }
 
   async function handleBaixa() {
     if (!baixaTarget) return
     setBaixando(true)
-    const updated = await baixarTituloPagar(
-      baixaTarget.id,
-      parseFloat(baixaValor),
-      baixaData,
-    )
+    const multa = parseFloat(baixaMulta) || 0
+    const valorPago = baixaTarget.valor + multa
+    const updated = await baixarTituloPagar(baixaTarget.id, valorPago, baixaData, multa)
     setTitulos(prev => prev.map(t => (t.id === baixaTarget.id ? updated : t)))
     setBaixaTarget(null)
     setBaixando(false)
@@ -308,26 +344,23 @@ export default function TitulosPagar() {
 
       {/* Filters */}
       <div className="flex items-center gap-3">
-        <div className="relative w-64">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <input
-            className={cn(inputCls, 'w-full pl-8 pr-3')}
-            placeholder="Buscar por favorecido ou descrição..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-        <select
-          className={inputCls}
+        <FilterInput
+          size="sm"
+          value={search}
+          onChange={setSearch}
+          placeholder="Buscar por favorecido ou descrição..."
+        />
+        <FilterSelect
+          size="sm"
           value={tipoFilter}
-          onChange={e => setTipoFilter(e.target.value as TipoFilter)}
+          onChange={v => setTipoFilter(v as TipoFilter)}
         >
           <option value="all">Todos os tipos</option>
           <option value="fornecedor">Fornecedor</option>
           <option value="folha">Folha de Pagamento</option>
           <option value="conta_fixa">Conta Fixa</option>
           <option value="outros">Outros</option>
-        </select>
+        </FilterSelect>
         <Button onClick={openCreate} className="ml-auto shrink-0">
           <Plus className="h-4 w-4" />
           Novo Título
@@ -384,8 +417,9 @@ export default function TitulosPagar() {
                 <TitulosTable
                   items={emAbertoList}
                   showBaixa
+                  showMulta={false}
                   onBaixa={openBaixa}
-                  onEdit={openEdit}
+                  onView={openView}
                   emptyMessage="Nenhum título em aberto"
                 />
               </CardContent>
@@ -403,8 +437,9 @@ export default function TitulosPagar() {
                 <TitulosTable
                   items={emAtrasoList}
                   showBaixa
+                  showMulta
                   onBaixa={openBaixa}
-                  onEdit={openEdit}
+                  onView={openView}
                   emptyMessage="Nenhum título em atraso"
                 />
               </CardContent>
@@ -422,8 +457,9 @@ export default function TitulosPagar() {
                 <TitulosTable
                   items={baixadoList}
                   showBaixa={false}
+                  showMulta
                   onBaixa={openBaixa}
-                  onEdit={openEdit}
+                  onView={openView}
                   emptyMessage="Nenhum título baixado"
                 />
               </CardContent>
@@ -441,61 +477,96 @@ export default function TitulosPagar() {
         onDeleteRequest={editTitulo ? handleDeleteRequest : undefined}
       />
 
+      {/* Detail Modal */}
+      <TituloPagarDetailModal
+        titulo={viewTitulo}
+        allTitulos={titulos}
+        open={!!viewTitulo}
+        onClose={() => setViewTitulo(null)}
+        onEdit={handleViewEdit}
+        onBaixa={handleViewBaixa}
+        onDeleteRequest={handleViewDeleteRequest}
+      />
+
       {/* Baixa Dialog */}
-      <Dialog open={!!baixaTarget} onOpenChange={o => !o && setBaixaTarget(null)}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Dar baixa no título</DialogTitle>
-            <DialogDescription>
-              <strong className="text-foreground">{baixaTarget?.favorecido}</strong>
-              {' — '}
-              {baixaTarget?.descricao}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-1">
-            <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm space-y-1.5">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Valor original</span>
-                <span className="font-medium">{baixaTarget && fmt(baixaTarget.valor)}</span>
+      {(() => {
+        const atrasado = !!baixaTarget && isAtrasado(baixaTarget)
+        const multa = parseFloat(baixaMulta) || 0
+        const totalAPagar = (baixaTarget?.valor ?? 0) + multa
+        return (
+          <Dialog open={!!baixaTarget} onOpenChange={o => !o && setBaixaTarget(null)}>
+            <DialogContent className="sm:max-w-sm">
+              <DialogHeader>
+                <DialogTitle>Dar baixa no título</DialogTitle>
+                <DialogDescription>
+                  <strong className="text-foreground">{baixaTarget?.favorecido}</strong>
+                  {' — '}
+                  {baixaTarget?.descricao}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-1">
+                <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Valor original</span>
+                    <span className="font-medium">{baixaTarget && fmt(baixaTarget.valor)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Vencimento</span>
+                    <span className={atrasado ? 'text-rose-500 font-medium' : ''}>
+                      {baixaTarget && fmtDate(baixaTarget.data_vencimento)}
+                    </span>
+                  </div>
+                  {atrasado && multa > 0 && (
+                    <div className="flex justify-between pt-1 border-t border-border">
+                      <span className="text-muted-foreground">Total c/ multa</span>
+                      <span className="font-medium">{fmt(totalAPagar)}</span>
+                    </div>
+                  )}
+                </div>
+
+                {atrasado && (
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Multa (R$)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={0.01}
+                      className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow"
+                      value={baixaMulta}
+                      onChange={e => setBaixaMulta(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Valor a pagar (R$)</label>
+                  <div className="h-10 flex items-center rounded-lg border border-input bg-muted/40 px-2.5 text-sm font-medium">
+                    {fmt(totalAPagar)}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Data de pagamento</label>
+                  <input
+                    type="date"
+                    className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
+                    value={baixaData}
+                    onChange={e => setBaixaData(e.target.value)}
+                  />
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Vencimento</span>
-                <span className={baixaTarget && isAtrasado(baixaTarget) ? 'text-rose-500 font-medium' : ''}>
-                  {baixaTarget && fmtDate(baixaTarget.data_vencimento)}
-                </span>
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Valor pago (R$)</label>
-              <input
-                type="number"
-                min={0}
-                step={0.01}
-                className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
-                value={baixaValor}
-                onChange={e => setBaixaValor(e.target.value)}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Data de pagamento</label>
-              <input
-                type="date"
-                className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
-                value={baixaData}
-                onChange={e => setBaixaData(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setBaixaTarget(null)} disabled={baixando}>
-              Cancelar
-            </Button>
-            <Button onClick={handleBaixa} disabled={baixando || !baixaValor || !baixaData}>
-              {baixando ? 'Baixando...' : 'Confirmar Baixa'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setBaixaTarget(null)} disabled={baixando}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleBaixa} disabled={baixando || !baixaData}>
+                  {baixando ? 'Baixando...' : 'Confirmar Baixa'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        )
+      })()}
 
       {/* Delete Dialog */}
       <Dialog open={!!deleteTarget} onOpenChange={o => !o && setDeleteTarget(null)}>

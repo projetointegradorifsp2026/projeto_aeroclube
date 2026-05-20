@@ -37,6 +37,7 @@ export async function baixarTituloPagar(
   id: string,
   valorPago: number,
   dataPagamento: string,
+  multa?: number,
 ): Promise<TituloPagar> {
   await delay()
   const idx = store.findIndex(t => t.id === id)
@@ -46,6 +47,7 @@ export async function baixarTituloPagar(
     status: 'baixado',
     valor_pago: valorPago,
     data_pagamento: dataPagamento,
+    ...(multa !== undefined ? { multa } : {}),
   }
   store = store.map(t => (t.id === id ? updated : t))
   return updated

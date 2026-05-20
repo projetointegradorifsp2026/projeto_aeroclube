@@ -198,11 +198,11 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, user, onLo
                                         <SidebarMenuSubItem>
                                             <SidebarMenuSubButton
                                                 asChild
-                                                isActive={pathname.startsWith("/funcionario")}
+                                                isActive={pathname.startsWith("/aeronaves")}
                                             >
-                                                <Link to="/funcionario">
-                                                    <UserPlus />
-                                                    <span>Funcionários</span>
+                                                <Link to="/aeronaves">
+                                                    <Plane />
+                                                    <span>Aeronaves</span>
                                                 </Link>
                                             </SidebarMenuSubButton>
                                         </SidebarMenuSubItem>
@@ -222,11 +222,11 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, user, onLo
                                         <SidebarMenuSubItem>
                                             <SidebarMenuSubButton
                                                 asChild
-                                                isActive={pathname.startsWith("/aeronaves")}
+                                                isActive={pathname.startsWith("/funcionario")}
                                             >
-                                                <Link to="/aeronaves">
-                                                    <Plane />
-                                                    <span>Aeronaves</span>
+                                                <Link to="/funcionario">
+                                                    <UserPlus />
+                                                    <span>Funcionários</span>
                                                 </Link>
                                             </SidebarMenuSubButton>
                                         </SidebarMenuSubItem>

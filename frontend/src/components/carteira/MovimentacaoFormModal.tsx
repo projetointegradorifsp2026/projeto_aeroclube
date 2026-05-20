@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, type FormEvent } from 'react'
+import { useState, useEffect, useMemo, type FormEvent } from 'react'
+import { SearchSelect } from '@/components/ui/search-select'
 import {
   Dialog,
   DialogContent,
@@ -26,9 +27,6 @@ interface MovimentacaoFormModalProps {
   onSave: (data: MovimentacaoFormData) => Promise<void>
   usuarios: User[]
 }
-
-const selectCls =
-  'h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
 
 const dateCls =
   'h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
@@ -103,8 +101,12 @@ export function MovimentacaoFormModal({
   }
 
   const clientePerfis: Array<'aluno' | 'socio' | 'cliente_externo'> = ['aluno', 'socio', 'cliente_externo']
-  const usuariosFiltrados = usuarios.filter(u =>
-    u.is_active && u.perfis.some(p => clientePerfis.includes(p as typeof clientePerfis[number])),
+  const usuarioOptions = useMemo(
+    () =>
+      usuarios
+        .filter(u => u.is_active && u.perfis.some(p => clientePerfis.includes(p as typeof clientePerfis[number])))
+        .map(u => ({ value: u.id, label: u.nome })),
+    [usuarios],
   )
 
   return (
@@ -120,18 +122,13 @@ export function MovimentacaoFormModal({
         <form onSubmit={handleSubmit} className="space-y-4 pt-1">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Participante</label>
-            <select
-              className={selectCls}
+            <SearchSelect
+              options={usuarioOptions}
               value={form.usuario_id}
-              onChange={e => handleUsuarioChange(e.target.value)}
-            >
-              <option value="">Selecione...</option>
-              {usuariosFiltrados.map(u => (
-                <option key={u.id} value={u.id}>
-                  {u.nome}
-                </option>
-              ))}
-            </select>
+              onChange={handleUsuarioChange}
+              placeholder="Selecione o participante..."
+              hasError={!!errors.usuario_id}
+            />
             {errors.usuario_id && (
               <p className="text-xs text-destructive">{errors.usuario_id}</p>
             )}

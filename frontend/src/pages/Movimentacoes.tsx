@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { TablePagination } from '@/components/ui/pagination'
-import { Search, Receipt } from 'lucide-react'
+import { Receipt } from 'lucide-react'
+import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
@@ -14,7 +15,7 @@ const inputCls =
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR')
 
-type MovTipo = 'entrada' | 'saida'
+type MovTipo = 'entrada' | 'saida' | 'carteira'
 type MovStatus = 'em_aberto' | 'pago_parcial' | 'baixado'
 
 interface MovRow {
@@ -26,6 +27,7 @@ interface MovRow {
   valor: number
   valor_pago: number
   status: MovStatus
+  carteira_debito?: boolean
 }
 
 function StatusBadge({ status }: { status: MovStatus }) {
@@ -51,27 +53,44 @@ export default function Movimentacoes() {
 
   useEffect(() => {
     Promise.all([getTitulosPagar(), getTitulosReceber()]).then(([pagar, receber]) => {
-      const entradas: MovRow[] = receber.map(t => ({
-        id: `r-${t.id}`,
-        tipo: 'entrada',
-        data: t.data_vencimento,
-        descricao: t.descricao,
-        pessoa: t.usuario_nome,
-        valor: t.valor + t.juros_aplicado,
-        valor_pago: t.valor_pago,
-        status: t.status as MovStatus,
-      }))
-      const saidas: MovRow[] = pagar.map(t => ({
-        id: `p-${t.id}`,
-        tipo: 'saida',
-        data: t.data_vencimento,
-        descricao: t.descricao,
-        pessoa: t.favorecido,
-        valor: t.valor,
-        valor_pago: t.valor_pago ?? 0,
-        status: t.status as MovStatus,
-      }))
-      setRows([...entradas, ...saidas].sort((a, b) => b.data.localeCompare(a.data)))
+      const entradas: MovRow[] = receber
+        .filter(t => t.status === 'baixado' && t.tipo !== 'carteira' && !(t.valor_carteira && t.valor_carteira >= t.valor))
+        .map(t => ({
+          id: `r-${t.id}`,
+          tipo: 'entrada' as MovTipo,
+          data: t.data_emissao,
+          descricao: t.descricao,
+          pessoa: t.usuario_nome,
+          valor: t.valor,
+          valor_pago: t.valor_pago,
+          status: t.status as MovStatus,
+        }))
+      const carteiraRows: MovRow[] = receber
+        .filter(t => t.tipo === 'carteira')
+        .map(t => ({
+          id: `c-${t.id}`,
+          tipo: 'carteira' as MovTipo,
+          data: t.data_emissao,
+          descricao: t.descricao,
+          pessoa: t.usuario_nome,
+          valor: t.valor,
+          valor_pago: t.valor_pago,
+          status: t.status as MovStatus,
+          carteira_debito: t.carteira_debito,
+        }))
+      const saidas: MovRow[] = pagar
+        .filter(t => t.status === 'baixado')
+        .map(t => ({
+          id: `p-${t.id}`,
+          tipo: 'saida' as MovTipo,
+          data: t.data_emissao,
+          descricao: t.descricao,
+          pessoa: t.favorecido,
+          valor: t.valor,
+          valor_pago: t.valor_pago ?? 0,
+          status: t.status as MovStatus,
+        }))
+      setRows([...entradas, ...carteiraRows, ...saidas].sort((a, b) => b.data.localeCompare(a.data)))
       setLoading(false)
     })
   }, [])
@@ -101,34 +120,29 @@ export default function Movimentacoes() {
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="relative w-64">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <input
-            className={cn(inputCls, 'w-full pl-8 pr-3')}
-            placeholder="Buscar por participante ou descrição..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-        <select
-          className={inputCls}
+        <FilterInput
+          value={search}
+          onChange={setSearch}
+          placeholder="Buscar por participante ou descrição..."
+        />
+        <FilterSelect
           value={tipoFilter}
-          onChange={e => setTipoFilter(e.target.value as MovTipo | 'all')}
+          onChange={v => setTipoFilter(v as MovTipo | 'all')}
         >
-          <option value="all">Entradas e saídas</option>
+          <option value="all">Todos os tipos</option>
           <option value="entrada">Somente entradas</option>
           <option value="saida">Somente saídas</option>
-        </select>
-        <select
-          className={inputCls}
+          <option value="carteira">Somente carteira</option>
+        </FilterSelect>
+        <FilterSelect
           value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value as MovStatus | 'all')}
+          onChange={v => setStatusFilter(v as MovStatus | 'all')}
         >
           <option value="all">Todos os status</option>
           <option value="em_aberto">Em Aberto</option>
           <option value="pago_parcial">Pago Parcial</option>
           <option value="baixado">Baixado</option>
-        </select>
+        </FilterSelect>
       </div>
 
       <Card>
@@ -192,10 +206,12 @@ export default function Movimentacoes() {
                             'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
                             r.tipo === 'entrada'
                               ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                              : r.tipo === 'carteira'
+                              ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
                               : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
                           )}
                         >
-                          {r.tipo === 'entrada' ? 'Entrada' : 'Saída'}
+                          {r.tipo === 'entrada' ? 'Entrada' : r.tipo === 'carteira' ? 'Carteira' : 'Saída'}
                         </span>
                       </td>
                       <td className="px-4 py-3 max-w-[200px]">
@@ -209,10 +225,12 @@ export default function Movimentacoes() {
                           className={
                             r.tipo === 'entrada'
                               ? 'text-emerald-600 dark:text-emerald-400'
+                              : r.tipo === 'carteira'
+                              ? 'text-teal-600 dark:text-teal-400'
                               : 'text-rose-600 dark:text-rose-400'
                           }
                         >
-                          {r.tipo === 'entrada' ? '+' : '-'}
+                          {r.tipo === 'entrada' ? '+' : r.tipo === 'carteira' ? (r.carteira_debito ? '−' : '+') : '−'}
                           {fmt(r.valor)}
                         </span>
                       </td>
