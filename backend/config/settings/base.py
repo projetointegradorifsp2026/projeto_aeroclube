@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "apps.financeiro.titulos_pagar",
     "apps.financeiro.titulos_receber",
     "apps.financeiro.carteira",
+    "apps.financeiro.cnab240",
     "apps.relatorios",
 ]
 
