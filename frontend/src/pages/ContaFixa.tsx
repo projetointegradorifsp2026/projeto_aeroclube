@@ -75,11 +75,12 @@ export default function ContaFixa() {
 
 
   async function handleSave(data: ContaFixaFormData) {
+    const payload = { ...data, favorecido: Number(data.favorecido) }
     if (editItem) {
-      const updated = await updateContaFixa(editItem.id, data)
+      const updated = await updateContaFixa(editItem.id, payload)
       setContas(prev => prev.map(c => (c.id === editItem.id ? updated : c)))
     } else {
-      const created = await createContaFixa(data)
+      const created = await createContaFixa(payload)
       setContas(prev => [...prev, created])
     }
   }

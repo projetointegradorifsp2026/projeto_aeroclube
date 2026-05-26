@@ -66,8 +66,8 @@ export default function Funcionario() {
       const matchSearch =
         !q ||
         e.nome.toLowerCase().includes(q) ||
-        e.email.toLowerCase().includes(q) ||
-        e.cpf_cnpj.includes(q)
+        (e.email ?? '').toLowerCase().includes(q) ||
+        (e.cpf_cnpj ?? '').includes(q)
       const matchTipo = tipoFilter === 'all' || e.tipo === tipoFilter
       const matchStatus =
         statusFilter === 'all' ||

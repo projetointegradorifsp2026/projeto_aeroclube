@@ -1,59 +1,73 @@
-import { mockUsers, type User, type UserProfile } from '@/mocks/users'
+import { api } from '@/lib/api'
+import { type User, type UserProfile } from '@/mocks/users'
 
-let store = [...mockUsers]
-
-const delay = (ms = 400) => new Promise<void>(r => setTimeout(r, ms))
-
-export async function getUsers(): Promise<User[]> {
-  await delay()
-  return [...store]
+type Paginated<T> = { count: number; results: T[] }
+function unwrap<T>(data: T[] | Paginated<T>): T[] {
+  return Array.isArray(data) ? data : data.results
 }
 
-export async function createUser(data: Omit<User, 'id' | 'created_at'>): Promise<User> {
-  await delay()
-  const user: User = {
-    saldo_carteira: 0,
-    ...data,
-    id: crypto.randomUUID(),
-    created_at: new Date().toISOString().split('T')[0],
-  }
-  store = [...store, user]
-  return user
+export async function getUsers(): Promise<User[]> {
+  const res = await api.get('/usuarios/')
+  return unwrap<User>(res.data)
+}
+
+export async function getUser(id: number): Promise<User> {
+  const res = await api.get(`/usuarios/${id}/`)
+  return res.data
+}
+
+export interface CreateUserPayload {
+  email: string
+  nome: string
+  cpf_cnpj?: string | null
+  password: string
+  perfil: UserProfile
+}
+
+export async function createUser(data: CreateUserPayload): Promise<User> {
+  const res = await api.post('/usuarios/', data)
+  return res.data
 }
 
 export async function updateUser(
-  id: string,
-  data: Partial<Omit<User, 'id' | 'created_at'>>,
+  id: number,
+  data: Partial<Pick<User, 'nome' | 'cpf_cnpj' | 'is_active' | 'perfil_ativo'>>,
 ): Promise<User> {
-  await delay()
-  const idx = store.findIndex(u => u.id === id)
-  if (idx === -1) throw new Error('Usuário não encontrado')
-  const updated = { ...store[idx], ...data }
-  store = store.map(u => (u.id === id ? updated : u))
-  return updated
+  const res = await api.patch(`/usuarios/${id}/`, data)
+  return res.data
 }
 
-export async function deleteUser(id: string): Promise<void> {
-  await delay()
-  store = store.filter(u => u.id !== id)
+export async function deleteUser(id: number): Promise<void> {
+  await api.delete(`/usuarios/${id}/`)
 }
 
-export async function addSaldoCarteira(id: string, valor: number): Promise<User> {
-  await delay()
-  const idx = store.findIndex(u => u.id === id)
-  if (idx === -1) throw new Error('Usuário não encontrado')
-  const updated = { ...store[idx], saldo_carteira: store[idx].saldo_carteira + valor }
-  store = store.map(u => (u.id === id ? updated : u))
-  return updated
+export async function adicionarPerfil(id: number, perfil: UserProfile): Promise<void> {
+  await api.post(`/usuarios/${id}/adicionar-perfil/`, { perfil })
 }
 
-export async function debitarCarteira(id: string, valor: number): Promise<User> {
-  await delay()
-  const idx = store.findIndex(u => u.id === id)
-  if (idx === -1) throw new Error('Usuário não encontrado')
-  const updated = { ...store[idx], saldo_carteira: Math.max(0, store[idx].saldo_carteira - valor) }
-  store = store.map(u => (u.id === id ? updated : u))
-  return updated
+export async function alterarPerfilAtivo(id: number, perfil_ativo: UserProfile): Promise<User> {
+  const res = await api.patch(`/usuarios/${id}/perfil-ativo/`, { perfil_ativo })
+  return res.data
+}
+
+// Credita saldo na carteira do usuário via endpoint de carteiras
+export async function addSaldoCarteira(
+  participanteId: number,
+  valor: number,
+  descricao: string,
+  data_vencimento?: string,
+): Promise<{ carteira: unknown; titulo_receber_id: number }> {
+  // Busca carteira do participante
+  const carteiraRes = await api.get('/carteiras/', { params: { participante: participanteId } })
+  const carteiras = unwrap<{ id: number; participante: number }>(carteiraRes.data)
+  const carteira = carteiras.find(c => c.participante === participanteId)
+  if (!carteira) throw new Error('Carteira não encontrada para este participante')
+  const res = await api.post(`/carteiras/${carteira.id}/creditar/`, {
+    valor,
+    descricao,
+    ...(data_vencimento ? { data_vencimento } : {}),
+  })
+  return res.data
 }
 
 export type { User, UserProfile }

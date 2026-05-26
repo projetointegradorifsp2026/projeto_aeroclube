@@ -75,13 +75,13 @@ export function AeronaveFormModal({
           ? {
               nome: aeronave.nome,
               tipo: aeronave.tipo,
-              foto: aeronave.foto,
+              foto: aeronave.foto ?? '',
               is_active: aeronave.is_active,
-              valor_solo: aeronave.valor_solo,
-              valor_duplo: aeronave.valor_duplo,
-              valor_fixo_inicial: aeronave.valor_fixo_inicial,
-              tempo_limite: aeronave.tempo_limite,
-              valor_por_minuto: aeronave.valor_por_minuto,
+              valor_solo: aeronave.tarifa_solo ?? 0,
+              valor_duplo: aeronave.tarifa_duplo_comando ?? 0,
+              valor_fixo_inicial: aeronave.valor_fixo_inicial ?? 0,
+              tempo_limite: aeronave.minutos_franquia ?? 30,
+              valor_por_minuto: aeronave.valor_minuto_adicional ?? 0,
             }
           : makeEmpty(),
       )

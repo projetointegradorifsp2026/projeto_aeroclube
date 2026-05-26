@@ -21,11 +21,11 @@ import { PROFILE_LABELS } from '@/mocks/users'
 import { cn } from '@/lib/utils'
 
 const PROFILE_COLORS: Record<UserProfile, string> = {
-  administrador: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+  admin: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
   aluno: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   socio: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
-  cliente_externo: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  colaborador: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  externo: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+  instrutor: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
 }
 
 const fmtDate = (d: string) =>
@@ -60,8 +60,8 @@ export default function Usuarios() {
         !q ||
         u.nome.toLowerCase().includes(q) ||
         u.email.toLowerCase().includes(q) ||
-        u.cpf.includes(q)
-      const matchProfile = profileFilter === 'all' || u.perfis.includes(profileFilter)
+        (u.cpf_cnpj ?? '').includes(q)
+      const matchProfile = profileFilter === 'all' || u.perfis.some(p => p.perfil === profileFilter)
       const matchStatus =
         statusFilter === 'all' ||
         (statusFilter === 'active' && u.is_active) ||
@@ -112,11 +112,11 @@ export default function Usuarios() {
           onChange={v => setProfileFilter(v as UserProfile | 'all')}
         >
           <option value="all">Todos os perfis</option>
-          <option value="administrador">Administrador</option>
+          <option value="admin">Administrador</option>
           <option value="aluno">Aluno</option>
           <option value="socio">Sócio</option>
-          <option value="cliente_externo">Cliente Externo</option>
-          <option value="colaborador">Colaborador</option>
+          <option value="externo">Cliente Externo</option>
+          <option value="instrutor">Instrutor</option>
         </FilterSelect>
         <FilterSelect
           value={statusFilter}
@@ -189,29 +189,29 @@ export default function Usuarios() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
-                        {user.cpf}
+                        {user.cpf_cnpj ?? '—'}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap gap-1">
                           {user.perfis.map(p => (
                             <span
-                              key={p}
+                              key={p.id}
                               className={cn(
                                 'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
-                                PROFILE_COLORS[p],
-                                user.perfil_ativo === p && 'ring-1 ring-current ring-offset-1',
+                                PROFILE_COLORS[p.perfil],
+                                user.perfil_ativo === p.perfil && 'ring-1 ring-current ring-offset-1',
                               )}
                               title={
-                                user.perfil_ativo === p ? 'Perfil ativo' : undefined
+                                user.perfil_ativo === p.perfil ? 'Perfil ativo' : undefined
                               }
                             >
-                              {PROFILE_LABELS[p]}
+                              {PROFILE_LABELS[p.perfil]}
                             </span>
                           ))}
                         </div>
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground hidden sm:table-cell">
-                        {fmtDate(user.created_at)}
+                        {fmtDate(user.date_joined)}
                       </td>
                       <td className="px-4 py-3">
                         {user.is_active ? (

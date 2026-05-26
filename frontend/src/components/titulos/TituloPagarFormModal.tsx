@@ -45,7 +45,7 @@ interface TituloPagarFormModalProps {
 const todayStr = () => new Date().toISOString().split('T')[0]
 
 const fornecedores = mockEntidades.filter(e => e.tipo === 'fornecedor' && e.is_active)
-const funcionarios = mockEntidades.filter(e => e.tipo === 'funcionario' && e.is_active)
+const funcionarios = mockEntidades.filter(e => e.tipo === 'instrutor' && e.is_active)
 const contasFixas = mockContasFixas.filter(cf => cf.is_active)
 
 function addMonths(dateStr: string, months: number): string {
@@ -115,7 +115,7 @@ export function TituloPagarFormModal({
   const isEdit = !!titulo
 
   const isTituloAtrasado =
-    titulo?.status === 'em_aberto' &&
+    titulo?.status === 'aberto' &&
     new Date((titulo?.data_vencimento ?? '') + 'T00:00:00') < new Date()
   const showMultaField = isEdit && (titulo?.status === 'baixado' || isTituloAtrasado)
 
@@ -124,18 +124,18 @@ export function TituloPagarFormModal({
       if (titulo) {
         setForm({
           tipo: titulo.tipo,
-          favorecido: titulo.favorecido,
+          favorecido: titulo.favorecido_nome,
           descricao: titulo.descricao,
           total_parcelas: 1,
           valor: titulo.valor,
-          multa: titulo.multa,
+          multa: 0,
           data_emissao: titulo.data_emissao,
           parcela_vencimentos: [titulo.data_vencimento],
           parcela_valores: [titulo.valor],
-          recorrente: titulo.recorrente,
+          recorrente: titulo.is_recorrente,
         })
         if (titulo.tipo === 'conta_fixa') {
-          const cf = contasFixas.find(c => c.favorecido === titulo.favorecido)
+          const cf = contasFixas.find(c => c.favorecido === titulo.favorecido_nome)
           setSelectedContaFixaId(cf?.id ?? '')
         } else {
           setSelectedContaFixaId('')
@@ -272,7 +272,7 @@ export function TituloPagarFormModal({
         />
       )
     }
-    if (form.tipo === 'folha') {
+    if (form.tipo === 'folha_pagamento') {
       return (
         <SearchSelect
           options={funcionarios.map(f => ({ value: f.nome, label: f.nome }))}

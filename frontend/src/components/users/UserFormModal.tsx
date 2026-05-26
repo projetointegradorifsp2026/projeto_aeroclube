@@ -60,8 +60,8 @@ export function UserFormModal({ user, open, onClose, onSave }: UserFormModalProp
           ? {
               nome: user.nome,
               email: user.email,
-              cpf: user.cpf,
-              perfis: user.perfis,
+              cpf: user.cpf_cnpj ?? '',
+              perfis: user.perfis.map(p => p.perfil),
               perfil_ativo: user.perfil_ativo,
               is_active: user.is_active,
             }

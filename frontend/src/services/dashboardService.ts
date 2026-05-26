@@ -19,12 +19,11 @@ export interface DespesaCategoria {
 
 export interface Movimentacao {
   id: string
-  tipo: 'entrada' | 'saida' | 'carteira'
+  tipo: 'entrada' | 'saida'
   pessoa: string
   descricao: string
   valor: number
   data: string
-  carteira_debito?: boolean
 }
 
 export type TituloVencerTipo = 'pagar' | 'receber'
@@ -44,13 +43,14 @@ function monthKey(d: Date) {
 }
 
 export async function getResumoFinanceiro(): Promise<ResumoFinanceiro> {
-  const [pagar, receber] = await Promise.all([getTitulosPagar(), getTitulosReceber()])
-  const titulosPagar = pagar
-    .filter(t => t.status === 'em_aberto')
-    .reduce((s, t) => s + t.valor, 0)
+  const [pagar, receber] = await Promise.all([
+    getTitulosPagar({ status: 'aberto' }),
+    getTitulosReceber({ status: 'aberto' }),
+  ])
+  const titulosPagar = pagar.reduce((s, t) => s + t.valor, 0)
   const titulosReceber = receber
-    .filter(t => t.status !== 'baixado' && t.tipo !== 'carteira')
-    .reduce((s, t) => s + (t.valor - t.valor_pago), 0)
+    .filter(t => t.tipo !== 'horas_pre_pagas')
+    .reduce((s, t) => s + (t.valor_original + t.juros_aplicado - t.valor_pago), 0)
   return { titulosPagar, titulosReceber }
 }
 
@@ -61,10 +61,12 @@ export async function getPeriodoData(): Promise<PeriodoData[]> {
     const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1)
     return { periodo: MONTH_ABBR[d.getMonth()], key: monthKey(d), entradas: 0, saidas: 0 }
   })
-  receber.filter(t => t.tipo !== 'carteira').forEach(t => {
-    const m = months.find(m => m.key === t.data_emissao.substring(0, 7))
-    if (m) m.entradas += t.valor
-  })
+  receber
+    .filter(t => t.tipo !== 'horas_pre_pagas')
+    .forEach(t => {
+      const m = months.find(m => m.key === t.data_emissao.substring(0, 7))
+      if (m) m.entradas += t.valor_original
+    })
   pagar.forEach(t => {
     const m = months.find(m => m.key === t.data_emissao.substring(0, 7))
     if (m) m.saidas += t.valor
@@ -89,54 +91,47 @@ export async function getDespesas(): Promise<DespesaCategoria[]> {
 export async function getMovimentacoes(): Promise<Movimentacao[]> {
   const [pagar, receber] = await Promise.all([getTitulosPagar(), getTitulosReceber()])
   const entradas: Movimentacao[] = receber
-    .filter(t => t.status !== 'em_aberto' && t.tipo !== 'carteira' && !(t.valor_carteira && t.valor_carteira >= t.valor))
+    .filter(t => t.status === 'baixado' && t.tipo !== 'horas_pre_pagas')
     .map(t => ({
-      id: t.id,
+      id: String(t.id),
       tipo: 'entrada' as const,
-      pessoa: t.usuario_nome,
+      pessoa: t.participante_nome,
       descricao: t.descricao,
       valor: t.valor_pago,
       data: t.data_pagamento ?? t.data_vencimento,
     }))
-  const carteira: Movimentacao[] = receber
-    .filter(t => t.tipo === 'carteira')
-    .map(t => ({
-      id: `c-${t.id}`,
-      tipo: 'carteira' as const,
-      pessoa: t.usuario_nome,
-      descricao: t.descricao,
-      valor: t.valor,
-      data: t.data_pagamento ?? t.data_vencimento,
-      carteira_debito: t.carteira_debito,
-    }))
   const saidas: Movimentacao[] = pagar
     .filter(t => t.status === 'baixado')
     .map(t => ({
-      id: t.id,
+      id: String(t.id),
       tipo: 'saida' as const,
-      pessoa: t.favorecido,
+      pessoa: t.favorecido_nome,
       descricao: t.descricao,
       valor: t.valor_pago ?? t.valor,
       data: t.data_pagamento ?? t.data_vencimento,
     }))
-  return [...entradas, ...carteira, ...saidas].sort((a, b) => b.data.localeCompare(a.data)).slice(0, 8)
+  return [...entradas, ...saidas].sort((a, b) => b.data.localeCompare(a.data)).slice(0, 8)
 }
 
 export async function getTitulosVencer(): Promise<TituloVencer[]> {
   const [pagar, receber] = await Promise.all([getTitulosPagar(), getTitulosReceber()])
   const pagarItems: TituloVencer[] = pagar
     .filter(t => t.status !== 'baixado')
-    .map(t => ({ id: t.id, descricao: t.descricao, valor: t.valor, data: t.data_vencimento, tipo: 'pagar' as const }))
-  const receberItems: TituloVencer[] = receber
-    .filter(t => t.status !== 'baixado' && t.tipo !== 'carteira')
     .map(t => ({
-      id: t.id,
+      id: String(t.id),
       descricao: t.descricao,
-      valor: t.valor - t.valor_pago,
+      valor: t.valor,
+      data: t.data_vencimento,
+      tipo: 'pagar' as const,
+    }))
+  const receberItems: TituloVencer[] = receber
+    .filter(t => t.status !== 'baixado' && t.tipo !== 'horas_pre_pagas')
+    .map(t => ({
+      id: String(t.id),
+      descricao: t.descricao,
+      valor: t.valor_original + t.juros_aplicado - t.valor_pago,
       data: t.data_vencimento,
       tipo: 'receber' as const,
     }))
   return [...pagarItems, ...receberItems].sort((a, b) => a.data.localeCompare(b.data))
 }
-
-export type { ResumoFinanceiro, PeriodoData, DespesaCategoria, Movimentacao, TituloVencer }

@@ -10,6 +10,7 @@ from .serializers import (
     CarteiraResumoSerializer,
     MovimentacaoCarteiraSerializer,
     CreditarCarteiraSerializer,
+    DebitarCarteiraSerializer,
 )
 from apps.financeiro.titulos_receber.models import TituloReceber
 from django.utils import timezone
@@ -61,6 +62,38 @@ class CarteiraViewSet(viewsets.ReadOnlyModelViewSet):
             "carteira": CarteiraSerializer(carteira).data,
             "titulo_receber_id": titulo.id,
         }, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"], url_path="debitar")
+    def debitar(self, request, pk=None):
+        """
+        POST /api/v1/carteiras/{id}/debitar/
+        RF13: Débito de saldo no uso de horas pré-pagas.
+        """
+        carteira = self.get_object()
+        ser = DebitarCarteiraSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+
+        valor = ser.validated_data["valor"]
+        descricao = ser.validated_data["descricao"]
+        voo_id = ser.validated_data.get("voo")
+
+        if not carteira.tem_saldo_suficiente(valor):
+            return Response(
+                {"detail": "Saldo insuficiente na carteira."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with transaction.atomic():
+            mov = carteira.debitar(valor=valor, descricao=descricao)
+            if voo_id:
+                from apps.voos.models import Voo
+                try:
+                    mov.voo = Voo.objects.get(pk=voo_id)
+                    mov.save()
+                except Voo.DoesNotExist:
+                    pass
+
+        return Response(CarteiraSerializer(carteira).data)
 
 
 class MovimentacaoCarteiraViewSet(viewsets.ReadOnlyModelViewSet):

@@ -1,37 +1,63 @@
-import { mockMovimentacoes, type MovimentacaoCarteira, type MovimentacaoTipo } from '@/mocks/carteira'
+import { api } from '@/lib/api'
+import { type Carteira, type MovimentacaoCarteira, type MovimentacaoTipo } from '@/mocks/carteira'
 
-let store = [...mockMovimentacoes]
-
-const delay = (ms = 400) => new Promise<void>(r => setTimeout(r, ms))
-
-export async function getMovimentacoes(usuario_id?: string): Promise<MovimentacaoCarteira[]> {
-  await delay()
-  const result = usuario_id ? store.filter(m => m.usuario_id === usuario_id) : [...store]
-  return result.sort((a, b) => b.data_transacao.localeCompare(a.data_transacao))
+type Paginated<T> = { count: number; results: T[] }
+function unwrap<T>(data: T[] | Paginated<T>): T[] {
+  return Array.isArray(data) ? data : data.results
 }
 
-export async function getSaldoUsuario(usuario_id: string): Promise<number> {
-  await delay()
-  const movs = store.filter(m => m.usuario_id === usuario_id)
-  if (movs.length === 0) return 0
-  return [...movs].sort((a, b) => b.data_transacao.localeCompare(a.data_transacao))[0].saldo_resultante
+export async function getCarteiras(): Promise<Carteira[]> {
+  const res = await api.get('/carteiras/')
+  return unwrap<Carteira>(res.data)
 }
 
+export async function getCarteira(id: number): Promise<Carteira> {
+  const res = await api.get(`/carteiras/${id}/`)
+  return res.data
+}
+
+export async function getCarteiraByParticipante(participanteId: number): Promise<Carteira | null> {
+  const res = await api.get('/carteiras/', { params: { participante: participanteId } })
+  const carteiras = unwrap<Carteira>(res.data)
+  return carteiras.find(c => c.participante_id === participanteId) ?? null
+}
+
+export async function getMovimentacoes(filters?: {
+  carteira?: number
+  participante?: number
+}): Promise<MovimentacaoCarteira[]> {
+  const res = await api.get('/movimentacoes-carteira/', { params: filters })
+  return unwrap<MovimentacaoCarteira>(res.data)
+}
+
+// RF13: débito de saldo ao usar horas pré-pagas em um voo
+export async function debitarCarteira(
+  carteiraId: number,
+  valor: number,
+  descricao: string,
+  vooId?: number,
+): Promise<Carteira> {
+  const res = await api.post(`/carteiras/${carteiraId}/debitar/`, {
+    valor,
+    descricao,
+    ...(vooId ? { voo: vooId } : {}),
+  })
+  return res.data
+}
+
+// RF12: crédito de horas pré-pagas (cria movimentação + título a receber)
 export async function creditarCarteira(
-  data: Omit<MovimentacaoCarteira, 'id' | 'saldo_resultante'>,
-): Promise<MovimentacaoCarteira> {
-  await delay()
-  const movs = store.filter(m => m.usuario_id === data.usuario_id)
-  const saldoAtual =
-    movs.length > 0
-      ? [...movs].sort((a, b) => b.data_transacao.localeCompare(a.data_transacao))[0]
-          .saldo_resultante
-      : 0
-  const saldoResultante =
-    data.tipo === 'credito' ? saldoAtual + data.valor : saldoAtual - data.valor
-  const mov: MovimentacaoCarteira = { ...data, id: crypto.randomUUID(), saldo_resultante: saldoResultante }
-  store = [...store, mov]
-  return mov
+  carteiraId: number,
+  valor: number,
+  descricao: string,
+  data_vencimento?: string,
+): Promise<{ carteira: Carteira; titulo_receber_id: number }> {
+  const res = await api.post(`/carteiras/${carteiraId}/creditar/`, {
+    valor,
+    descricao,
+    ...(data_vencimento ? { data_vencimento } : {}),
+  })
+  return res.data
 }
 
-export type { MovimentacaoCarteira, MovimentacaoTipo }
+export type { Carteira, MovimentacaoCarteira, MovimentacaoTipo }

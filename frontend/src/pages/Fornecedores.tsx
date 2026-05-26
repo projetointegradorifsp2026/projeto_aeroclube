@@ -57,8 +57,8 @@ export default function Fornecedores() {
       const matchSearch =
         !q ||
         e.nome.toLowerCase().includes(q) ||
-        e.email.toLowerCase().includes(q) ||
-        e.cpf_cnpj.includes(q)
+        (e.email ?? '').toLowerCase().includes(q) ||
+        (e.cpf_cnpj ?? '').includes(q)
       const matchStatus =
         statusFilter === 'all' ||
         (statusFilter === 'active' && e.is_active) ||

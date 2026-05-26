@@ -82,9 +82,9 @@ export function EntidadeFormModal({
         entidade
           ? {
               nome: entidade.nome,
-              cpf_cnpj: entidade.cpf_cnpj,
-              email: entidade.email,
-              contato: entidade.contato,
+              cpf_cnpj: entidade.cpf_cnpj ?? '',
+              email: entidade.email ?? '',
+              contato: entidade.contato ?? '',
               tipo: entidade.tipo,
               is_active: entidade.is_active,
             }

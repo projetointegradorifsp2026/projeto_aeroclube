@@ -15,8 +15,8 @@ const inputCls =
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR')
 
-type MovTipo = 'entrada' | 'saida' | 'carteira'
-type MovStatus = 'em_aberto' | 'pago_parcial' | 'baixado'
+type MovTipo = 'entrada' | 'saida'
+type MovStatus = 'aberto' | 'baixado'
 
 interface MovRow {
   id: string
@@ -27,17 +27,10 @@ interface MovRow {
   valor: number
   valor_pago: number
   status: MovStatus
-  carteira_debito?: boolean
 }
 
 function StatusBadge({ status }: { status: MovStatus }) {
   if (status === 'baixado') return <Badge variant="success">Baixado</Badge>
-  if (status === 'pago_parcial')
-    return (
-      <Badge variant="outline" className="border-amber-400 text-amber-600 dark:text-amber-400">
-        Pago Parcial
-      </Badge>
-    )
   return <Badge variant="outline" className="text-muted-foreground">Em Aberto</Badge>
 }
 
@@ -54,43 +47,29 @@ export default function Movimentacoes() {
   useEffect(() => {
     Promise.all([getTitulosPagar(), getTitulosReceber()]).then(([pagar, receber]) => {
       const entradas: MovRow[] = receber
-        .filter(t => t.status === 'baixado' && t.tipo !== 'carteira' && !(t.valor_carteira && t.valor_carteira >= t.valor))
+        .filter(t => t.tipo !== 'horas_pre_pagas')
         .map(t => ({
           id: `r-${t.id}`,
           tipo: 'entrada' as MovTipo,
           data: t.data_emissao,
           descricao: t.descricao,
-          pessoa: t.usuario_nome,
-          valor: t.valor,
+          pessoa: t.participante_nome,
+          valor: t.valor_original,
           valor_pago: t.valor_pago,
           status: t.status as MovStatus,
-        }))
-      const carteiraRows: MovRow[] = receber
-        .filter(t => t.tipo === 'carteira')
-        .map(t => ({
-          id: `c-${t.id}`,
-          tipo: 'carteira' as MovTipo,
-          data: t.data_emissao,
-          descricao: t.descricao,
-          pessoa: t.usuario_nome,
-          valor: t.valor,
-          valor_pago: t.valor_pago,
-          status: t.status as MovStatus,
-          carteira_debito: t.carteira_debito,
         }))
       const saidas: MovRow[] = pagar
-        .filter(t => t.status === 'baixado')
         .map(t => ({
           id: `p-${t.id}`,
           tipo: 'saida' as MovTipo,
           data: t.data_emissao,
           descricao: t.descricao,
-          pessoa: t.favorecido,
+          pessoa: t.favorecido_nome,
           valor: t.valor,
           valor_pago: t.valor_pago ?? 0,
           status: t.status as MovStatus,
         }))
-      setRows([...entradas, ...carteiraRows, ...saidas].sort((a, b) => b.data.localeCompare(a.data)))
+      setRows([...entradas, ...saidas].sort((a, b) => b.data.localeCompare(a.data)))
       setLoading(false)
     })
   }, [])
@@ -132,15 +111,13 @@ export default function Movimentacoes() {
           <option value="all">Todos os tipos</option>
           <option value="entrada">Somente entradas</option>
           <option value="saida">Somente saídas</option>
-          <option value="carteira">Somente carteira</option>
         </FilterSelect>
         <FilterSelect
           value={statusFilter}
           onChange={v => setStatusFilter(v as MovStatus | 'all')}
         >
           <option value="all">Todos os status</option>
-          <option value="em_aberto">Em Aberto</option>
-          <option value="pago_parcial">Pago Parcial</option>
+          <option value="aberto">Em Aberto</option>
           <option value="baixado">Baixado</option>
         </FilterSelect>
       </div>
@@ -206,12 +183,10 @@ export default function Movimentacoes() {
                             'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
                             r.tipo === 'entrada'
                               ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                              : r.tipo === 'carteira'
-                              ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
                               : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
                           )}
                         >
-                          {r.tipo === 'entrada' ? 'Entrada' : r.tipo === 'carteira' ? 'Carteira' : 'Saída'}
+                          {r.tipo === 'entrada' ? 'Entrada' : 'Saída'}
                         </span>
                       </td>
                       <td className="px-4 py-3 max-w-[200px]">
@@ -225,12 +200,10 @@ export default function Movimentacoes() {
                           className={
                             r.tipo === 'entrada'
                               ? 'text-emerald-600 dark:text-emerald-400'
-                              : r.tipo === 'carteira'
-                              ? 'text-teal-600 dark:text-teal-400'
                               : 'text-rose-600 dark:text-rose-400'
                           }
                         >
-                          {r.tipo === 'entrada' ? '+' : r.tipo === 'carteira' ? (r.carteira_debito ? '−' : '+') : '−'}
+                          {r.tipo === 'entrada' ? '+' : '−'}
                           {fmt(r.valor)}
                         </span>
                       </td>

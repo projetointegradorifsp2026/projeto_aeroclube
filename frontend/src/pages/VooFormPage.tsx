@@ -28,7 +28,7 @@ import { getUsers, type User } from '@/services/usersService'
 import { createVoo, updateVoo, deleteVoo } from '@/services/voosService'
 import { createTituloReceber } from '@/services/titulosReceberService'
 import { createTituloPagar } from '@/services/titulosPagarService'
-import { debitarCarteira } from '@/services/usersService'
+import { getCarteiraByParticipante, debitarCarteira } from '@/services/carteiraService'
 import { cn } from '@/lib/utils'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -46,35 +46,35 @@ function addOneMonth(dateStr: string): string {
   return d.toISOString().split('T')[0]
 }
 
-function calcTempoDecimal(inicio: string, fim: string): number {
-  if (!inicio || !fim) return 0
-  const [h1, m1] = inicio.split(':').map(Number)
-  const [h2, m2] = fim.split(':').map(Number)
+function calcTempoDecimal(hora_inicio: string, hora_fim: string): number {
+  if (!hora_inicio || !hora_fim) return 0
+  const [h1, m1] = hora_inicio.split(':').map(Number)
+  const [h2, m2] = hora_fim.split(':').map(Number)
   const totalMin = h2 * 60 + m2 - (h1 * 60 + m1)
   if (totalMin <= 3) return 0
   return Math.round(Math.ceil((totalMin - 3) / 6) * 10) / 100
 }
 
-function calcMinutosPlanador(inicio: string, fim: string): number {
-  if (!inicio || !fim) return 0
-  const [h1, m1] = inicio.split(':').map(Number)
-  const [h2, m2] = fim.split(':').map(Number)
+function calcMinutosPlanador(hora_inicio: string, hora_fim: string): number {
+  if (!hora_inicio || !hora_fim) return 0
+  const [h1, m1] = hora_inicio.split(':').map(Number)
+  const [h2, m2] = hora_fim.split(':').map(Number)
   return Math.max(0, h2 * 60 + m2 - (h1 * 60 + m1))
 }
 
-function calcValorPlanador(inicio: string, fim: string, aeronave: Aeronave): number {
-  const totalMin = calcMinutosPlanador(inicio, fim)
+function calcValorPlanador(hora_inicio: string, hora_fim: string, aeronave: Aeronave): number {
+  const totalMin = calcMinutosPlanador(hora_inicio, hora_fim)
   if (totalMin <= 0) return 0
   if (totalMin <= aeronave.tempo_limite) return aeronave.valor_fixo_inicial
   return aeronave.valor_fixo_inicial + (totalMin - aeronave.tempo_limite) * aeronave.valor_por_minuto
 }
 
-const PERFIL_POR_TIPO: Record<TipoVoo, 'aluno' | 'socio' | 'cliente_externo'> = {
+const PERFIL_POR_TIPO: Record<TipoVoo, 'aluno' | 'socio' | 'externo'> = {
   instrucao_solo: 'aluno',
   instrucao_duplo: 'aluno',
   socio_solo: 'socio',
   socio_duplo: 'socio',
-  externo: 'cliente_externo',
+  externo: 'externo',
 }
 
 // ─── Form state ───────────────────────────────────────────────────────────────
@@ -88,14 +88,14 @@ interface FormState {
   instrutor_id: string | null
   instrutor_nome: string | null
   tipo_voo: TipoVoo
-  inicio: string
-  fim: string
+  hora_inicio: string
+  hora_fim: string
   tempo_decimal: number
   origem: string
   destino: string
   valor_hora: number
   taxa_instrutor: number | null
-  data: string
+  data_voo: string
   data_vencimento: string
 }
 
@@ -103,9 +103,9 @@ type FormErrors = {
   aeronave_id?: string
   participante_id?: string
   instrutor_id?: string
-  inicio?: string
-  fim?: string
-  data?: string
+  hora_inicio?: string
+  hora_fim?: string
+  data_voo?: string
   data_vencimento?: string
 }
 
@@ -120,14 +120,14 @@ function makeEmpty(): FormState {
     instrutor_id: null,
     instrutor_nome: null,
     tipo_voo: 'instrucao_duplo',
-    inicio: '',
-    fim: '',
+    hora_inicio: '',
+    hora_fim: '',
     tempo_decimal: 0,
     origem: '',
     destino: '',
     valor_hora: 0,
     taxa_instrutor: 10,
-    data: today,
+    data_voo: today,
     data_vencimento: addOneMonth(today),
   }
 }
@@ -169,27 +169,35 @@ export default function VooFormPage() {
             navigate('/voos')
             return
           }
+          const aeronave = avs.find(a => a.id === vooFromState.aeronave)
+          const isDuplo = TIPOS_VOO_COM_INSTRUTOR.includes(vooFromState.tipo_voo)
+          const valorHora =
+            aeronave?.tipo === 'aviao'
+              ? isDuplo
+                ? aeronave.valor_duplo
+                : aeronave.valor_solo
+              : 0
           const initial: FormState = {
             tipo_aeronave: vooFromState.tipo_aeronave,
-            aeronave_id: vooFromState.aeronave_id,
+            aeronave_id: String(vooFromState.aeronave),
             aeronave_nome: vooFromState.aeronave_nome,
-            participante_id: vooFromState.participante_id,
+            participante_id: String(vooFromState.participante),
             participante_nome: vooFromState.participante_nome,
-            instrutor_id: vooFromState.instrutor_id,
+            instrutor_id: vooFromState.instrutor ? String(vooFromState.instrutor) : null,
             instrutor_nome: vooFromState.instrutor_nome,
             tipo_voo: vooFromState.tipo_voo,
-            inicio: vooFromState.inicio,
-            fim: vooFromState.fim,
+            hora_inicio: vooFromState.hora_inicio,
+            hora_fim: vooFromState.hora_fim,
             tempo_decimal: vooFromState.tempo_decimal,
-            origem: vooFromState.origem,
-            destino: vooFromState.destino,
-            valor_hora: vooFromState.valor_hora,
-            taxa_instrutor: vooFromState.taxa_instrutor,
-            data: vooFromState.data,
-            data_vencimento: vooFromState.data_vencimento,
+            origem: vooFromState.origem ?? '',
+            destino: vooFromState.destino ?? '',
+            valor_hora: valorHora,
+            taxa_instrutor: 10,
+            data_voo: vooFromState.data_voo,
+            data_vencimento: addOneMonth(vooFromState.data_voo),
           }
           setForm(initial)
-          autoVencimento.current = addOneMonth(initial.data)
+          autoVencimento.current = addOneMonth(initial.data_voo)
         } else {
           autoVencimento.current = addOneMonth(todayStr())
         }
@@ -200,69 +208,69 @@ export default function VooFormPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Recalculate tempo_decimal when inicio/fim change
+  // Recalculate tempo_decimal when hora_inicio/hora_fim change
   useEffect(() => {
-    if (form.inicio && form.fim) {
-      setForm(p => ({ ...p, tempo_decimal: calcTempoDecimal(form.inicio, form.fim) }))
+    if (form.hora_inicio && form.hora_fim) {
+      setForm(p => ({ ...p, tempo_decimal: calcTempoDecimal(form.hora_inicio, form.hora_fim) }))
     }
-  }, [form.inicio, form.fim])
+  }, [form.hora_inicio, form.hora_fim])
 
   // Update valor_hora when aeronave or tipo_voo changes (avião only)
   useEffect(() => {
-    const aeronave = aeronaves.find(a => a.id === form.aeronave_id)
+    const aeronave = aeronaves.find(a => String(a.id) === form.aeronave_id)
     if (aeronave?.tipo === 'aviao') {
       const isDuplo = TIPOS_VOO_COM_INSTRUTOR.includes(form.tipo_voo)
       setForm(p => ({ ...p, valor_hora: isDuplo ? aeronave.valor_duplo : aeronave.valor_solo }))
     }
   }, [form.aeronave_id, form.tipo_voo, aeronaves])
 
-  // Auto-update data_vencimento when data changes
+  // Auto-update data_vencimento when data_voo changes
   useEffect(() => {
-    if (!form.data) return
-    const auto = addOneMonth(form.data)
+    if (!form.data_voo) return
+    const auto = addOneMonth(form.data_voo)
     if (form.data_vencimento === autoVencimento.current) {
       setForm(p => ({ ...p, data_vencimento: auto }))
     }
     autoVencimento.current = auto
-  }, [form.data])
+  }, [form.data_voo])
 
   // ─── Computed values ────────────────────────────────────────────────────────
 
   const selectedAeronave = useMemo(
-    () => aeronaves.find(a => a.id === form.aeronave_id),
+    () => aeronaves.find(a => String(a.id) === form.aeronave_id),
     [aeronaves, form.aeronave_id],
   )
 
   const valorVoo = useMemo(() => {
     if (!selectedAeronave) return 0
     if (selectedAeronave.tipo === 'planador') {
-      return calcValorPlanador(form.inicio, form.fim, selectedAeronave)
+      return calcValorPlanador(form.hora_inicio, form.hora_fim, selectedAeronave)
     }
     return form.tempo_decimal * form.valor_hora
-  }, [selectedAeronave, form.inicio, form.fim, form.tempo_decimal, form.valor_hora])
+  }, [selectedAeronave, form.hora_inicio, form.hora_fim, form.tempo_decimal, form.valor_hora])
 
   const minutosPlanador = useMemo(
-    () => calcMinutosPlanador(form.inicio, form.fim),
-    [form.inicio, form.fim],
+    () => calcMinutosPlanador(form.hora_inicio, form.hora_fim),
+    [form.hora_inicio, form.hora_fim],
   )
 
   const aeronaveOptions = useMemo(
     () =>
       aeronaves
         .filter(a => a.is_active && a.tipo === form.tipo_aeronave)
-        .map(a => ({ value: a.id, label: a.nome })),
+        .map(a => ({ value: String(a.id), label: a.nome })),
     [aeronaves, form.tipo_aeronave],
   )
 
   const participanteOptions = useMemo(() => {
     const perfil = PERFIL_POR_TIPO[form.tipo_voo]
     return usuarios
-      .filter(u => u.is_active && u.perfis.includes(perfil))
-      .map(u => ({ value: u.id, label: u.nome }))
+      .filter(u => u.is_active && u.perfis.some(p => p.perfil === perfil))
+      .map(u => ({ value: String(u.id), label: u.nome }))
   }, [form.tipo_voo, usuarios])
 
   const instrutorOptions = useMemo(
-    () => instrutores.filter(i => i.is_active).map(i => ({ value: i.id, label: i.nome })),
+    () => instrutores.filter(i => i.is_active).map(i => ({ value: String(i.id), label: i.nome })),
     [instrutores],
   )
 
@@ -273,7 +281,7 @@ export default function VooFormPage() {
       : 0
 
   const participanteSaldo = useMemo(
-    () => usuarios.find(u => u.id === form.participante_id)?.saldo_carteira ?? 0,
+    () => usuarios.find(u => String(u.id) === form.participante_id)?.saldo_carteira ?? 0,
     [form.participante_id, usuarios],
   )
   const carteiraMaxUsavel = Math.min(participanteSaldo, valorVoo)
@@ -298,19 +306,19 @@ export default function VooFormPage() {
   }
 
   function handleAeronaveChange(aeronaveId: string) {
-    const a = aeronaves.find(a => a.id === aeronaveId)
+    const a = aeronaves.find(a => String(a.id) === aeronaveId)
     setForm(p => ({ ...p, aeronave_id: aeronaveId, aeronave_nome: a?.nome ?? '' }))
   }
 
   function handleParticipanteChange(uid: string) {
-    const u = usuarios.find(u => u.id === uid)
+    const u = usuarios.find(u => String(u.id) === uid)
     setForm(p => ({ ...p, participante_id: uid, participante_nome: u?.nome ?? '' }))
     setUsarCarteira(false)
     setCarteiraValor('')
   }
 
   function handleInstrutorChange(instId: string) {
-    const inst = instrutores.find(i => i.id === instId)
+    const inst = instrutores.find(i => String(i.id) === instId)
     setForm(p => ({
       ...p,
       instrutor_id: instId || null,
@@ -324,14 +332,14 @@ export default function VooFormPage() {
     if (!form.aeronave_id) e.aeronave_id = 'Selecione a aeronave'
     if (!form.participante_id) e.participante_id = 'Selecione o participante'
     if (precisaInstrutor && !form.instrutor_id) e.instrutor_id = 'Instrutor é obrigatório'
-    if (!form.inicio) e.inicio = 'Informe o horário de início'
-    if (!form.fim) e.fim = 'Informe o horário de término'
-    if (form.inicio && form.fim) {
+    if (!form.hora_inicio) e.hora_inicio = 'Informe o horário de início'
+    if (!form.hora_fim) e.hora_fim = 'Informe o horário de término'
+    if (form.hora_inicio && form.hora_fim) {
       const isPlanador = selectedAeronave?.tipo === 'planador'
       if (isPlanador ? minutosPlanador <= 0 : form.tempo_decimal <= 0)
-        e.fim = 'Horário de término deve ser após o início'
+        e.hora_fim = 'Horário de término deve ser após o início'
     }
-    if (!form.data) e.data = 'Data é obrigatória'
+    if (!form.data_voo) e.data_voo = 'Data é obrigatória'
     if (!form.data_vencimento) e.data_vencimento = 'Data de vencimento é obrigatória'
     setErrors(e)
     return Object.keys(e).length === 0
@@ -342,100 +350,84 @@ export default function VooFormPage() {
     if (!validate()) return
     setSaving(true)
     try {
-      const vooData = {
-        ...form,
-        valor_hora: form.tipo_aeronave === 'planador' ? 0 : form.valor_hora,
-        valor_voo: valorVoo,
+      const payload = {
+        aeronave: Number(form.aeronave_id),
+        participante: Number(form.participante_id),
+        instrutor: form.instrutor_id ? Number(form.instrutor_id) : null,
+        tipo_voo: form.tipo_voo,
+        hora_inicio: form.hora_inicio,
+        hora_fim: form.hora_fim,
+        data_voo: form.data_voo,
+        origem: form.origem || null,
+        destino: form.destino || null,
       }
 
       if (isEdit && id) {
-        await updateVoo(id, vooData)
+        await updateVoo(Number(id), payload)
       } else {
-        const voo = await createVoo(vooData)
+        const voo = await createVoo(payload)
 
         const tempoDisplay =
           voo.tipo_aeronave === 'planador'
-            ? `${minutosPlanador}min`
+            ? `${voo.duracao_minutos}min`
             : `${voo.tempo_decimal.toFixed(1)}h`
         const descricaoVoo = `${TIPO_VOO_LABELS[voo.tipo_voo]} – ${tempoDisplay} – ${voo.aeronave_nome}`
 
-        // Debit wallet if used
+        // Debit carteira if used
         if (carteiraUsadaNum > 0) {
-          await debitarCarteira(voo.participante_id, carteiraUsadaNum)
-          await createTituloReceber({
-            usuario_id: voo.participante_id,
-            usuario_nome: voo.participante_nome,
-            tipo: 'carteira',
-            descricao: `Débito carteira – ${descricaoVoo}`,
-            num_parcela: 1,
-            total_parcelas: 1,
-            valor: carteiraUsadaNum,
-            valor_pago: carteiraUsadaNum,
-            juros_aplicado: 0,
-            data_emissao: voo.data,
-            data_vencimento: voo.data,
-            data_pagamento: voo.data,
-            status: 'baixado',
-            carteira_debito: true,
-          })
+          const carteira = await getCarteiraByParticipante(voo.participante)
+          if (carteira) {
+            await debitarCarteira(
+              carteira.id,
+              carteiraUsadaNum,
+              `Débito carteira – ${descricaoVoo}`,
+              voo.id,
+            )
+          }
         }
 
+        // Generate TituloReceber for the remaining amount (if any)
         if (valorTitulo > 0) {
-          // Partial wallet or no wallet — pending título for remaining amount
           const descricaoFinal =
             carteiraUsadaNum > 0
               ? `${descricaoVoo} (${fmt(carteiraUsadaNum)} via carteira)`
               : descricaoVoo
           await createTituloReceber({
-            usuario_id: voo.participante_id,
-            usuario_nome: voo.participante_nome,
+            participante: voo.participante,
             tipo: 'voo',
             descricao: descricaoFinal,
             num_parcela: 1,
             total_parcelas: 1,
-            valor: valorTitulo,
-            valor_pago: 0,
-            juros_aplicado: 0,
-            valor_carteira: carteiraUsadaNum > 0 ? carteiraUsadaNum : undefined,
-            data_emissao: voo.data,
-            data_vencimento: voo.data_vencimento,
-            data_pagamento: null,
-            status: 'em_aberto',
+            valor_original: valorTitulo,
+            data_emissao: voo.data_voo,
+            data_vencimento: form.data_vencimento,
           })
         } else if (carteiraUsadaNum > 0) {
-          // Full wallet coverage — create a baixado título as record
+          // Full coverage — create a baixado título as record
           await createTituloReceber({
-            usuario_id: voo.participante_id,
-            usuario_nome: voo.participante_nome,
+            participante: voo.participante,
             tipo: 'voo',
             descricao: `${descricaoVoo} (pago via carteira)`,
             num_parcela: 1,
             total_parcelas: 1,
-            valor: voo.valor_voo,
-            valor_pago: voo.valor_voo,
-            juros_aplicado: 0,
-            valor_carteira: voo.valor_voo,
-            data_emissao: voo.data,
-            data_vencimento: voo.data_vencimento,
-            data_pagamento: voo.data,
-            status: 'baixado',
+            valor_original: voo.valor_total,
+            data_emissao: voo.data_voo,
+            data_vencimento: form.data_vencimento,
           })
         }
 
-        if (voo.instrutor_id && voo.instrutor_nome && voo.taxa_instrutor && voo.taxa_instrutor > 0) {
+        // Create TituloPagar for instructor fee if applicable
+        if (voo.instrutor && form.taxa_instrutor && form.taxa_instrutor > 0) {
           await createTituloPagar({
-            tipo: 'instrutor',
-            favorecido: voo.instrutor_nome,
+            tipo: 'folha_pagamento',
+            favorecido: voo.instrutor,
             descricao: `Instrução – ${descricaoVoo}`,
             num_parcela: 1,
             total_parcelas: 1,
-            valor: voo.valor_voo * (voo.taxa_instrutor / 100),
-            data_emissao: voo.data,
-            data_vencimento: voo.data_vencimento,
-            status: 'em_aberto',
-            valor_pago: null,
-            data_pagamento: null,
-            recorrente: false,
+            valor: voo.valor_total * (form.taxa_instrutor / 100),
+            data_emissao: voo.data_voo,
+            data_vencimento: form.data_vencimento,
+            is_recorrente: false,
           })
         }
       }
@@ -450,7 +442,7 @@ export default function VooFormPage() {
     if (!id) return
     setDeleting(true)
     try {
-      await deleteVoo(id)
+      await deleteVoo(Number(id))
       navigate('/voos')
     } finally {
       setDeleting(false)
@@ -602,10 +594,10 @@ export default function VooFormPage() {
                 <input
                   type="date"
                   className={dateCls}
-                  value={form.data}
-                  onChange={e => setForm(p => ({ ...p, data: e.target.value }))}
+                  value={form.data_voo}
+                  onChange={e => setForm(p => ({ ...p, data_voo: e.target.value }))}
                 />
-                {errors.data && <p className="text-xs text-destructive">{errors.data}</p>}
+                {errors.data_voo && <p className="text-xs text-destructive">{errors.data_voo}</p>}
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Tipo de voo</label>
@@ -690,20 +682,24 @@ export default function VooFormPage() {
                 <input
                   type="time"
                   className={dateCls}
-                  value={form.inicio}
-                  onChange={e => setForm(p => ({ ...p, inicio: e.target.value }))}
+                  value={form.hora_inicio}
+                  onChange={e => setForm(p => ({ ...p, hora_inicio: e.target.value }))}
                 />
-                {errors.inicio && <p className="text-xs text-destructive">{errors.inicio}</p>}
+                {errors.hora_inicio && (
+                  <p className="text-xs text-destructive">{errors.hora_inicio}</p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Término</label>
                 <input
                   type="time"
                   className={dateCls}
-                  value={form.fim}
-                  onChange={e => setForm(p => ({ ...p, fim: e.target.value }))}
+                  value={form.hora_fim}
+                  onChange={e => setForm(p => ({ ...p, hora_fim: e.target.value }))}
                 />
-                {errors.fim && <p className="text-xs text-destructive">{errors.fim}</p>}
+                {errors.hora_fim && (
+                  <p className="text-xs text-destructive">{errors.hora_fim}</p>
+                )}
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Tempo</label>
@@ -878,7 +874,7 @@ export default function VooFormPage() {
                       </div>
                     ) : (
                       <p className="text-xs text-muted-foreground">
-                        Usuário sem saldo na carteira — título será gerado normalmente.
+                        Participante sem saldo na carteira — título será gerado normalmente.
                       </p>
                     )}
                   </div>

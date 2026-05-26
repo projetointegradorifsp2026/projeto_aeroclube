@@ -40,3 +40,10 @@ class CreditarCarteiraSerializer(serializers.Serializer):
     valor = serializers.DecimalField(max_digits=10, decimal_places=2)
     descricao = serializers.CharField(max_length=300, default="Compra de horas pré-pagas")
     data_vencimento = serializers.DateField(required=False, allow_null=True)
+
+
+class DebitarCarteiraSerializer(serializers.Serializer):
+    """RF13: Débito de carteira no uso de horas pré-pagas."""
+    valor = serializers.DecimalField(max_digits=10, decimal_places=2)
+    descricao = serializers.CharField(max_length=300)
+    voo = serializers.IntegerField(required=False, allow_null=True)

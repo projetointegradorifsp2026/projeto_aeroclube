@@ -21,23 +21,21 @@ const isAtrasado = (t: TituloReceber) =>
   t.status !== 'baixado' && new Date(t.data_vencimento + 'T00:00:00') < new Date()
 
 const STATUS_LABELS: Record<TituloReceberStatus, string> = {
-  em_aberto: 'Em aberto',
-  pago_parcial: 'Pago parcial',
+  aberto: 'Em aberto',
   baixado: 'Baixado',
 }
 
 const STATUS_COLORS: Record<TituloReceberStatus, string> = {
-  em_aberto: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  pago_parcial: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  aberto: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   baixado: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
 }
 
 const TIPO_COLORS: Record<string, string> = {
   mensalidade: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
-  pontual: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  horas_pre_pagas: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
   servico: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   voo: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400',
-  carteira: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+  outros: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
 }
 
 interface Props {
@@ -68,8 +66,8 @@ export function TituloReceberDetailModal({
   if (!current) return null
 
   const atrasado = isAtrasado(current)
-  const isCarteira = current.tipo === 'carteira'
-  const restante = current.valor + (current.multa ?? 0) - current.valor_pago
+  const isCarteira = current.tipo === 'horas_pre_pagas'
+  const restante = current.valor_original + current.juros_aplicado - current.valor_pago
 
   const siblings =
     current.total_parcelas > 1
@@ -77,7 +75,7 @@ export function TituloReceberDetailModal({
           .filter(
             t =>
               t.id !== current.id &&
-              t.usuario_nome === current.usuario_nome &&
+              t.participante_nome === current.participante_nome &&
               t.tipo === current.tipo &&
               t.descricao === current.descricao &&
               t.total_parcelas === current.total_parcelas,
@@ -119,7 +117,7 @@ export function TituloReceberDetailModal({
               </span>
             )}
           </div>
-          <DialogTitle className="text-base leading-snug">{current.usuario_nome}</DialogTitle>
+          <DialogTitle className="text-base leading-snug">{current.participante_nome}</DialogTitle>
           <p className="text-sm text-muted-foreground">{current.descricao}</p>
         </DialogHeader>
 
@@ -128,7 +126,7 @@ export function TituloReceberDetailModal({
             <div className="grid grid-cols-2 divide-x divide-border">
               <div className="px-4 py-3">
                 <p className="text-xs text-muted-foreground mb-0.5">Valor</p>
-                <p className="font-medium">{fmt(current.valor)}</p>
+                <p className="font-medium">{fmt(current.valor_original)}</p>
               </div>
               <div className="px-4 py-3">
                 <p className="text-xs text-muted-foreground mb-0.5">Valor pago</p>
@@ -138,35 +136,20 @@ export function TituloReceberDetailModal({
 
             <div className="grid grid-cols-2 divide-x divide-border">
               <div className="px-4 py-3">
-                <p className="text-xs text-muted-foreground mb-0.5">
-                  {current.status === 'baixado' ? 'Multa' : 'Saldo restante'}
-                </p>
-                <p
-                  className={cn(
-                    'font-medium',
-                    current.status !== 'baixado'
-                      ? ''
-                      : (current.multa ?? 0) > 0
-                      ? 'text-rose-500'
-                      : 'text-muted-foreground',
-                  )}
-                >
-                  {current.status === 'baixado'
-                    ? (current.multa ?? 0) > 0
-                      ? fmt(current.multa!)
-                      : '—'
-                    : fmt(restante)}
+                <p className="text-xs text-muted-foreground mb-0.5">Saldo restante</p>
+                <p className="font-medium">
+                  {current.status !== 'baixado' ? fmt(restante) : '—'}
                 </p>
               </div>
               <div className="px-4 py-3">
-                <p className="text-xs text-muted-foreground mb-0.5">Via carteira</p>
+                <p className="text-xs text-muted-foreground mb-0.5">Juros</p>
                 <p
                   className={cn(
                     'font-medium',
-                    (current.valor_carteira ?? 0) > 0 ? 'text-teal-600' : 'text-muted-foreground',
+                    current.juros_aplicado > 0 ? 'text-rose-500' : 'text-muted-foreground',
                   )}
                 >
-                  {(current.valor_carteira ?? 0) > 0 ? fmt(current.valor_carteira!) : '—'}
+                  {current.juros_aplicado > 0 ? fmt(current.juros_aplicado) : '—'}
                 </p>
               </div>
             </div>
@@ -225,7 +208,7 @@ export function TituloReceberDetailModal({
                       >
                         {fmtDate(p.data_vencimento)}
                       </span>
-                      <span className="font-medium whitespace-nowrap">{fmt(p.valor)}</span>
+                      <span className="font-medium whitespace-nowrap">{fmt(p.valor_original)}</span>
                       <span
                         className={cn(
                           'inline-flex rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap',

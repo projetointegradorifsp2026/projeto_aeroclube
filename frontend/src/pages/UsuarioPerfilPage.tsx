@@ -27,7 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { getUsers, updateUser, addSaldoCarteira, debitarCarteira, type User } from '@/services/usersService'
+import { getUsers, updateUser, addSaldoCarteira, type User } from '@/services/usersService'
 import { UserFormModal, type UserFormData } from '@/components/users/UserFormModal'
 import {
   getTitulosReceber,
@@ -46,32 +46,29 @@ const todayStr = () => new Date().toISOString().split('T')[0]
 
 type MovRow = {
   id: string
-  tipo: 'entrada' | 'saida' | 'carteira'
+  tipo: 'entrada' | 'saida'
   data: string
   descricao: string
   valor: number
   valor_pago: number
-  status: 'em_aberto' | 'pago_parcial' | 'baixado'
-  carteira_debito?: boolean
+  status: 'aberto' | 'baixado'
 }
 
 const PROFILE_COLORS: Record<UserProfile, string> = {
-  administrador: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+  admin: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
   aluno: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   socio: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
-  cliente_externo: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  colaborador: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  externo: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+  instrutor: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
 }
 
 const TITULO_STATUS_LABELS: Record<TituloReceberStatus, string> = {
-  em_aberto: 'Em aberto',
-  pago_parcial: 'Pago parcial',
+  aberto: 'Em aberto',
   baixado: 'Baixado',
 }
 
 const TITULO_STATUS_COLORS: Record<TituloReceberStatus, string> = {
-  em_aberto: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  pago_parcial: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  aberto: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   baixado: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
 }
 
@@ -101,7 +98,7 @@ export default function UsuarioPerfilPage() {
 
   const [titulos, setTitulos] = useState<TituloReceber[]>([])
   const [titulosPage, setTitulosPage] = useState(1)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
 
   const [baixaTarget, setBaixaTarget] = useState<TituloReceber | null>(null)
   const [baixaValor, setBaixaValor] = useState('')
@@ -112,29 +109,18 @@ export default function UsuarioPerfilPage() {
   const [batchData, setBatchData] = useState(todayStr())
   const [batchBaixando, setBatchBaixando] = useState(false)
 
-  async function reloadMovimentacoes(nomeUsuario: string) {
+  async function reloadMovimentacoes(participanteId: number) {
     const [allReceber, allPagar] = await Promise.all([getTitulosReceber(), getTitulosPagar()])
-    const userReceber = allReceber.filter(t => t.usuario_id === id && t.status === 'baixado' && t.tipo !== 'carteira' && !(t.valor_carteira && t.valor_carteira >= t.valor))
-    const userCarteira = allReceber.filter(t => t.usuario_id === id && t.tipo === 'carteira')
-    const userPagar = allPagar.filter(t => t.favorecido === nomeUsuario && t.status === 'baixado')
+    const userReceber = allReceber.filter(t => t.participante === participanteId && t.tipo !== 'horas_pre_pagas')
+    const userPagar = allPagar.filter(t => t.status === 'baixado')
     const entradas: MovRow[] = userReceber.map(t => ({
       id: `r-${t.id}`,
       tipo: 'entrada' as const,
       data: t.data_emissao,
       descricao: t.descricao,
-      valor: t.valor,
+      valor: t.valor_original,
       valor_pago: t.valor_pago,
       status: t.status,
-    }))
-    const carteiraRows: MovRow[] = userCarteira.map(t => ({
-      id: `c-${t.id}`,
-      tipo: 'carteira' as const,
-      data: t.data_emissao,
-      descricao: t.descricao,
-      valor: t.valor,
-      valor_pago: t.valor_pago,
-      status: t.status,
-      carteira_debito: t.carteira_debito,
     }))
     const saidas: MovRow[] = userPagar.map(t => ({
       id: `p-${t.id}`,
@@ -145,7 +131,7 @@ export default function UsuarioPerfilPage() {
       valor_pago: t.valor_pago ?? 0,
       status: t.status,
     }))
-    setMovimentacoes([...entradas, ...carteiraRows, ...saidas].sort((a, b) => b.data.localeCompare(a.data)))
+    setMovimentacoes([...entradas, ...saidas].sort((a, b) => b.data.localeCompare(a.data)))
     setMovPage(1)
   }
 
@@ -153,31 +139,21 @@ export default function UsuarioPerfilPage() {
     if (!id) return
     Promise.all([getUsers(), getTitulosReceber(), getTitulosPagar()]).then(
       ([users, allReceber, allPagar]) => {
-        const found = users.find(u => u.id === id)
+        const numId = Number(id)
+        const found = users.find(u => u.id === numId)
         if (!found) { navigate('/usuarios'); return }
 
-        const userReceber = allReceber.filter(t => t.usuario_id === id && t.status === 'baixado' && t.tipo !== 'carteira' && !(t.valor_carteira && t.valor_carteira >= t.valor))
-        const userCarteira = allReceber.filter(t => t.usuario_id === id && t.tipo === 'carteira')
-        const userPagar = allPagar.filter(t => t.favorecido === found.nome && t.status === 'baixado')
+        const userReceber = allReceber.filter(t => t.participante === numId && t.tipo !== 'horas_pre_pagas')
+        const userPagar = allPagar.filter(t => t.status === 'baixado')
 
         const entradas: MovRow[] = userReceber.map(t => ({
           id: `r-${t.id}`,
           tipo: 'entrada' as const,
           data: t.data_emissao,
           descricao: t.descricao,
-          valor: t.valor,
+          valor: t.valor_original,
           valor_pago: t.valor_pago,
           status: t.status,
-        }))
-        const carteiraRows: MovRow[] = userCarteira.map(t => ({
-          id: `c-${t.id}`,
-          tipo: 'carteira' as const,
-          data: t.data_emissao,
-          descricao: t.descricao,
-          valor: t.valor,
-          valor_pago: t.valor_pago,
-          status: t.status,
-          carteira_debito: t.carteira_debito,
         }))
         const saidas: MovRow[] = userPagar.map(t => ({
           id: `p-${t.id}`,
@@ -191,11 +167,11 @@ export default function UsuarioPerfilPage() {
 
         setUser(found)
         setMovimentacoes(
-          [...entradas, ...carteiraRows, ...saidas].sort((a, b) => b.data.localeCompare(a.data)),
+          [...entradas, ...saidas].sort((a, b) => b.data.localeCompare(a.data)),
         )
         setTitulos(
           allReceber
-            .filter(t => t.usuario_id === id && t.status !== 'baixado')
+            .filter(t => t.participante === numId && t.status !== 'baixado')
             .sort((a, b) => b.data_vencimento.localeCompare(a.data_vencimento)),
         )
         setLoadingUser(false)
@@ -215,11 +191,11 @@ export default function UsuarioPerfilPage() {
   const someSelected = selectableTitulos.some(t => selectedIds.has(t.id)) && !allSelected
   const selectedTitulos = titulos.filter(t => selectedIds.has(t.id))
   const totalBatch = selectedTitulos.reduce(
-    (sum, t) => sum + (t.valor - t.valor_pago),
+    (sum, t) => sum + (t.valor_original + t.juros_aplicado - t.valor_pago),
     0,
   )
 
-  function toggleSelect(tid: string) {
+  function toggleSelect(tid: number) {
     setSelectedIds(prev => {
       const next = new Set(prev)
       if (next.has(tid)) next.delete(tid)
@@ -247,26 +223,10 @@ export default function UsuarioPerfilPage() {
     const valor = parseFloat(addSaldoValor)
     if (!valor || valor <= 0 || !addSaldoData) return
     setAddSaldoSaving(true)
-    const [updatedUser] = await Promise.all([
-      addSaldoCarteira(user.id, valor),
-      createTituloReceber({
-        usuario_id: user.id,
-        usuario_nome: user.nome,
-        tipo: 'carteira',
-        descricao: `Recarga de carteira`,
-        num_parcela: 1,
-        total_parcelas: 1,
-        valor,
-        valor_pago: valor,
-        juros_aplicado: 0,
-        data_emissao: addSaldoData,
-        data_vencimento: addSaldoData,
-        data_pagamento: addSaldoData,
-        status: 'baixado',
-      }),
-    ])
+    await addSaldoCarteira(user.id, valor, 'Recarga de carteira', addSaldoData)
+    const updatedUser = await (await import('@/services/usersService')).getUser(user.id)
     setUser(updatedUser)
-    await reloadMovimentacoes(updatedUser.nome)
+    await reloadMovimentacoes(user.id)
     setAddSaldoOpen(false)
     setAddSaldoValor('')
     setAddSaldoSaving(false)
@@ -277,26 +237,20 @@ export default function UsuarioPerfilPage() {
     const valor = parseFloat(removeSaldoValor)
     if (!valor || valor <= 0 || valor > user.saldo_carteira || !removeSaldoData) return
     setRemoveSaldoSaving(true)
-    const [updatedUser] = await Promise.all([
-      debitarCarteira(user.id, valor),
-      createTituloPagar({
-        tipo: 'outros',
-        favorecido: user.nome,
-        descricao: `Remoção de saldo da carteira`,
-        num_parcela: 1,
-        total_parcelas: 1,
-        valor,
-        multa: 0,
-        data_emissao: removeSaldoData,
-        data_vencimento: removeSaldoData,
-        status: 'baixado',
-        valor_pago: valor,
-        data_pagamento: removeSaldoData,
-        recorrente: false
-      }),
-    ])
+    // Debitar carteira não tem endpoint direto; cria título a pagar como registro manual
+    await createTituloPagar({
+      tipo: 'outros',
+      favorecido: user.id,
+      descricao: `Remoção de saldo da carteira – ${user.nome}`,
+      num_parcela: 1,
+      total_parcelas: 1,
+      valor,
+      data_emissao: removeSaldoData,
+      data_vencimento: removeSaldoData,
+    })
+    const updatedUser = await (await import('@/services/usersService')).getUser(user.id)
     setUser(updatedUser)
-    await reloadMovimentacoes(updatedUser.nome)
+    await reloadMovimentacoes(user.id)
     setRemoveSaldoOpen(false)
     setRemoveSaldoValor('')
     setRemoveSaldoSaving(false)
@@ -321,7 +275,7 @@ export default function UsuarioPerfilPage() {
     setBatchBaixando(true)
     const updates = await Promise.all(
       selectedTitulos.map(t => {
-        const remaining = t.valor - t.valor_pago
+        const remaining = t.valor_original + t.juros_aplicado - t.valor_pago
         return baixarTituloReceber(t.id, remaining, batchData)
       }),
     )
@@ -420,11 +374,11 @@ export default function UsuarioPerfilPage() {
               </div>
               <div>
                 <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide">CPF</dt>
-                <dd className="mt-1 text-sm">{user.cpf}</dd>
+                <dd className="mt-1 text-sm">{user.cpf_cnpj ?? '—'}</dd>
               </div>
               <div>
                 <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Data de cadastro</dt>
-                <dd className="mt-1 text-sm">{fmtDate(user.created_at)}</dd>
+                <dd className="mt-1 text-sm">{fmtDate(user.date_joined)}</dd>
               </div>
               <div>
                 <dt className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</dt>
@@ -445,15 +399,15 @@ export default function UsuarioPerfilPage() {
                 <dd className="mt-1 flex flex-wrap gap-1">
                   {user.perfis.map(p => (
                     <span
-                      key={p}
+                      key={p.id}
                       className={cn(
                         'inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium',
-                        PROFILE_COLORS[p],
-                        user.perfil_ativo === p && 'ring-1 ring-current ring-offset-1',
+                        PROFILE_COLORS[p.perfil],
+                        user.perfil_ativo === p.perfil && 'ring-1 ring-current ring-offset-1',
                       )}
-                      title={user.perfil_ativo === p ? 'Perfil ativo' : undefined}
+                      title={user.perfil_ativo === p.perfil ? 'Perfil ativo' : undefined}
                     >
-                      {PROFILE_LABELS[p]}
+                      {PROFILE_LABELS[p.perfil]}
                     </span>
                   ))}
                 </dd>
@@ -552,11 +506,9 @@ export default function UsuarioPerfilPage() {
                           'inline-flex rounded-full px-2 py-0.5 text-xs font-medium',
                           m.tipo === 'entrada'
                             ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                            : m.tipo === 'carteira'
-                            ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
                             : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
                         )}>
-                          {m.tipo === 'entrada' ? 'Entrada' : m.tipo === 'carteira' ? 'Carteira' : 'Saída'}
+                          {m.tipo === 'entrada' ? 'Entrada' : 'Saída'}
                         </span>
                       </td>
                       <td className="px-4 py-3 max-w-[200px]">
@@ -566,11 +518,9 @@ export default function UsuarioPerfilPage() {
                         <span className={
                           m.tipo === 'entrada'
                             ? 'text-emerald-600 dark:text-emerald-400'
-                            : m.tipo === 'carteira'
-                            ? 'text-teal-600 dark:text-teal-400'
                             : 'text-rose-600 dark:text-rose-400'
                         }>
-                          {m.tipo === 'entrada' ? '+' : m.tipo === 'carteira' ? (m.carteira_debito ? '−' : '+') : '−'}{fmt(m.valor)}
+                          {m.tipo === 'entrada' ? '+' : '−'}{fmt(m.valor)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell whitespace-nowrap">
@@ -579,8 +529,6 @@ export default function UsuarioPerfilPage() {
                       <td className="px-4 py-3">
                         {m.status === 'baixado'
                           ? <Badge variant="success">Baixado</Badge>
-                          : m.status === 'pago_parcial'
-                          ? <Badge variant="outline" className="border-amber-400 text-amber-600 dark:text-amber-400">Pago Parcial</Badge>
                           : <Badge variant="outline" className="text-muted-foreground">Em Aberto</Badge>
                         }
                       </td>
@@ -662,7 +610,7 @@ export default function UsuarioPerfilPage() {
                       <td className="px-4 py-3 text-muted-foreground max-w-xs truncate">{t.descricao}</td>
                       <td className="px-4 py-3 whitespace-nowrap hidden sm:table-cell">{t.num_parcela}/{t.total_parcelas}</td>
                       <td className="px-4 py-3 whitespace-nowrap hidden md:table-cell">{fmtDate(t.data_vencimento)}</td>
-                      <td className="px-4 py-3 text-right font-medium whitespace-nowrap">{fmt(t.valor)}</td>
+                      <td className="px-4 py-3 text-right font-medium whitespace-nowrap">{fmt(t.valor_original)}</td>
                       <td className="px-4 py-3 text-right whitespace-nowrap text-muted-foreground hidden sm:table-cell">{fmt(t.valor_pago)}</td>
                       <td className="px-4 py-3">
                         <span className={cn('inline-flex rounded-full px-2 py-0.5 text-xs font-medium', TITULO_STATUS_COLORS[t.status])}>
@@ -824,7 +772,7 @@ export default function UsuarioPerfilPage() {
       {(() => {
         const valorRecebido = parseFloat(baixaValor)
         const restante = baixaTarget
-          ? baixaTarget.valor - baixaTarget.valor_pago
+          ? baixaTarget.valor_original + baixaTarget.juros_aplicado - baixaTarget.valor_pago
           : 0
         const baixaValorError =
           baixaTarget && !isNaN(valorRecebido) && valorRecebido > restante
@@ -888,7 +836,7 @@ export default function UsuarioPerfilPage() {
           <div className="space-y-3 py-1">
             <div className="max-h-48 overflow-y-auto divide-y divide-border rounded-lg border border-border">
               {selectedTitulos.map(t => {
-                const restante = t.valor - t.valor_pago
+                const restante = t.valor_original + t.juros_aplicado - t.valor_pago
                 return (
                   <div key={t.id} className="flex items-center justify-between px-3 py-2 text-sm">
                     <span className="text-muted-foreground flex-1 truncate pr-4">{t.descricao}</span>

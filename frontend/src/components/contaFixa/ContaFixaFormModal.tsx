@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { Trash2 } from 'lucide-react'
 import {
   Dialog,
@@ -10,12 +10,14 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { type ContaFixa } from '@/mocks/contaFixa'
+import { SearchSelect } from '@/components/ui/search-select'
+import { type ContaFixa } from '@/services/contaFixaService'
+import { getEntidades, type Entidade } from '@/services/entidadesService'
 
 export interface ContaFixaFormData {
   nome: string
   descricao: string
-  favorecido: string
+  favorecido: string  // entidade ID as string (for SearchSelect)
   valor: number
   dia_vencimento: number
   is_active: boolean
@@ -60,7 +62,18 @@ export function ContaFixaFormModal({
   const [form, setForm] = useState<ContaFixaFormData>(makeEmpty)
   const [errors, setErrors] = useState<FormErrors>({})
   const [saving, setSaving] = useState(false)
+  const [entidades, setEntidades] = useState<Entidade[]>([])
   const isEdit = !!contaFixa
+
+  useEffect(() => {
+    Promise.all([
+      getEntidades('fornecedor'),
+      getEntidades('funcionario'),
+      getEntidades('instrutor'),
+    ]).then(([forns, funcs, insts]) => {
+      setEntidades([...forns, ...funcs, ...insts].filter(e => e.is_active))
+    })
+  }, [])
 
   useEffect(() => {
     if (open) {
@@ -69,7 +82,7 @@ export function ContaFixaFormModal({
           ? {
               nome: contaFixa.nome,
               descricao: contaFixa.descricao,
-              favorecido: contaFixa.favorecido,
+              favorecido: String(contaFixa.favorecido_id),
               valor: contaFixa.valor,
               dia_vencimento: contaFixa.dia_vencimento,
               is_active: contaFixa.is_active,
@@ -83,7 +96,7 @@ export function ContaFixaFormModal({
   function validate(): boolean {
     const e: FormErrors = {}
     if (!form.nome.trim()) e.nome = 'Nome é obrigatório'
-    if (!form.favorecido.trim()) e.favorecido = 'Favorecido é obrigatório'
+    if (!form.favorecido) e.favorecido = 'Favorecido é obrigatório'
     if (!form.valor || form.valor <= 0) e.valor = 'Valor deve ser maior que zero'
     if (form.dia_vencimento < 1 || form.dia_vencimento > 31) e.dia_vencimento = 'Dia inválido (1–31)'
     setErrors(e)
@@ -128,13 +141,16 @@ export function ContaFixaFormModal({
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Favorecido</label>
-              <Input
-                placeholder="Nome do favorecido"
+              <SearchSelect
+                options={entidades.map(e => ({ value: String(e.id), label: e.nome }))}
                 value={form.favorecido}
-                onChange={e => setForm(p => ({ ...p, favorecido: e.target.value }))}
+                onChange={v => setForm(p => ({ ...p, favorecido: v }))}
+                placeholder="Selecione o favorecido"
                 hasError={!!errors.favorecido}
-                helper={errors.favorecido}
               />
+              {errors.favorecido && (
+                <p className="text-xs text-destructive">{errors.favorecido}</p>
+              )}
             </div>
           </div>
 

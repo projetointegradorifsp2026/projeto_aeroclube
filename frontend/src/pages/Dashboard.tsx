@@ -314,8 +314,6 @@ function FinCard({
 
 function MovRow({ mov }: { mov: Movimentacao }) {
     const isEntrada = mov.tipo === 'entrada'
-    const isCarteira = mov.tipo === 'carteira'
-    const isDebito = isCarteira && mov.carteira_debito
     return (
         <tr className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
             <td className="px-4 py-3">
@@ -324,12 +322,10 @@ function MovRow({ mov }: { mov: Movimentacao }) {
                         'inline-flex rounded-full px-2 py-0.5 text-xs font-medium mb-1',
                         isEntrada
                             ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                            : isCarteira
-                            ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
                             : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
                     )}
                 >
-                    {isEntrada ? 'Entrada' : isCarteira ? 'Carteira' : 'Saída'}
+                    {isEntrada ? 'Entrada' : 'Saída'}
                 </span>
                 <p className="text-xs text-muted-foreground">{mov.pessoa}</p>
             </td>
@@ -340,11 +336,9 @@ function MovRow({ mov }: { mov: Movimentacao }) {
                 <span className={
                     isEntrada
                         ? 'text-emerald-600 dark:text-emerald-400'
-                        : isCarteira
-                        ? 'text-teal-600 dark:text-teal-400'
                         : 'text-rose-600 dark:text-rose-400'
                 }>
-                    {isEntrada ? '+' : isDebito ? '−' : isCarteira ? '+' : '−'}{fmt(mov.valor)}
+                    {isEntrada ? '+' : '−'}{fmt(mov.valor)}
                 </span>
             </td>
             <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">

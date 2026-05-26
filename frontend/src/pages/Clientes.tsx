@@ -45,7 +45,8 @@ export default function Clientes() {
   useEffect(() => { setPage(1) }, [search, statusFilter])
 
   useEffect(() => {
-    getEntidades('cliente').then(data => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    getEntidades('cliente' as any).then(data => {
       setClientes(data)
       setLoading(false)
     })
@@ -57,8 +58,8 @@ export default function Clientes() {
       const matchSearch =
         !q ||
         e.nome.toLowerCase().includes(q) ||
-        e.email.toLowerCase().includes(q) ||
-        e.cpf_cnpj.includes(q)
+        (e.email ?? '').toLowerCase().includes(q) ||
+        (e.cpf_cnpj ?? '').includes(q)
       const matchStatus =
         statusFilter === 'all' ||
         (statusFilter === 'active' && e.is_active) ||
@@ -239,7 +240,7 @@ export default function Clientes() {
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
         onDeleteRequest={editItem ? handleDeleteRequest : undefined}
-        tipoFixo="cliente"
+        tipoFixo={'cliente' as any}
         titulo={editItem ? 'Editar Cliente' : 'Novo Cliente'}
       />
 

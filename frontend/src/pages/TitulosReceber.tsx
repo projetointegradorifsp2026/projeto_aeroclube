@@ -28,7 +28,7 @@ import {
   baixarTituloReceber,
   type TituloReceber,
 } from '@/services/titulosReceberService'
-import { getUsers, debitarCarteira } from '@/services/usersService'
+import { getUsers } from '@/services/usersService'
 import { TITULO_RECEBER_TIPO_LABELS, type TituloReceberTipo } from '@/mocks/titulos'
 import { cn } from '@/lib/utils'
 
@@ -42,10 +42,10 @@ type TipoFilter = 'all' | TituloReceberTipo
 
 const TIPO_COLORS: Record<TituloReceberTipo, string> = {
   mensalidade: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
-  pontual: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  outros: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   servico: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   voo: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-400',
-  carteira: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+  horas_pre_pagas: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
 }
 
 function TipoBadge({ tipo }: { tipo: TituloReceberTipo }) {
@@ -124,7 +124,7 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessa
             {paginated.map(t => (
             <tr key={t.id} className="hover:bg-muted/20 transition-colors">
               <td className="px-4 py-3">
-                <p className="font-medium">{t.usuario_nome}</p>
+                <p className="font-medium">{t.participante_nome}</p>
               </td>
               <td className="px-4 py-3 hidden sm:table-cell">
                 <TipoBadge tipo={t.tipo} />
@@ -148,22 +148,17 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessa
                 )}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">
-                <p className="font-medium">{fmt(t.valor)}</p>
-                {t.status === 'pago_parcial' && (
+                <p className="font-medium">{fmt(t.valor_original)}</p>
+                {t.status === 'aberto' && t.valor_pago > 0 && (
                   <p className="text-xs text-muted-foreground">
                     Pago: {fmt(t.valor_pago)}
                   </p>
                 )}
-                {t.valor_carteira && t.valor_carteira > 0 && (
-                  <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400 mt-0.5">
-                    {fmt(t.valor_carteira)} via carteira
-                  </span>
-                )}
               </td>
               {showMulta && (
                 <td className="px-4 py-3 hidden sm:table-cell whitespace-nowrap">
-                  {(t.multa ?? 0) > 0
-                    ? <span className="text-rose-500 font-medium">{fmt(t.multa!)}</span>
+                  {t.juros_aplicado > 0
+                    ? <span className="text-rose-500 font-medium">{fmt(t.juros_aplicado)}</span>
                     : <span className="text-muted-foreground">—</span>}
                 </td>
               )}
@@ -177,7 +172,7 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessa
                   >
                     <Eye className="h-3.5 w-3.5" />
                   </Button>
-                  {showBaixa && t.tipo !== 'carteira' && (
+                  {showBaixa && t.tipo !== 'horas_pre_pagas' && (
                     <Button size="sm" onClick={() => onBaixa(t)}>
                       Dar baixa
                       <CircleDollarSign className="h-3.5 w-3.5" />
@@ -232,7 +227,7 @@ export default function TitulosReceber() {
       .filter(t => {
         const matchSearch =
           !q ||
-          t.usuario_nome.toLowerCase().includes(q) ||
+          t.participante_nome.toLowerCase().includes(q) ||
           t.descricao.toLowerCase().includes(q)
         const matchTipo = tipoFilter === 'all' || t.tipo === tipoFilter
         return matchSearch && matchTipo
@@ -241,7 +236,7 @@ export default function TitulosReceber() {
   }, [titulos, search, tipoFilter])
 
   const emAbertoList = filtered.filter(
-    t => (t.status === 'em_aberto' || t.status === 'pago_parcial') && !isAtrasado(t),
+    t => t.status === 'aberto' && !isAtrasado(t),
   )
   const emAtrasoList = filtered.filter(t => isAtrasado(t))
   const baixadoList = filtered.filter(t => t.status === 'baixado')
@@ -249,13 +244,10 @@ export default function TitulosReceber() {
   async function handleSave(data: TituloReceberFormData): Promise<void> {
     if (editTitulo) {
       const updated = await updateTituloReceber(editTitulo.id, {
-        usuario_nome: data.usuario_nome,
+        participante: Number(data.participante),
         tipo: data.tipo,
         descricao: data.descricao,
-        num_parcela: editTitulo.num_parcela,
-        total_parcelas: editTitulo.total_parcelas,
-        valor: data.valor,
-        multa: data.multa,
+        valor_original: data.valor,
         data_emissao: data.data_emissao,
         data_vencimento: data.parcela_vencimentos[0],
       })
@@ -264,19 +256,14 @@ export default function TitulosReceber() {
       const created = await Promise.all(
         data.parcela_vencimentos.map((venc, i) =>
           createTituloReceber({
-            usuario_nome: data.usuario_nome,
+            participante: Number(data.participante),
             tipo: data.tipo,
             descricao: data.descricao,
             num_parcela: i + 1,
             total_parcelas: data.total_parcelas,
-            valor: data.parcela_valores[i] ?? data.valor,
-            valor_pago: 0,
-            juros_aplicado: 0,
-            multa: 0,
+            valor_original: data.parcela_valores[i] ?? data.valor,
             data_emissao: data.data_emissao,
             data_vencimento: venc,
-            data_pagamento: null,
-            status: 'em_aberto',
           }),
         ),
       )
@@ -309,21 +296,18 @@ export default function TitulosReceber() {
   }
 
   function openBaixa(t: TituloReceber) {
-    const multaVal = t.multa ?? 0
-    const restante = t.valor + multaVal - t.valor_pago
+    const restante = t.valor_original + t.juros_aplicado - t.valor_pago
     setBaixaTarget(t)
-    setBaixaMulta(multaVal.toFixed(2))
+    setBaixaMulta('0')
     setBaixaValor(restante.toFixed(2))
     setBaixaData(todayStr())
     setBaixaUsarCarteira(false)
     setBaixaCarteiraValor('')
     setBaixaUserSaldo(null)
-    if (t.usuario_id) {
-      getUsers().then(users => {
-        const user = users.find(u => u.id === t.usuario_id)
-        setBaixaUserSaldo(user?.saldo_carteira ?? 0)
-      })
-    }
+    getUsers().then(users => {
+      const user = users.find(u => u.id === t.participante)
+      setBaixaUserSaldo(user?.saldo_carteira ?? 0)
+    })
   }
 
   function openView(t: TituloReceber) {
@@ -348,46 +332,16 @@ export default function TitulosReceber() {
   async function handleBaixa() {
     if (!baixaTarget) return
     setBaixando(true)
-    const multa = parseFloat(baixaMulta) || 0
-    const carteiraAmount = baixaUsarCarteira ? (parseFloat(baixaCarteiraValor) || 0) : 0
-
-    if (carteiraAmount > 0 && baixaTarget.usuario_id) {
-      await Promise.all([
-        debitarCarteira(baixaTarget.usuario_id, carteiraAmount),
-        createTituloReceber({
-          usuario_id: baixaTarget.usuario_id,
-          usuario_nome: baixaTarget.usuario_nome,
-          tipo: 'carteira',
-          descricao: `Débito carteira – ${baixaTarget.descricao}`,
-          num_parcela: 1,
-          total_parcelas: 1,
-          valor: carteiraAmount,
-          valor_pago: carteiraAmount,
-          juros_aplicado: 0,
-          data_emissao: baixaData,
-          data_vencimento: baixaData,
-          data_pagamento: baixaData,
-          status: 'baixado',
-          carteira_debito: true,
-        }),
-      ])
-    }
-
-    const totalPayment = (parseFloat(baixaValor) || 0) + carteiraAmount
-    const updated = await baixarTituloReceber(
-      baixaTarget.id,
-      totalPayment,
-      baixaData,
-      multa,
-      carteiraAmount,
-    )
+    const juros = parseFloat(baixaMulta) || 0
+    const valorPagamento = parseFloat(baixaValor) || 0
+    const updated = await baixarTituloReceber(baixaTarget.id, valorPagamento, baixaData, juros)
     setTitulos(prev => prev.map(t => (t.id === baixaTarget.id ? updated : t)))
     setBaixaTarget(null)
     setBaixando(false)
   }
 
   const restanteBaixa = baixaTarget
-    ? baixaTarget.valor + (parseFloat(baixaMulta) || 0) - baixaTarget.valor_pago
+    ? baixaTarget.valor_original + baixaTarget.juros_aplicado - baixaTarget.valor_pago
     : 0
 
   return (
@@ -581,7 +535,7 @@ export default function TitulosReceber() {
               <DialogHeader>
                 <DialogTitle>Registrar recebimento</DialogTitle>
                 <DialogDescription>
-                  <strong className="text-foreground">{baixaTarget?.usuario_nome}</strong>
+                  <strong className="text-foreground">{baixaTarget?.participante_nome}</strong>
                   {' — '}
                   {baixaTarget?.descricao}
                 </DialogDescription>
@@ -590,7 +544,7 @@ export default function TitulosReceber() {
                 <div className="rounded-lg bg-muted/40 px-4 py-3 text-sm space-y-1.5">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Valor original</span>
-                    <span className="font-medium">{baixaTarget && fmt(baixaTarget.valor)}</span>
+                    <span className="font-medium">{baixaTarget && fmt(baixaTarget.valor_original)}</span>
                   </div>
                   {atrasado && multaVal > 0 && (
                     <div className="flex justify-between">
@@ -751,7 +705,7 @@ export default function TitulosReceber() {
             <DialogTitle>Confirmar exclusão</DialogTitle>
             <DialogDescription>
               Tem certeza que deseja excluir o título de{' '}
-              <strong className="text-foreground">{deleteTarget?.usuario_nome}</strong>? Esta ação
+              <strong className="text-foreground">{deleteTarget?.participante_nome}</strong>? Esta ação
               não pode ser desfeita.
             </DialogDescription>
           </DialogHeader>

@@ -17,11 +17,10 @@ import {
   TITULO_RECEBER_TIPO_LABELS,
 } from '@/mocks/titulos'
 import { mockUsers } from '@/mocks/users'
-import { mockEntidades } from '@/mocks/entidades'
 import { cn } from '@/lib/utils'
 
 export interface TituloReceberFormData {
-  usuario_nome: string
+  participante: string
   tipo: TituloReceberTipo
   descricao: string
   total_parcelas: number
@@ -40,7 +39,7 @@ interface TituloReceberFormModalProps {
   onDeleteRequest?: () => void
 }
 
-const TIPOS_FORM: TituloReceberTipo[] = ['mensalidade', 'pontual', 'servico']
+const TIPOS_FORM: TituloReceberTipo[] = ['mensalidade', 'servico', 'outros']
 
 const todayStr = () => new Date().toISOString().split('T')[0]
 
@@ -68,7 +67,7 @@ function distributeValor(total: number, count: number): number[] {
 function makeEmptyForm(): TituloReceberFormData {
   const hoje = todayStr()
   return {
-    usuario_nome: '',
+    participante: '',
     tipo: 'mensalidade',
     descricao: '',
     total_parcelas: 1,
@@ -81,7 +80,7 @@ function makeEmptyForm(): TituloReceberFormData {
 }
 
 type FormErrors = {
-  usuario_nome?: string
+  participante?: string
   descricao?: string
   valor?: string
   data_emissao?: string
@@ -94,16 +93,11 @@ const selectCls =
 const dateCls =
   'h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
 
-// Opções para mensalidade e pontual: alunos, sócios e clientes externos ativos
-const clientePerfis = ['aluno', 'socio', 'cliente_externo'] as const
+// Opções para mensalidade/outros: alunos, sócios e clientes externos ativos
+const clientePerfis = ['aluno', 'socio', 'externo'] as const
 const usuariosOptions = mockUsers
-  .filter(u => u.is_active && u.perfis.some(p => clientePerfis.includes(p as typeof clientePerfis[number])))
-  .map(u => ({ value: u.nome, label: u.nome }))
-
-// Opções para serviço: tabela de clientes
-const clientesOptions = mockEntidades
-  .filter(e => e.tipo === 'cliente' && e.is_active)
-  .map(e => ({ value: e.nome, label: e.nome }))
+  .filter(u => u.is_active && u.perfis.some(p => (clientePerfis as ReadonlyArray<string>).includes(p.perfil)))
+  .map(u => ({ value: String(u.id), label: u.nome }))
 
 export function TituloReceberFormModal({
   titulo,
@@ -128,15 +122,15 @@ export function TituloReceberFormModal({
       setForm(
         titulo
           ? {
-              usuario_nome: titulo.usuario_nome,
+              participante: String(titulo.participante),
               tipo: titulo.tipo,
               descricao: titulo.descricao,
               total_parcelas: 1,
-              valor: titulo.valor,
-              multa: titulo.multa ?? 0,
+              valor: titulo.valor_original,
+              multa: 0,
               data_emissao: titulo.data_emissao,
               parcela_vencimentos: [titulo.data_vencimento],
-              parcela_valores: [titulo.valor],
+              parcela_valores: [titulo.valor_original],
             }
           : makeEmptyForm(),
       )
@@ -145,7 +139,7 @@ export function TituloReceberFormModal({
   }, [titulo, open])
 
   function handleTipoChange(newTipo: TituloReceberTipo) {
-    setForm(p => ({ ...p, tipo: newTipo, usuario_nome: '' }))
+    setForm(p => ({ ...p, tipo: newTipo, participante: '' }))
   }
 
   function handleValorChange(val: number) {
@@ -195,7 +189,7 @@ export function TituloReceberFormModal({
 
   function validate(): boolean {
     const e: FormErrors = {}
-    if (!form.usuario_nome.trim()) e.usuario_nome = 'Devedor é obrigatório'
+    if (!form.participante.trim()) e.participante = 'Devedor é obrigatório'
     if (!form.descricao.trim()) e.descricao = 'Descrição é obrigatória'
     if (!form.valor || form.valor <= 0) e.valor = 'Valor deve ser maior que zero'
     if (!form.data_emissao) e.data_emissao = 'Data de emissão é obrigatória'
@@ -221,37 +215,14 @@ export function TituloReceberFormModal({
   }
 
   function renderDevedorField() {
-    if (form.tipo === 'servico') {
-      return (
-        <SearchSelect
-          options={clientesOptions}
-          value={form.usuario_nome}
-          onChange={v => setForm(p => ({ ...p, usuario_nome: v }))}
-          placeholder="Selecione o cliente"
-          hasError={!!errors.usuario_nome}
-        />
-      )
-    }
-    if (form.tipo === 'pontual') {
-      return (
-        <SearchSelect
-          options={usuariosOptions}
-          value={form.usuario_nome}
-          onChange={v => setForm(p => ({ ...p, usuario_nome: v }))}
-          placeholder="Selecione ou digite o devedor"
-          hasError={!!errors.usuario_nome}
-          allowFreeText
-        />
-      )
-    }
-    // mensalidade
+    // mensalidade / servico / outros — participante is always a User
     return (
       <SearchSelect
         options={usuariosOptions}
-        value={form.usuario_nome}
-        onChange={v => setForm(p => ({ ...p, usuario_nome: v }))}
+        value={form.participante}
+        onChange={v => setForm(p => ({ ...p, participante: v }))}
         placeholder="Selecione o devedor"
-        hasError={!!errors.usuario_nome}
+        hasError={!!errors.participante}
       />
     )
   }
@@ -292,8 +263,8 @@ export function TituloReceberFormModal({
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Devedor</label>
               {renderDevedorField()}
-              {errors.usuario_nome && (
-                <p className="text-xs text-destructive">{errors.usuario_nome}</p>
+              {errors.participante && (
+                <p className="text-xs text-destructive">{errors.participante}</p>
               )}
             </div>
           </div>

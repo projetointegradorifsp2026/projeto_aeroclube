@@ -13,6 +13,9 @@ class UsuarioPerfilSerializer(serializers.ModelSerializer):
 class UsuarioSerializer(serializers.ModelSerializer):
     perfis = UsuarioPerfilSerializer(many=True, read_only=True)
     perfil_ativo_display = serializers.CharField(source="get_perfil_ativo_display", read_only=True)
+    saldo_carteira = serializers.DecimalField(
+        source="carteira.saldo", max_digits=10, decimal_places=2, read_only=True, default=0
+    )
 
     class Meta:
         model = Usuario
@@ -26,6 +29,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
             "perfis",
             "is_active",
             "date_joined",
+            "saldo_carteira",
         ]
         read_only_fields = ["id", "date_joined"]
 

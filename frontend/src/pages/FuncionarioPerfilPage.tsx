@@ -40,7 +40,7 @@ type MovRow = {
   descricao: string
   valor: number
   valor_pago: number
-  status: 'em_aberto' | 'pago_parcial' | 'baixado'
+  status: 'aberto' | 'baixado'
 }
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -53,14 +53,12 @@ const TIPO_COLORS: Record<'funcionario' | 'instrutor', string> = {
 }
 
 const TITULO_STATUS_LABELS: Record<TituloReceberStatus, string> = {
-  em_aberto: 'Em aberto',
-  pago_parcial: 'Pago parcial',
+  aberto: 'Em aberto',
   baixado: 'Baixado',
 }
 
 const TITULO_STATUS_COLORS: Record<TituloReceberStatus, string> = {
-  em_aberto: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  pago_parcial: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  aberto: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   baixado: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
 }
 
@@ -79,7 +77,7 @@ export default function FuncionarioPerfilPage() {
 
   const [titulos, setTitulos] = useState<TituloReceber[]>([])
   const [titulosPage, setTitulosPage] = useState(1)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
 
   const [baixaTarget, setBaixaTarget] = useState<TituloReceber | null>(null)
   const [baixaValor, setBaixaValor] = useState('')
@@ -94,20 +92,20 @@ export default function FuncionarioPerfilPage() {
     if (!id) return
     Promise.all([getEntidades(), getTitulosReceber(), getTitulosPagar()]).then(
       ([all, allReceber, allPagar]) => {
-        const found = all.find(e => e.id === id)
+        const found = all.find(e => e.id === Number(id))
         if (!found || (found.tipo !== 'funcionario' && found.tipo !== 'instrutor')) {
           navigate('/funcionario')
           return
         }
         setItem(found)
-        const itemReceber = allReceber.filter(t => t.usuario_id === id && t.status === 'baixado')
-        const itemPagar = allPagar.filter(t => t.favorecido === found.nome && t.status === 'baixado')
+        const itemReceber = allReceber.filter(t => t.participante === Number(id) && t.status === 'baixado')
+        const itemPagar = allPagar.filter(t => t.favorecido === found.id && t.status === 'baixado')
         const entradas: MovRow[] = itemReceber.map(t => ({
           id: `r-${t.id}`,
           tipo: 'entrada',
           data: t.data_emissao,
           descricao: t.descricao,
-          valor: t.valor + t.juros_aplicado,
+          valor: t.valor_original + t.juros_aplicado,
           valor_pago: t.valor_pago,
           status: t.status,
         }))
@@ -118,7 +116,7 @@ export default function FuncionarioPerfilPage() {
           descricao: t.descricao,
           valor: t.valor,
           valor_pago: t.valor_pago ?? 0,
-          status: t.status as 'em_aberto' | 'baixado',
+          status: t.status as 'aberto' | 'baixado',
         }))
         setMovimentacoes([...entradas, ...saidas].sort((a, b) => b.data.localeCompare(a.data)))
         setTitulos(
@@ -143,11 +141,11 @@ export default function FuncionarioPerfilPage() {
   const someSelected = selectableTitulos.some(t => selectedIds.has(t.id)) && !allSelected
   const selectedTitulos = titulos.filter(t => selectedIds.has(t.id))
   const totalBatch = selectedTitulos.reduce(
-    (sum, t) => sum + (t.valor + t.juros_aplicado - t.valor_pago),
+    (sum, t) => sum + (t.valor_original + t.juros_aplicado - t.valor_pago),
     0,
   )
 
-  function toggleSelect(tid: string) {
+  function toggleSelect(tid: number) {
     setSelectedIds(prev => {
       const next = new Set(prev)
       if (next.has(tid)) next.delete(tid)
@@ -189,7 +187,7 @@ export default function FuncionarioPerfilPage() {
     setBatchBaixando(true)
     const updates = await Promise.all(
       selectedTitulos.map(t => {
-        const remaining = t.valor + t.juros_aplicado - t.valor_pago
+        const remaining = t.valor_original + t.juros_aplicado - t.valor_pago
         return baixarTituloReceber(t.id, remaining, batchData)
       }),
     )
@@ -507,7 +505,7 @@ export default function FuncionarioPerfilPage() {
                         {fmtDate(t.data_vencimento)}
                       </td>
                       <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
-                        {fmt(t.valor + t.juros_aplicado)}
+                        {fmt(t.valor_original + t.juros_aplicado)}
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap text-muted-foreground hidden sm:table-cell">
                         {fmt(t.valor_pago)}
@@ -565,7 +563,7 @@ export default function FuncionarioPerfilPage() {
       {(() => {
         const valorRecebido = parseFloat(baixaValor)
         const restante = baixaTarget
-          ? baixaTarget.valor + baixaTarget.juros_aplicado - baixaTarget.valor_pago
+          ? baixaTarget.valor_original + baixaTarget.juros_aplicado - baixaTarget.valor_pago
           : 0
         const baixaValorError =
           baixaTarget && !isNaN(valorRecebido) && valorRecebido > restante
@@ -653,7 +651,7 @@ export default function FuncionarioPerfilPage() {
           <div className="space-y-3 py-1">
             <div className="max-h-48 overflow-y-auto divide-y divide-border rounded-lg border border-border">
               {selectedTitulos.map(t => {
-                const restante = t.valor + t.juros_aplicado - t.valor_pago
+                const restante = t.valor_original + t.juros_aplicado - t.valor_pago
                 return (
                   <div
                     key={t.id}

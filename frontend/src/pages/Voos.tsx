@@ -68,10 +68,10 @@ export default function Voos() {
           v.aeronave_nome.toLowerCase().includes(q) ||
           (v.instrutor_nome?.toLowerCase().includes(q) ?? false)
         const matchTipo = tipoFilter === 'all' || v.tipo_voo === tipoFilter
-        const matchAeronave = aeronaveFilter === 'all' || v.aeronave_id === aeronaveFilter
+        const matchAeronave = aeronaveFilter === 'all' || String(v.aeronave) === aeronaveFilter
         return matchSearch && matchTipo && matchAeronave
       })
-      .sort((a, b) => b.data.localeCompare(a.data) || b.inicio.localeCompare(a.inicio))
+      .sort((a, b) => b.data_voo.localeCompare(a.data_voo) || b.hora_inicio.localeCompare(a.hora_inicio))
   }, [voos, search, tipoFilter, aeronaveFilter])
 
   const PAGE_SIZE = 10
@@ -119,7 +119,7 @@ export default function Voos() {
         >
           <option value="all">Todas as aeronaves</option>
           {aeronaves.map(a => (
-            <option key={a.id} value={a.id}>
+            <option key={a.id} value={String(a.id)}>
               {a.nome}
             </option>
           ))}
@@ -171,9 +171,9 @@ export default function Voos() {
                     <tr key={v.id} className="hover:bg-muted/20 transition-colors">
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div>
-                          <p className="font-medium">{fmtDate(v.data)}</p>
+                          <p className="font-medium">{fmtDate(v.data_voo)}</p>
                           <p className="text-xs text-muted-foreground">
-                            {v.inicio} – {v.fim}
+                            {v.hora_inicio} – {v.hora_fim}
                           </p>
                         </div>
                       </td>
@@ -203,7 +203,7 @@ export default function Voos() {
                           : `${v.tempo_decimal.toFixed(1)}h`}
                       </td>
                       <td className="px-4 py-3 font-medium whitespace-nowrap">
-                        {fmt(v.valor_voo)}
+                        {fmt(v.valor_total)}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-end gap-1">
@@ -243,7 +243,7 @@ export default function Voos() {
             <DialogDescription>
               Tem certeza que deseja excluir o voo de{' '}
               <strong className="text-foreground">{deleteTarget?.participante_nome}</strong> em{' '}
-              {deleteTarget && fmtDate(deleteTarget.data)}? Esta ação não pode ser desfeita.
+              {deleteTarget && fmtDate(deleteTarget.data_voo)}? Esta ação não pode ser desfeita.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

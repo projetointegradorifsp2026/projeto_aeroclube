@@ -1,40 +1,64 @@
-import { mockVoos, type Voo, type TipoVoo } from '@/mocks/voos'
+import { api } from '@/lib/api'
+import { type Voo, type TipoVoo } from '@/mocks/voos'
 
-let store = [...mockVoos]
-
-const delay = (ms = 400) => new Promise<void>(r => setTimeout(r, ms))
-
-export async function getVoos(): Promise<Voo[]> {
-  await delay()
-  return [...store].sort((a, b) => b.data.localeCompare(a.data))
+type Paginated<T> = { count: number; results: T[] }
+function unwrap<T>(data: T[] | Paginated<T>): T[] {
+  return Array.isArray(data) ? data : data.results
 }
 
-export async function createVoo(data: Omit<Voo, 'id' | 'created_at'>): Promise<Voo> {
-  await delay()
-  const voo: Voo = {
-    ...data,
-    id: crypto.randomUUID(),
-    created_at: new Date().toISOString(),
-  }
-  store = [...store, voo]
-  return voo
+export interface VooFilters {
+  participante?: number
+  aeronave?: number
+  data_inicio?: string
+  data_fim?: string
 }
 
-export async function updateVoo(
-  id: string,
-  data: Partial<Omit<Voo, 'id' | 'created_at'>>,
-): Promise<Voo> {
-  await delay()
-  const idx = store.findIndex(v => v.id === id)
-  if (idx === -1) throw new Error('Voo não encontrado')
-  const updated = { ...store[idx], ...data }
-  store = store.map(v => (v.id === id ? updated : v))
-  return updated
+export async function getVoos(filters?: VooFilters): Promise<Voo[]> {
+  const res = await api.get('/voos/', { params: filters })
+  const voos = unwrap<Voo>(res.data)
+  return voos.sort((a, b) => b.data_voo.localeCompare(a.data_voo))
 }
 
-export async function deleteVoo(id: string): Promise<void> {
-  await delay()
-  store = store.filter(v => v.id !== id)
+export async function getVoo(id: number): Promise<Voo> {
+  const res = await api.get(`/voos/${id}/`)
+  return res.data
+}
+
+export interface CreateVooPayload {
+  aeronave: number
+  participante: number
+  instrutor?: number | null
+  tipo_voo: TipoVoo
+  hora_inicio: string
+  hora_fim: string
+  data_voo: string
+  origem?: string | null
+  destino?: string | null
+}
+
+export async function createVoo(data: CreateVooPayload): Promise<Voo> {
+  const res = await api.post('/voos/', data)
+  return res.data
+}
+
+export async function updateVoo(id: number, data: Partial<CreateVooPayload>): Promise<Voo> {
+  const res = await api.patch(`/voos/${id}/`, data)
+  return res.data
+}
+
+export async function deleteVoo(id: number): Promise<void> {
+  await api.delete(`/voos/${id}/`)
+}
+
+// Simula o tempo decimal antes de registrar o voo (RF08)
+export async function simularTempoDecimal(
+  hora_inicio: string,
+  hora_fim: string,
+): Promise<{ duracao_minutos: number; tempo_decimal: number }> {
+  const res = await api.get('/voos/simular-decimal/', {
+    params: { hora_inicio, hora_fim },
+  })
+  return res.data
 }
 
 export type { Voo, TipoVoo }

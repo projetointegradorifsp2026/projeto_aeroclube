@@ -51,6 +51,11 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         usuario.save()
         return Response(UsuarioSerializer(usuario).data)
 
+    @action(detail=False, methods=["get"], url_path="me", permission_classes=[IsAuthenticated])
+    def me(self, request):
+        """GET /api/v1/usuarios/me/ — retorna o usuário autenticado."""
+        return Response(UsuarioSerializer(request.user).data)
+
     @action(detail=True, methods=["post"], url_path="adicionar-perfil")
     def adicionar_perfil(self, request, pk=None):
         """POST /api/v1/usuarios/{id}/adicionar-perfil/ — adiciona um perfil ao usuário."""

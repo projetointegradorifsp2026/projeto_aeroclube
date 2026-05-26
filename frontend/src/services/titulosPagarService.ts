@@ -1,56 +1,72 @@
-import { mockTitulosPagar, type TituloPagar, type TituloPagarTipo, type TituloPagarStatus } from '@/mocks/titulos'
+import { api } from '@/lib/api'
+import { type TituloPagar, type TituloPagarTipo, type TituloPagarStatus } from '@/mocks/titulos'
 
-let store = [...mockTitulosPagar]
-
-const delay = (ms = 400) => new Promise<void>(r => setTimeout(r, ms))
-
-export async function getTitulosPagar(): Promise<TituloPagar[]> {
-  await delay()
-  return [...store]
+type Paginated<T> = { count: number; results: T[] }
+function unwrap<T>(data: T[] | Paginated<T>): T[] {
+  return Array.isArray(data) ? data : data.results
 }
 
-export async function createTituloPagar(data: Omit<TituloPagar, 'id'>): Promise<TituloPagar> {
-  await delay()
-  const titulo: TituloPagar = { ...data, id: crypto.randomUUID() }
-  store = [...store, titulo]
-  return titulo
+export interface TituloPagarFilters {
+  status?: TituloPagarStatus
+  tipo?: TituloPagarTipo
+  atrasado?: boolean
+}
+
+export async function getTitulosPagar(filters?: TituloPagarFilters): Promise<TituloPagar[]> {
+  const params: Record<string, string> = {}
+  if (filters?.status) params.status = filters.status
+  if (filters?.tipo) params.tipo = filters.tipo
+  if (filters?.atrasado) params.atrasado = 'true'
+  const res = await api.get('/titulos-pagar/', { params })
+  return unwrap<TituloPagar>(res.data)
+}
+
+export async function getTituloPagar(id: number): Promise<TituloPagar> {
+  const res = await api.get(`/titulos-pagar/${id}/`)
+  return res.data
+}
+
+export interface CreateTituloPagarPayload {
+  tipo: TituloPagarTipo
+  favorecido: number
+  descricao: string
+  num_parcela?: number
+  total_parcelas?: number
+  valor: number
+  data_emissao: string
+  data_vencimento: string
+  is_recorrente?: boolean
+  periodicidade_dias?: number | null
+}
+
+export async function createTituloPagar(data: CreateTituloPagarPayload): Promise<TituloPagar> {
+  const res = await api.post('/titulos-pagar/', data)
+  return res.data
 }
 
 export async function updateTituloPagar(
-  id: string,
-  data: Partial<Omit<TituloPagar, 'id'>>,
+  id: number,
+  data: Partial<CreateTituloPagarPayload>,
 ): Promise<TituloPagar> {
-  await delay()
-  const idx = store.findIndex(t => t.id === id)
-  if (idx === -1) throw new Error('Título não encontrado')
-  const updated = { ...store[idx], ...data }
-  store = store.map(t => (t.id === id ? updated : t))
-  return updated
+  const res = await api.patch(`/titulos-pagar/${id}/`, data)
+  return res.data
 }
 
-export async function deleteTituloPagar(id: string): Promise<void> {
-  await delay()
-  store = store.filter(t => t.id !== id)
+export async function deleteTituloPagar(id: number): Promise<void> {
+  await api.delete(`/titulos-pagar/${id}/`)
 }
 
+// RF01/RF03: baixa total do título a pagar
 export async function baixarTituloPagar(
-  id: string,
+  id: number,
   valorPago: number,
   dataPagamento: string,
-  multa?: number,
 ): Promise<TituloPagar> {
-  await delay()
-  const idx = store.findIndex(t => t.id === id)
-  if (idx === -1) throw new Error('Título não encontrado')
-  const updated: TituloPagar = {
-    ...store[idx],
-    status: 'baixado',
+  const res = await api.post(`/titulos-pagar/${id}/baixar/`, {
     valor_pago: valorPago,
     data_pagamento: dataPagamento,
-    ...(multa !== undefined ? { multa } : {}),
-  }
-  store = store.map(t => (t.id === id ? updated : t))
-  return updated
+  })
+  return res.data
 }
 
 export type { TituloPagar, TituloPagarTipo, TituloPagarStatus }

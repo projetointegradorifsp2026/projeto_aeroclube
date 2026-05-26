@@ -82,8 +82,8 @@ function AviaoTable({
                     <span className="font-semibold tracking-wide">{a.nome}</span>
                   </div>
                 </td>
-                <td className="px-4 py-3 font-medium">{fmt(a.valor_solo)}</td>
-                <td className="px-4 py-3 font-medium">{fmt(a.valor_duplo)}</td>
+                <td className="px-4 py-3 font-medium">{fmt(a.tarifa_solo ?? 0)}</td>
+                <td className="px-4 py-3 font-medium">{fmt(a.tarifa_duplo_comando ?? 0)}</td>
                 <td className="px-4 py-3">
                   {a.is_active ? (
                     <Badge variant="success">Ativa</Badge>
@@ -160,9 +160,9 @@ function PlanadorTable({
                     <span className="font-semibold tracking-wide">{a.nome}</span>
                   </div>
                 </td>
-                <td className="px-4 py-3 font-medium">{fmt(a.valor_fixo_inicial)}</td>
-                <td className="px-4 py-3 text-muted-foreground">{a.tempo_limite} min</td>
-                <td className="px-4 py-3 font-medium">{fmt(a.valor_por_minuto)}</td>
+                <td className="px-4 py-3 font-medium">{fmt(a.valor_fixo_inicial ?? 0)}</td>
+                <td className="px-4 py-3 text-muted-foreground">{a.minutos_franquia ?? 0} min</td>
+                <td className="px-4 py-3 font-medium">{fmt(a.valor_minuto_adicional ?? 0)}</td>
                 <td className="px-4 py-3">
                   {a.is_active ? (
                     <Badge variant="success">Ativa</Badge>
@@ -228,12 +228,29 @@ export default function Aeronaves() {
   const avioes = filtered.filter(a => a.tipo === 'aviao')
   const planadores = filtered.filter(a => a.tipo === 'planador')
 
+  function toAeronavePayload(data: AeronaveFormData): Omit<Aeronave, 'id'> {
+    if (data.tipo === 'aviao') {
+      return {
+        nome: data.nome, tipo: 'aviao', foto: data.foto || null, is_active: data.is_active,
+        tarifa_solo: data.valor_solo, tarifa_duplo_comando: data.valor_duplo,
+        minutos_franquia: null, valor_fixo_inicial: null, valor_minuto_adicional: null,
+      }
+    }
+    return {
+      nome: data.nome, tipo: 'planador', foto: data.foto || null, is_active: data.is_active,
+      tarifa_solo: null, tarifa_duplo_comando: null,
+      minutos_franquia: data.tempo_limite, valor_fixo_inicial: data.valor_fixo_inicial,
+      valor_minuto_adicional: data.valor_por_minuto,
+    }
+  }
+
   async function handleSave(data: AeronaveFormData) {
+    const payload = toAeronavePayload(data)
     if (editItem) {
-      const updated = await updateAeronave(editItem.id, data)
+      const updated = await updateAeronave(editItem.id, payload)
       setAeronaves(prev => prev.map(a => (a.id === editItem.id ? updated : a)))
     } else {
-      const created = await createAeronave(data)
+      const created = await createAeronave(payload)
       setAeronaves(prev => [...prev, created])
     }
   }

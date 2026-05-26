@@ -2,26 +2,26 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useAuth } from "@/contexts/AuthContext"
 
 type FormErrors = {
   email?: string
   senha?: string
+  geral?: string
 }
 
-
 export default function Login() {
-  const navigate = useNavigate();
+  const { login } = useAuth()
 
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
+  const [email, setEmail] = useState("")
+  const [senha, setSenha] = useState("")
   const [errors, setErrors] = useState<FormErrors>({})
+  const [loading, setLoading] = useState(false)
 
-  const isValidEmail = (value: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-  }
+  const isValidEmail = (value: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const newErrors: FormErrors = {}
 
     if (!email) {
@@ -37,15 +37,15 @@ export default function Login() {
     }
 
     setErrors(newErrors)
+    if (Object.keys(newErrors).length > 0) return
 
-    if (Object.keys(newErrors).length === 0) {
-      console.log("form válido")
-
-      navigate("/dashboard", {
-        state: {
-          user: email,
-        },
-      })
+    setLoading(true)
+    try {
+      await login(email, senha)
+    } catch {
+      setErrors({ geral: "E-mail ou senha incorretos" })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -99,13 +99,16 @@ export default function Login() {
             />
           </div>
 
+          {errors.geral && (
+            <p className="text-sm text-red-500 text-center">{errors.geral}</p>
+          )}
+
           <Button
-            className="
-            w-full
-            h-10
-            " onClick={handleSubmit}
+            className="w-full h-10"
+            onClick={handleSubmit}
+            disabled={loading}
           >
-            Entrar
+            {loading ? "Entrando..." : "Entrar"}
           </Button>
         </div>
 

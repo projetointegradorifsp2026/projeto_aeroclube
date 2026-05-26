@@ -73,7 +73,7 @@ export function MovimentacaoFormModal({
   }, [open])
 
   function handleUsuarioChange(id: string) {
-    const u = usuarios.find(u => u.id === id)
+    const u = usuarios.find(u => String(u.id) === id)
     setForm(p => ({ ...p, usuario_id: id, usuario_nome: u?.nome ?? '' }))
   }
 
@@ -100,12 +100,12 @@ export function MovimentacaoFormModal({
     }
   }
 
-  const clientePerfis: Array<'aluno' | 'socio' | 'cliente_externo'> = ['aluno', 'socio', 'cliente_externo']
+  const clientePerfis = ['aluno', 'socio', 'externo'] as const
   const usuarioOptions = useMemo(
     () =>
       usuarios
-        .filter(u => u.is_active && u.perfis.some(p => clientePerfis.includes(p as typeof clientePerfis[number])))
-        .map(u => ({ value: u.id, label: u.nome })),
+        .filter(u => u.is_active && u.perfis.some(p => (clientePerfis as ReadonlyArray<string>).includes(p.perfil)))
+        .map(u => ({ value: String(u.id), label: u.nome })),
     [usuarios],
   )
 

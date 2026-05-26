@@ -35,13 +35,13 @@ const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', curren
 const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR')
 const todayStr = () => new Date().toISOString().split('T')[0]
 const isAtrasado = (t: TituloPagar) =>
-  t.status === 'em_aberto' && new Date(t.data_vencimento + 'T00:00:00') < new Date()
+  t.status === 'aberto' && new Date(t.data_vencimento + 'T00:00:00') < new Date()
 
 type TipoFilter = 'all' | TituloPagarTipo
 
 const TIPO_COLORS: Record<TituloPagarTipo, string> = {
   fornecedor: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
-  folha: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  folha_pagamento: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   conta_fixa: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   outros: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
 }
@@ -123,8 +123,8 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessa
             <tr key={t.id} className="hover:bg-muted/20 transition-colors">
               <td className="px-4 py-3">
                 <div>
-                  <p className="font-medium">{t.favorecido}</p>
-                  {t.recorrente && (
+                  <p className="font-medium">{t.favorecido_nome}</p>
+                  {t.is_recorrente && (
                     <p className="text-xs text-muted-foreground">Recorrente</p>
                   )}
                 </div>
@@ -155,9 +155,7 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessa
               </td>
               {showMulta && (
                 <td className="px-4 py-3 hidden sm:table-cell whitespace-nowrap">
-                  {t.multa > 0
-                    ? <span className="text-rose-500 font-medium">{fmt(t.multa)}</span>
-                    : <span className="text-muted-foreground">—</span>}
+                  <span className="text-muted-foreground">—</span>
                 </td>
               )}
               <td className="px-4 py-3">
@@ -221,7 +219,7 @@ export default function TitulosPagar() {
       .filter(t => {
         const matchSearch =
           !q ||
-          t.favorecido.toLowerCase().includes(q) ||
+          t.favorecido_nome.toLowerCase().includes(q) ||
           t.descricao.toLowerCase().includes(q)
         const matchTipo = tipoFilter === 'all' || t.tipo === tipoFilter
         return matchSearch && matchTipo
@@ -229,7 +227,7 @@ export default function TitulosPagar() {
       .sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento))
   }, [titulos, search, tipoFilter])
 
-  const emAbertoList = filtered.filter(t => t.status === 'em_aberto' && !isAtrasado(t))
+  const emAbertoList = filtered.filter(t => t.status === 'aberto' && !isAtrasado(t))
   const emAtrasoList = filtered.filter(t => isAtrasado(t))
   const baixadoList = filtered.filter(t => t.status === 'baixado')
 
@@ -237,15 +235,12 @@ export default function TitulosPagar() {
     if (editTitulo) {
       const updated = await updateTituloPagar(editTitulo.id, {
         tipo: data.tipo,
-        favorecido: data.favorecido,
+        favorecido: Number(data.favorecido),
         descricao: data.descricao,
-        num_parcela: editTitulo.num_parcela,
-        total_parcelas: editTitulo.total_parcelas,
         valor: data.valor,
-        multa: data.multa,
         data_emissao: data.data_emissao,
         data_vencimento: data.parcela_vencimentos[0],
-        recorrente: data.recorrente,
+        is_recorrente: data.recorrente,
       })
       setTitulos(prev => prev.map(t => (t.id === editTitulo.id ? updated : t)))
     } else {
@@ -253,18 +248,14 @@ export default function TitulosPagar() {
         data.parcela_vencimentos.map((venc, i) =>
           createTituloPagar({
             tipo: data.tipo,
-            favorecido: data.favorecido,
+            favorecido: Number(data.favorecido),
             descricao: data.descricao,
             num_parcela: i + 1,
             total_parcelas: data.total_parcelas,
             valor: data.recorrente ? (data.parcela_valores[i] ?? data.valor) : data.valor,
-            multa: 0,
             data_emissao: data.data_emissao,
             data_vencimento: venc,
-            status: 'em_aberto',
-            valor_pago: null,
-            data_pagamento: null,
-            recorrente: data.recorrente,
+            is_recorrente: data.recorrente,
           }),
         ),
       )
@@ -298,7 +289,7 @@ export default function TitulosPagar() {
 
   function openBaixa(t: TituloPagar) {
     setBaixaTarget(t)
-    setBaixaMulta((t.multa ?? 0).toFixed(2))
+    setBaixaMulta('0')
     setBaixaData(todayStr())
   }
 
@@ -324,9 +315,8 @@ export default function TitulosPagar() {
   async function handleBaixa() {
     if (!baixaTarget) return
     setBaixando(true)
-    const multa = parseFloat(baixaMulta) || 0
-    const valorPago = baixaTarget.valor + multa
-    const updated = await baixarTituloPagar(baixaTarget.id, valorPago, baixaData, multa)
+    const valorPago = baixaTarget.valor + (parseFloat(baixaMulta) || 0)
+    const updated = await baixarTituloPagar(baixaTarget.id, valorPago, baixaData)
     setTitulos(prev => prev.map(t => (t.id === baixaTarget.id ? updated : t)))
     setBaixaTarget(null)
     setBaixando(false)
@@ -499,7 +489,7 @@ export default function TitulosPagar() {
               <DialogHeader>
                 <DialogTitle>Dar baixa no título</DialogTitle>
                 <DialogDescription>
-                  <strong className="text-foreground">{baixaTarget?.favorecido}</strong>
+                  <strong className="text-foreground">{baixaTarget?.favorecido_nome}</strong>
                   {' — '}
                   {baixaTarget?.descricao}
                 </DialogDescription>
@@ -575,7 +565,7 @@ export default function TitulosPagar() {
             <DialogTitle>Confirmar exclusão</DialogTitle>
             <DialogDescription>
               Tem certeza que deseja excluir o título de{' '}
-              <strong className="text-foreground">{deleteTarget?.favorecido}</strong>? Esta ação
+              <strong className="text-foreground">{deleteTarget?.favorecido_nome}</strong>? Esta ação
               não pode ser desfeita.
             </DialogDescription>
           </DialogHeader>

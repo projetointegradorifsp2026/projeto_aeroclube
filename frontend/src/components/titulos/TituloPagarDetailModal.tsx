@@ -18,21 +18,21 @@ import {
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR')
 const isAtrasado = (t: TituloPagar) =>
-  t.status === 'em_aberto' && new Date(t.data_vencimento + 'T00:00:00') < new Date()
+  t.status === 'aberto' && new Date(t.data_vencimento + 'T00:00:00') < new Date()
 
 const STATUS_LABELS: Record<TituloPagarStatus, string> = {
-  em_aberto: 'Em aberto',
+  aberto: 'Em aberto',
   baixado: 'Baixado',
 }
 
 const STATUS_COLORS: Record<TituloPagarStatus, string> = {
-  em_aberto: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  aberto: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   baixado: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
 }
 
 const TIPO_COLORS: Record<string, string> = {
   fornecedor: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
-  folha: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  folha_pagamento: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   conta_fixa: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   outros: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
 }
@@ -113,13 +113,13 @@ export function TituloPagarDetailModal({
                 Parcela {current.num_parcela}/{current.total_parcelas}
               </span>
             )}
-            {current.recorrente && (
+            {current.is_recorrente && (
               <span className="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">
                 Recorrente
               </span>
             )}
           </div>
-          <DialogTitle className="text-base leading-snug">{current.favorecido}</DialogTitle>
+          <DialogTitle className="text-base leading-snug">{current.favorecido_nome}</DialogTitle>
           <p className="text-sm text-muted-foreground">{current.descricao}</p>
         </DialogHeader>
 
@@ -137,13 +137,6 @@ export function TituloPagarDetailModal({
                 </p>
               </div>
             </div>
-
-            {current.multa > 0 && (
-              <div className="px-4 py-3">
-                <p className="text-xs text-muted-foreground mb-0.5">Multa</p>
-                <p className="font-medium text-rose-500">{fmt(current.multa)}</p>
-              </div>
-            )}
 
             <div className="grid grid-cols-2 divide-x divide-border">
               <div className="px-4 py-3">
