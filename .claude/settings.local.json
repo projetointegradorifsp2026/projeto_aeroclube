@@ -3,7 +3,12 @@
     "allow": [
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\LucasCamposRegonha\\\\OneDrive - Pecege\\\\Área de Trabalho\\\\Projeto Aero Clube\\\\projeto_aeroclube\\\\frontend\\\\src\" -Recurse -Force)",
       "Bash(Select-Object FullName, PSIsContainer)",
-      "Bash(Sort-Object FullName)"
+      "Bash(Sort-Object FullName)",
+      "Bash(npx tsc *)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(npm install *)",
+      "Bash(xargs -I{} basename {} .tsx)"
     ]
   }
 }

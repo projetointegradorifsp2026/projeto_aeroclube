@@ -16,6 +16,7 @@ export interface UserFormData {
   nome: string
   email: string
   cpf: string
+  password?: string
   perfis: UserProfile[]
   perfil_ativo: UserProfile
   is_active: boolean
@@ -81,6 +82,7 @@ export function UserFormModal({ user, open, onClose, onSave }: UserFormModalProp
     }
     if (!form.cpf.trim()) e.cpf = 'CPF é obrigatório'
     if (form.perfis.length === 0) e.perfis = 'Selecione ao menos um perfil'
+    if (!isEdit && !form.password?.trim()) e.password = 'Senha é obrigatória'
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -152,6 +154,20 @@ export function UserFormModal({ user, open, onClose, onSave }: UserFormModalProp
               helper={errors.cpf}
             />
           </div>
+
+          {!isEdit && (
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Senha</label>
+              <Input
+                type="password"
+                placeholder="Senha de acesso"
+                value={form.password ?? ''}
+                onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
+                hasError={!!errors.password}
+                helper={errors.password}
+              />
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Perfis</label>

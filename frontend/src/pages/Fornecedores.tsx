@@ -84,7 +84,7 @@ export default function Fornecedores() {
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
-    await deleteEntidade(deleteTarget.id)
+    await deleteEntidade(deleteTarget.id, deleteTarget.tipo)
     setFornecedores(prev => prev.filter(e => e.id !== deleteTarget.id))
     setDeleteTarget(null)
     setDeleting(false)

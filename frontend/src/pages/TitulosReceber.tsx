@@ -264,6 +264,7 @@ export default function TitulosReceber() {
       const created = await Promise.all(
         data.parcela_vencimentos.map((venc, i) =>
           createTituloReceber({
+            usuario_id: data.usuario_id,
             usuario_nome: data.usuario_nome,
             tipo: data.tipo,
             descricao: data.descricao,

@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input"
 
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { login } from "@/services/api/auth"
 
 type FormErrors = {
   email?: string
@@ -21,7 +22,7 @@ export default function Login() {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const newErrors: FormErrors = {}
 
     if (!email) {
@@ -39,13 +40,12 @@ export default function Login() {
     setErrors(newErrors)
 
     if (Object.keys(newErrors).length === 0) {
-      console.log("form válido")
-
-      navigate("/dashboard", {
-        state: {
-          user: email,
-        },
-      })
+      try {
+        await login(email, senha)
+        navigate("/dashboard")
+      } catch {
+        setErrors({ email: 'E-mail ou senha incorretos' })
+      }
     }
   }
 

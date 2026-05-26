@@ -4,6 +4,8 @@ from .models import Carteira, MovimentacaoCarteira
 
 class MovimentacaoCarteiraSerializer(serializers.ModelSerializer):
     tipo_display = serializers.CharField(source="get_tipo_display", read_only=True)
+    participante_id = serializers.IntegerField(source="carteira.participante.id", read_only=True)
+    participante_nome = serializers.CharField(source="carteira.participante.nome", read_only=True)
 
     class Meta:
         model = MovimentacaoCarteira
@@ -12,6 +14,7 @@ class MovimentacaoCarteiraSerializer(serializers.ModelSerializer):
             "valor", "descricao",
             "data_transacao", "data_vencimento",
             "voo",
+            "participante_id", "participante_nome",
         ]
         read_only_fields = ["id", "data_transacao"]
 

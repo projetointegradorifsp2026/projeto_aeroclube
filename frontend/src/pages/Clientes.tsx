@@ -84,7 +84,7 @@ export default function Clientes() {
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
-    await deleteEntidade(deleteTarget.id)
+    await deleteEntidade(deleteTarget.id, deleteTarget.tipo)
     setClientes(prev => prev.filter(e => e.id !== deleteTarget.id))
     setDeleteTarget(null)
     setDeleting(false)

@@ -17,7 +17,14 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     DELETE /api/v1/usuarios/{id}/  — desativa (soft delete)
     """
 
-    queryset = Usuario.objects.all().order_by("nome")
+    queryset = Usuario.objects.prefetch_related("perfis").order_by("nome")
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        perfil = self.request.query_params.get("perfil")
+        if perfil:
+            qs = qs.filter(perfis__perfil=perfil)
+        return qs.distinct()
 
     def get_serializer_class(self):
         if self.action == "create":

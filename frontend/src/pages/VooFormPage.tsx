@@ -69,12 +69,12 @@ function calcValorPlanador(inicio: string, fim: string, aeronave: Aeronave): num
   return aeronave.valor_fixo_inicial + (totalMin - aeronave.tempo_limite) * aeronave.valor_por_minuto
 }
 
-const PERFIL_POR_TIPO: Record<TipoVoo, 'aluno' | 'socio' | 'cliente_externo'> = {
+const PERFIL_POR_TIPO: Record<TipoVoo, 'aluno' | 'socio' | 'externo'> = {
   instrucao_solo: 'aluno',
   instrucao_duplo: 'aluno',
   socio_solo: 'socio',
   socio_duplo: 'socio',
-  externo: 'cliente_externo',
+  externo: 'externo',
 }
 
 // ─── Form state ───────────────────────────────────────────────────────────────

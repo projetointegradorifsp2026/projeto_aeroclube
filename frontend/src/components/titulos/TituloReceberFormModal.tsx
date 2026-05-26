@@ -16,11 +16,12 @@ import {
   type TituloReceberTipo,
   TITULO_RECEBER_TIPO_LABELS,
 } from '@/mocks/titulos'
-import { mockUsers } from '@/mocks/users'
-import { mockEntidades } from '@/mocks/entidades'
+import { getUsers, type User } from '@/services/usersService'
+import { getEntidades, type Entidade } from '@/services/entidadesService'
 import { cn } from '@/lib/utils'
 
 export interface TituloReceberFormData {
+  usuario_id: string
   usuario_nome: string
   tipo: TituloReceberTipo
   descricao: string
@@ -68,6 +69,7 @@ function distributeValor(total: number, count: number): number[] {
 function makeEmptyForm(): TituloReceberFormData {
   const hoje = todayStr()
   return {
+    usuario_id: '',
     usuario_nome: '',
     tipo: 'mensalidade',
     descricao: '',
@@ -94,16 +96,7 @@ const selectCls =
 const dateCls =
   'h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
 
-// Opções para mensalidade e pontual: alunos, sócios e clientes externos ativos
-const clientePerfis = ['aluno', 'socio', 'cliente_externo'] as const
-const usuariosOptions = mockUsers
-  .filter(u => u.is_active && u.perfis.some(p => clientePerfis.includes(p as typeof clientePerfis[number])))
-  .map(u => ({ value: u.nome, label: u.nome }))
-
-// Opções para serviço: tabela de clientes
-const clientesOptions = mockEntidades
-  .filter(e => e.tipo === 'cliente' && e.is_active)
-  .map(e => ({ value: e.nome, label: e.nome }))
+const CLIENTE_PERFIS = ['aluno', 'socio', 'externo'] as const
 
 export function TituloReceberFormModal({
   titulo,
@@ -115,7 +108,30 @@ export function TituloReceberFormModal({
   const [form, setForm] = useState<TituloReceberFormData>(makeEmptyForm)
   const [errors, setErrors] = useState<FormErrors>({})
   const [saving, setSaving] = useState(false)
+  const [usuariosOptions, setUsuariosOptions] = useState<{ value: string; label: string }[]>([])
+  const [clientesOptions, setClientesOptions] = useState<{ value: string; label: string }[]>([])
   const isEdit = !!titulo
+
+  useEffect(() => {
+    if (open) {
+      Promise.all([
+        getUsers(),
+        getEntidades('cliente'),
+      ]).then(([users, clientes]: [User[], Entidade[]]) => {
+        // value = ID (string), label = nome — para resolver o participante no backend
+        setUsuariosOptions(
+          users
+            .filter(u => u.is_active && u.perfis.some(p => CLIENTE_PERFIS.includes(p as typeof CLIENTE_PERFIS[number])))
+            .map(u => ({ value: u.id, label: u.nome })),
+        )
+        setClientesOptions(
+          clientes
+            .filter(e => e.is_active)
+            .map(e => ({ value: e.id, label: e.nome })),
+        )
+      }).catch(() => {})
+    }
+  }, [open])
 
   const isTituloAtrasado =
     titulo != null &&
@@ -128,6 +144,7 @@ export function TituloReceberFormModal({
       setForm(
         titulo
           ? {
+              usuario_id: titulo.usuario_id,
               usuario_nome: titulo.usuario_nome,
               tipo: titulo.tipo,
               descricao: titulo.descricao,
@@ -145,7 +162,7 @@ export function TituloReceberFormModal({
   }, [titulo, open])
 
   function handleTipoChange(newTipo: TituloReceberTipo) {
-    setForm(p => ({ ...p, tipo: newTipo, usuario_nome: '' }))
+    setForm(p => ({ ...p, tipo: newTipo, usuario_id: '', usuario_nome: '' }))
   }
 
   function handleValorChange(val: number) {
@@ -220,13 +237,18 @@ export function TituloReceberFormModal({
     }
   }
 
+  function handleDevedorChange(id: string, options: { value: string; label: string }[]) {
+    const found = options.find(o => o.value === id)
+    setForm(p => ({ ...p, usuario_id: id, usuario_nome: found?.label ?? id }))
+  }
+
   function renderDevedorField() {
     if (form.tipo === 'servico') {
       return (
         <SearchSelect
           options={clientesOptions}
-          value={form.usuario_nome}
-          onChange={v => setForm(p => ({ ...p, usuario_nome: v }))}
+          value={form.usuario_id}
+          onChange={v => handleDevedorChange(v, clientesOptions)}
           placeholder="Selecione o cliente"
           hasError={!!errors.usuario_nome}
         />
@@ -236,8 +258,8 @@ export function TituloReceberFormModal({
       return (
         <SearchSelect
           options={usuariosOptions}
-          value={form.usuario_nome}
-          onChange={v => setForm(p => ({ ...p, usuario_nome: v }))}
+          value={form.usuario_id}
+          onChange={v => handleDevedorChange(v, usuariosOptions)}
           placeholder="Selecione ou digite o devedor"
           hasError={!!errors.usuario_nome}
           allowFreeText
@@ -248,8 +270,8 @@ export function TituloReceberFormModal({
     return (
       <SearchSelect
         options={usuariosOptions}
-        value={form.usuario_nome}
-        onChange={v => setForm(p => ({ ...p, usuario_nome: v }))}
+        value={form.usuario_id}
+        onChange={v => handleDevedorChange(v, usuariosOptions)}
         placeholder="Selecione o devedor"
         hasError={!!errors.usuario_nome}
       />

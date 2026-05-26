@@ -8,17 +8,20 @@ from .serializers import AeronaveSerializer, AviaoSerializer, PlanadorSerializer
 
 
 class AeronaveViewSet(viewsets.ReadOnlyModelViewSet):
-    """GET /api/v1/aeronaves/ — lista todas as aeronaves (visão resumida)."""
+    """GET /api/v1/aeronaves/ — lista todas as aeronaves (visão resumida, apenas ativas)."""
     queryset = Aeronave.objects.filter(is_active=True).order_by("nome")
     serializer_class = AeronaveSerializer
     permission_classes = [IsAuthenticated]
 
 
 class AviaoViewSet(viewsets.ModelViewSet):
-    """CRUD /api/v1/avioes/"""
-    queryset = Aviao.objects.filter(is_active=True).order_by("nome")
+    """CRUD /api/v1/avioes/  ?all=true inclui inativos"""
     serializer_class = AviaoSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = Aviao.objects.all() if self.request.query_params.get("all") == "true" else Aviao.objects.filter(is_active=True)
+        return qs.order_by("nome")
 
     def perform_update(self, serializer):
         """Registra histórico antes de salvar."""
@@ -35,12 +38,28 @@ class AviaoViewSet(viewsets.ModelViewSet):
             alterado_por=self.request.user if self.request.user.is_authenticated else None,
         )
 
+    def destroy(self, request, *args, **kwargs):
+        """Soft delete — apenas desativa."""
+        obj = self.get_object()
+        obj.is_active = False
+        obj.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 class PlanadorViewSet(viewsets.ModelViewSet):
-    """CRUD /api/v1/planadores/"""
-    queryset = Planador.objects.filter(is_active=True).order_by("nome")
+    """CRUD /api/v1/planadores/  ?all=true inclui inativos"""
     serializer_class = PlanadorSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = Planador.objects.all() if self.request.query_params.get("all") == "true" else Planador.objects.filter(is_active=True)
+        return qs.order_by("nome")
+
+    def destroy(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.is_active = False
+        obj.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=["get"], url_path="simular-cobranca")
     def simular_cobranca(self, request, pk=None):

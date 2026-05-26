@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 
 from .models import TituloPagar
-from .serializers import TituloPagarSerializer, BaixaTituloPagarSerializer
+from .serializers import TituloPagarSerializer, TituloPagarWriteSerializer, BaixaTituloPagarSerializer
 
 
 class TituloPagarViewSet(viewsets.ModelViewSet):
@@ -14,9 +14,19 @@ class TituloPagarViewSet(viewsets.ModelViewSet):
     Filtros: ?status=aberto|baixado  ?atrasado=true  ?tipo=fornecedor
     POST /api/v1/titulos-pagar/{id}/baixar/ — registra pagamento
     """
-    queryset = TituloPagar.objects.select_related("favorecido").order_by("data_vencimento")
-    serializer_class = TituloPagarSerializer
+    queryset = TituloPagar.objects.select_related("favorecido__usuario", "favorecido__entidade").order_by("data_vencimento")
     permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return TituloPagarWriteSerializer
+        return TituloPagarSerializer
+
+    def create(self, request, *args, **kwargs):
+        write_ser = TituloPagarWriteSerializer(data=request.data)
+        write_ser.is_valid(raise_exception=True)
+        titulo = write_ser.save()
+        return Response(TituloPagarSerializer(titulo).data, status=status.HTTP_201_CREATED)
 
     def get_queryset(self):
         qs = super().get_queryset()

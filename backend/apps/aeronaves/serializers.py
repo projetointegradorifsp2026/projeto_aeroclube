@@ -8,6 +8,7 @@ class AviaoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Aviao
         fields = ["id", "nome", "tipo", "tipo_display", "tarifa_solo", "tarifa_duplo_comando", "foto", "is_active"]
+        read_only_fields = ["id", "tipo", "tipo_display"]
 
 
 class PlanadorSerializer(serializers.ModelSerializer):
@@ -16,6 +17,7 @@ class PlanadorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Planador
         fields = ["id", "nome", "tipo", "tipo_display", "minutos_franquia", "valor_fixo_inicial", "valor_minuto_adicional", "foto", "is_active"]
+        read_only_fields = ["id", "tipo", "tipo_display"]
 
 
 class AeronaveSerializer(serializers.ModelSerializer):

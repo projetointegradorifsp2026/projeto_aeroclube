@@ -1,4 +1,4 @@
-export type TituloPagarTipo = 'fornecedor' | 'folha' | 'conta_fixa' | 'outros'
+export type TituloPagarTipo = 'fornecedor' | 'folha' | 'conta_fixa' | 'outros' | 'instrutor'
 export type TituloPagarStatus = 'em_aberto' | 'baixado'
 
 export interface TituloPagar {
@@ -46,6 +46,7 @@ export const TITULO_PAGAR_TIPO_LABELS: Record<TituloPagarTipo, string> = {
   folha: 'Folha de Pagamento',
   conta_fixa: 'Conta Fixa',
   outros: 'Outros',
+  instrutor: 'Instrutor',
 }
 
 export const TITULO_RECEBER_TIPO_LABELS: Record<TituloReceberTipo, string> = {

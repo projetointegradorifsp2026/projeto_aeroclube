@@ -17,8 +17,8 @@ import {
   TITULO_PAGAR_TIPO_LABELS,
   ALL_TITULO_PAGAR_TIPOS,
 } from '@/mocks/titulos'
-import { mockEntidades } from '@/mocks/entidades'
 import { mockContasFixas } from '@/mocks/contaFixa'
+import { getEntidades, type Entidade } from '@/services/entidadesService'
 import { cn } from '@/lib/utils'
 
 export interface TituloPagarFormData {
@@ -44,8 +44,6 @@ interface TituloPagarFormModalProps {
 
 const todayStr = () => new Date().toISOString().split('T')[0]
 
-const fornecedores = mockEntidades.filter(e => e.tipo === 'fornecedor' && e.is_active)
-const funcionarios = mockEntidades.filter(e => e.tipo === 'funcionario' && e.is_active)
 const contasFixas = mockContasFixas.filter(cf => cf.is_active)
 
 function addMonths(dateStr: string, months: number): string {
@@ -112,7 +110,21 @@ export function TituloPagarFormModal({
   const [errors, setErrors] = useState<FormErrors>({})
   const [saving, setSaving] = useState(false)
   const [selectedContaFixaId, setSelectedContaFixaId] = useState('')
+  const [fornecedores, setFornecedores] = useState<Entidade[]>([])
+  const [funcionarios, setFuncionarios] = useState<Entidade[]>([])
   const isEdit = !!titulo
+
+  useEffect(() => {
+    if (open) {
+      Promise.all([
+        getEntidades('fornecedor'),
+        getEntidades('funcionario'),
+      ]).then(([f, fn]) => {
+        setFornecedores(f.filter(e => e.is_active))
+        setFuncionarios(fn.filter(e => e.is_active))
+      }).catch(() => {})
+    }
+  }, [open])
 
   const isTituloAtrasado =
     titulo?.status === 'em_aberto' &&
