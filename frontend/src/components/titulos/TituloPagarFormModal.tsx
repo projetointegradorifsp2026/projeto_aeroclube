@@ -17,8 +17,9 @@ import {
   TITULO_PAGAR_TIPO_LABELS,
   ALL_TITULO_PAGAR_TIPOS,
 } from '@/mocks/titulos'
-import { mockContasFixas } from '@/mocks/contaFixa'
+import { getContasFixas, type ContaFixa } from '@/services/contaFixaService'
 import { getEntidades, type Entidade } from '@/services/entidadesService'
+import { getUsers, type User, type UserProfile } from '@/services/usersService'
 import { cn } from '@/lib/utils'
 
 export interface TituloPagarFormData {
@@ -43,8 +44,6 @@ interface TituloPagarFormModalProps {
 }
 
 const todayStr = () => new Date().toISOString().split('T')[0]
-
-const contasFixas = mockContasFixas.filter(cf => cf.is_active)
 
 function addMonths(dateStr: string, months: number): string {
   const d = new Date(dateStr + 'T00:00:00')
@@ -111,17 +110,20 @@ export function TituloPagarFormModal({
   const [saving, setSaving] = useState(false)
   const [selectedContaFixaId, setSelectedContaFixaId] = useState('')
   const [fornecedores, setFornecedores] = useState<Entidade[]>([])
-  const [funcionarios, setFuncionarios] = useState<Entidade[]>([])
+  const [instrutores, setInstrutores] = useState<User[]>([])
+  const [contasFixas, setContasFixas] = useState<ContaFixa[]>([])
   const isEdit = !!titulo
 
   useEffect(() => {
     if (open) {
       Promise.all([
         getEntidades('fornecedor'),
-        getEntidades('funcionario'),
-      ]).then(([f, fn]) => {
+        getUsers(),
+        getContasFixas(),
+      ]).then(([f, us, cfs]) => {
         setFornecedores(f.filter(e => e.is_active))
-        setFuncionarios(fn.filter(e => e.is_active))
+        setInstrutores(us.filter(u => u.is_active && u.perfis.includes('instrutor' as UserProfile)))
+        setContasFixas(cfs.filter(cf => cf.is_active))
       }).catch(() => {})
     }
   }, [open])
@@ -287,10 +289,10 @@ export function TituloPagarFormModal({
     if (form.tipo === 'folha') {
       return (
         <SearchSelect
-          options={funcionarios.map(f => ({ value: f.nome, label: f.nome }))}
+          options={instrutores.map(u => ({ value: u.nome, label: u.nome }))}
           value={form.favorecido}
           onChange={v => setForm(p => ({ ...p, favorecido: v }))}
-          placeholder="Selecione o funcionário"
+          placeholder="Selecione o instrutor/funcionário"
           hasError={!!errors.favorecido}
         />
       )

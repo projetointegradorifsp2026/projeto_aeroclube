@@ -8,7 +8,27 @@
       "Bash(./node_modules/.bin/tsc --noEmit)",
       "Bash(node_modules/.bin/tsc --noEmit)",
       "Bash(npm install *)",
-      "Bash(xargs -I{} basename {} .tsx)"
+      "Bash(xargs -I{} basename {} .tsx)",
+      "Bash(xargs ls -la)",
+      "Bash(python manage.py makemigrations conta_fixa)",
+      "Bash(cat .env)",
+      "Bash(ls /home/jnov/miniconda3/envs/)",
+      "Bash(docker compose *)",
+      "Bash(docker-compose ps *)",
+      "Bash(pip install *)",
+      "Bash(DJANGO_SETTINGS_MODULE=config.settings.dev python manage.py makemigrations conta_fixa)",
+      "Bash(python3 -c \"import rest_framework; print\\('ok'\\)\")",
+      "Bash(pip show *)",
+      "Bash(python3.8 --version)",
+      "Bash(python3.8 -c \"import rest_framework; print\\('ok'\\)\")",
+      "Read(//usr/**)",
+      "Bash(DJANGO_SETTINGS_MODULE=config.settings.dev python3.8 manage.py makemigrations conta_fixa)",
+      "Bash(curl -s http://localhost:8000/api/v1/contas-fixas/ -H \"Authorization: Bearer invalid\")",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:3000)",
+      "Bash(curl -s http://localhost:8000/api/v1/contas-fixas/)",
+      "Bash(docker exec projeto_aeroclube-frontend-1 *)",
+      "Bash(docker exec projeto_aeroclube-backend-1 *)"
     ]
   }
 }

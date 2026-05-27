@@ -23,7 +23,6 @@ import {
 } from '@/mocks/voos'
 import { type TipoAeronave, type Aeronave } from '@/mocks/aeronaves'
 import { getAeronaves } from '@/services/aeronavesService'
-import { getEntidades, type Entidade } from '@/services/entidadesService'
 import { getUsers, type User } from '@/services/usersService'
 import { createVoo, updateVoo, deleteVoo } from '@/services/voosService'
 import { createTituloReceber } from '@/services/titulosReceberService'
@@ -149,7 +148,6 @@ export default function VooFormPage() {
 
   const [aeronaves, setAeronaves] = useState<Aeronave[]>([])
   const [usuarios, setUsuarios] = useState<User[]>([])
-  const [instrutores, setInstrutores] = useState<Entidade[]>([])
 
   const [usarCarteira, setUsarCarteira] = useState(false)
   const [carteiraValor, setCarteiraValor] = useState('')
@@ -157,11 +155,10 @@ export default function VooFormPage() {
   const autoVencimento = useRef<string>('')
 
   useEffect(() => {
-    Promise.all([getAeronaves(), getUsers(), getEntidades('instrutor')]).then(
-      ([avs, us, insts]) => {
+    Promise.all([getAeronaves(), getUsers()]).then(
+      ([avs, us]) => {
         setAeronaves(avs)
         setUsuarios(us)
-        setInstrutores(insts)
 
         if (isEdit) {
           const vooFromState = location.state?.voo as Voo | undefined
@@ -262,8 +259,11 @@ export default function VooFormPage() {
   }, [form.tipo_voo, usuarios])
 
   const instrutorOptions = useMemo(
-    () => instrutores.filter(i => i.is_active).map(i => ({ value: i.id, label: i.nome })),
-    [instrutores],
+    () =>
+      usuarios
+        .filter(u => u.is_active && u.perfis.includes('instrutor'))
+        .map(u => ({ value: u.id, label: u.nome })),
+    [usuarios],
   )
 
   const precisaInstrutor = TIPOS_VOO_COM_INSTRUTOR.includes(form.tipo_voo)
@@ -310,7 +310,7 @@ export default function VooFormPage() {
   }
 
   function handleInstrutorChange(instId: string) {
-    const inst = instrutores.find(i => i.id === instId)
+    const inst = usuarios.find(u => u.id === instId)
     setForm(p => ({
       ...p,
       instrutor_id: instId || null,
@@ -430,6 +430,7 @@ export default function VooFormPage() {
             num_parcela: 1,
             total_parcelas: 1,
             valor: voo.valor_voo * (voo.taxa_instrutor / 100),
+            multa: 0,
             data_emissao: voo.data,
             data_vencimento: voo.data_vencimento,
             status: 'em_aberto',

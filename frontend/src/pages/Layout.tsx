@@ -33,7 +33,7 @@ import {
 
 import { TooltipProvider } from "@/components/ui/tooltip"
 
-import { ChevronsUpDown, LogOut, User, ChevronDown, ChartSpline, FileInput, FileOutput, Plane, UserPlus, ChartNoAxesColumnIncreasing, FolderPlus, FileUser, Truck, DollarSign } from "lucide-react"
+import { ChevronsUpDown, LogOut, User, ChevronDown, ChartSpline, FileInput, FileOutput, Plane, ChartNoAxesColumnIncreasing, FolderPlus, FileUser, Truck, DollarSign } from "lucide-react"
 
 import {
     Home,
@@ -48,18 +48,23 @@ import { Link, useLocation, useNavigate } from "react-router-dom"
 import { Outlet } from "react-router-dom"
 import logoIcon from "/logo_icon.svg"
 import { useEffect, useState } from "react"
+import { getCurrentUser, logout as authLogout, type AuthUser } from "@/services/api/auth"
 
 interface SidebarConsumerProps {
     openCadastros: boolean
     setOpenCadastros: React.Dispatch<React.SetStateAction<boolean>>
     pathname: string
-    user: string | null
+    currentUser: AuthUser | null
     onLogout: () => void
 }
 
-function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, user, onLogout }: SidebarConsumerProps) {
+function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, currentUser, onLogout }: SidebarConsumerProps) {
     const { state, isMobile, setOpen } = useSidebar()
+    const navigate = useNavigate()
     const isCollapsed = state === "collapsed"
+    const userName = currentUser?.nome ?? "Usuário"
+    const userEmail = currentUser?.email ?? ""
+    const userInitial = userName[0]?.toUpperCase() ?? "U"
 
     return (
         <>
@@ -222,18 +227,6 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, user, onLo
                                         <SidebarMenuSubItem>
                                             <SidebarMenuSubButton
                                                 asChild
-                                                isActive={pathname.startsWith("/funcionario")}
-                                            >
-                                                <Link to="/funcionario">
-                                                    <UserPlus />
-                                                    <span>Funcionários</span>
-                                                </Link>
-                                            </SidebarMenuSubButton>
-                                        </SidebarMenuSubItem>
-
-                                        <SidebarMenuSubItem>
-                                            <SidebarMenuSubButton
-                                                asChild
                                                 isActive={pathname.startsWith("/fornecedores")}
                                             >
                                                 <Link to="/fornecedores">
@@ -269,18 +262,16 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, user, onLo
                                 <div className="flex items-center gap-2 min-w-0 flex-1 justify-center">
                                     <Avatar className="h-8 w-8 shrink-0">
                                         <AvatarImage src="" />
-                                        <AvatarFallback>
-                                            {user?.[0]?.toUpperCase() || "U"}
-                                        </AvatarFallback>
+                                        <AvatarFallback>{userInitial}</AvatarFallback>
                                     </Avatar>
 
                                     {(!isCollapsed || isMobile) && (
                                         <div className="flex flex-col min-w-0 flex-1">
                                             <span className="text-sm font-medium truncate text-start">
-                                                {user || "Usuário"}
+                                                {userName}
                                             </span>
                                             <span className="text-xs text-muted-foreground truncate text-start">
-                                                {user || "email@exemplo.com"}
+                                                {userEmail}
                                             </span>
                                         </div>
                                     )}
@@ -293,7 +284,10 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, user, onLo
                         </DropdownMenuTrigger>
 
                         <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem>
+                            <DropdownMenuItem
+                                onClick={() => currentUser && navigate(`/usuarios/${currentUser.id}`)}
+                                disabled={!currentUser}
+                            >
                                 <User className="mr-2 h-4 w-4" />
                                 Perfil
                             </DropdownMenuItem>
@@ -320,8 +314,7 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, user, onLo
 export default function Layout() {
     const location = useLocation()
     const navigate = useNavigate()
-    const user = location.state?.user || localStorage.getItem("user")
-
+    const [currentUser, setCurrentUser] = useState<AuthUser | null>(getCurrentUser)
     const [openCadastros, setOpenCadastros] = useState(false)
 
     useEffect(() => {
@@ -330,8 +323,13 @@ export default function Layout() {
         }
     }, [location.pathname])
 
+    // Refresh user info whenever the stored value changes (e.g. after login)
+    useEffect(() => {
+        setCurrentUser(getCurrentUser())
+    }, [location.pathname])
+
     const handleLogout = () => {
-        localStorage.removeItem("user")
+        authLogout()
         navigate("/")
     }
 
@@ -342,7 +340,7 @@ export default function Layout() {
                     openCadastros={openCadastros}
                     setOpenCadastros={setOpenCadastros}
                     pathname={location.pathname}
-                    user={user}
+                    currentUser={currentUser}
                     onLogout={handleLogout}
                 />
             </SidebarProvider>

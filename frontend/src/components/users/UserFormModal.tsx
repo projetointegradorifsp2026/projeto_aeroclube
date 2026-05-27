@@ -51,11 +51,13 @@ type FormErrors = Partial<Record<keyof UserFormData, string>>
 export function UserFormModal({ user, open, onClose, onSave }: UserFormModalProps) {
   const [form, setForm] = useState<UserFormData>(emptyForm)
   const [errors, setErrors] = useState<FormErrors>({})
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const isEdit = !!user
 
   useEffect(() => {
     if (open) {
+      setSaveError(null)
       setForm(
         user
           ? {
@@ -83,6 +85,7 @@ export function UserFormModal({ user, open, onClose, onSave }: UserFormModalProp
     if (!form.cpf.trim()) e.cpf = 'CPF é obrigatório'
     if (form.perfis.length === 0) e.perfis = 'Selecione ao menos um perfil'
     if (!isEdit && !form.password?.trim()) e.password = 'Senha é obrigatória'
+    if (!isEdit && form.password && form.password.length < 8) e.password = 'Senha deve ter ao menos 8 caracteres'
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -91,9 +94,19 @@ export function UserFormModal({ user, open, onClose, onSave }: UserFormModalProp
     e.preventDefault()
     if (!validate()) return
     setSaving(true)
+    setSaveError(null)
     try {
       await onSave(form)
       onClose()
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : String(err)
+      let msg = raw
+      try {
+        const parsed = JSON.parse(raw)
+        const first = Object.values(parsed)[0]
+        msg = Array.isArray(first) ? first[0] : String(first)
+      } catch { /* use raw message */ }
+      setSaveError(msg)
     } finally {
       setSaving(false)
     }
@@ -120,7 +133,7 @@ export function UserFormModal({ user, open, onClose, onSave }: UserFormModalProp
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+        <form onSubmit={handleSubmit} className="space-y-4 pt-1" autoComplete="off">
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Nome completo</label>
             <Input
@@ -129,6 +142,7 @@ export function UserFormModal({ user, open, onClose, onSave }: UserFormModalProp
               onChange={e => setForm(p => ({ ...p, nome: e.target.value }))}
               hasError={!!errors.nome}
               helper={errors.nome}
+              autoComplete="off"
             />
           </div>
 
@@ -141,6 +155,7 @@ export function UserFormModal({ user, open, onClose, onSave }: UserFormModalProp
               onChange={e => setForm(p => ({ ...p, email: e.target.value }))}
               hasError={!!errors.email}
               helper={errors.email}
+              autoComplete="off"
             />
           </div>
 
@@ -152,6 +167,7 @@ export function UserFormModal({ user, open, onClose, onSave }: UserFormModalProp
               onChange={e => setForm(p => ({ ...p, cpf: maskCPF(e.target.value) }))}
               hasError={!!errors.cpf}
               helper={errors.cpf}
+              autoComplete="off"
             />
           </div>
 
@@ -160,11 +176,12 @@ export function UserFormModal({ user, open, onClose, onSave }: UserFormModalProp
               <label className="text-sm font-medium">Senha</label>
               <Input
                 type="password"
-                placeholder="Senha de acesso"
+                placeholder="Senha de acesso (mínimo 8 caracteres)"
                 value={form.password ?? ''}
                 onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
                 hasError={!!errors.password}
                 helper={errors.password}
+                autoComplete="new-password"
               />
             </div>
           )}
@@ -235,6 +252,12 @@ export function UserFormModal({ user, open, onClose, onSave }: UserFormModalProp
             />
             <span className="text-sm">Usuário ativo</span>
           </label>
+
+          {saveError && (
+            <p className="text-sm text-destructive rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+              {saveError}
+            </p>
+          )}
 
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose} disabled={saving}>

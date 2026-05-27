@@ -15,6 +15,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     GET /api/v1/usuarios/{id}/     — detalhe
     PATCH /api/v1/usuarios/{id}/   — edita parcialmente
     DELETE /api/v1/usuarios/{id}/  — desativa (soft delete)
+    GET /api/v1/usuarios/me/       — retorna o usuário autenticado
     """
 
     queryset = Usuario.objects.prefetch_related("perfis").order_by("nome")
@@ -27,8 +28,6 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         return qs.distinct()
 
     def get_serializer_class(self):
-        if self.action == "create":
-            return UsuarioCreateSerializer
         return UsuarioSerializer
 
     def get_permissions(self):
@@ -36,12 +35,24 @@ class UsuarioViewSet(viewsets.ModelViewSet):
             return [IsAdminUser()]
         return [IsAuthenticated()]
 
+    def create(self, request, *args, **kwargs):
+        """Cria usuário e retorna o serializer completo (com id)."""
+        write_ser = UsuarioCreateSerializer(data=request.data)
+        write_ser.is_valid(raise_exception=True)
+        usuario = write_ser.save()
+        return Response(UsuarioSerializer(usuario).data, status=status.HTTP_201_CREATED)
+
     def destroy(self, request, *args, **kwargs):
         """Soft delete: apenas desativa o usuário."""
         usuario = self.get_object()
         usuario.is_active = False
         usuario.save()
         return Response({"detail": "Usuário desativado."}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["get"], url_path="me", permission_classes=[IsAuthenticated])
+    def me(self, request):
+        """GET /api/v1/usuarios/me/ — retorna o usuário autenticado."""
+        return Response(UsuarioSerializer(request.user).data)
 
     @action(detail=True, methods=["patch"], url_path="perfil-ativo")
     def alterar_perfil_ativo(self, request, pk=None):

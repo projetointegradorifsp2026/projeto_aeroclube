@@ -57,7 +57,7 @@ export async function getUsers(): Promise<User[]> {
 }
 
 export async function createUser(
-  data: Omit<User, 'id' | 'created_at'> & { password?: string },
+  data: Omit<User, 'id' | 'created_at' | 'saldo_carteira'> & { password?: string },
 ): Promise<User> {
   const payload = {
     nome: data.nome,
@@ -70,7 +70,12 @@ export async function createUser(
 
   // Add all selected profiles (UsuarioCreateSerializer doesn't create UsuarioPerfil entries)
   for (const perfil of data.perfis ?? []) {
-    await apiPost(`/api/v1/usuarios/${created.id}/adicionar-perfil/`, { perfil })
+    try {
+      await apiPost(`/api/v1/usuarios/${created.id}/adicionar-perfil/`, { perfil })
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : ''
+      if (!msg.includes('já possui este perfil')) throw e
+    }
   }
 
   const updated = await apiGet<BackendUser>(`/api/v1/usuarios/${created.id}/`)

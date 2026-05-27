@@ -10,7 +10,6 @@ import Movimentacoes from './pages/Movimentacoes';
 import Layout from './pages/Layout';
 import TitulosReceber from './pages/TitulosReceber';
 import TitulosPagar from './pages/TitulosPagar';
-import Funcionario from './pages/Funcionario';
 import Clientes from './pages/Clientes';
 import Aeronaves from './pages/Aeronaves';
 import Fornecedores from './pages/Fornecedores';
@@ -18,7 +17,6 @@ import ContaFixa from './pages/ContaFixa';
 import Voos from './pages/Voos';
 import VooFormPage from './pages/VooFormPage'
 import UsuarioPerfilPage from './pages/UsuarioPerfilPage'
-import FuncionarioPerfilPage from './pages/FuncionarioPerfilPage';
 
 
 const router = createBrowserRouter([
@@ -36,8 +34,6 @@ const router = createBrowserRouter([
       { path: "movimentacoes", element: <Movimentacoes /> },
       { path: "titulos-a-receber", element: <TitulosReceber /> },
       { path: "titulos-a-pagar", element: <TitulosPagar /> },
-      { path: "funcionario", element: <Funcionario /> },
-      { path: "funcionario/:id", element: <FuncionarioPerfilPage /> },
       { path: "clientes", element: <Clientes /> },
       { path: "aeronaves", element: <Aeronaves /> },
       { path: "fornecedores", element: <Fornecedores /> },
