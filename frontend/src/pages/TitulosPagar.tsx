@@ -29,6 +29,7 @@ import {
   type TituloPagar,
 } from '@/services/titulosPagarService'
 import { TITULO_PAGAR_TIPO_LABELS, type TituloPagarTipo } from '@/mocks/titulos'
+import { getCurrentUser } from '@/services/api/auth'
 import { cn } from '@/lib/utils'
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -192,6 +193,9 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessa
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function TitulosPagar() {
+  const currentUser = getCurrentUser()
+  const isAdmin = currentUser?.perfil_ativo === 'admin'
+
   const [titulos, setTitulos] = useState<TituloPagar[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -211,7 +215,10 @@ export default function TitulosPagar() {
 
   useEffect(() => {
     getTitulosPagar().then(data => {
-      setTitulos(data)
+      const filtered = isAdmin
+        ? data
+        : data.filter(t => t.favorecido === currentUser?.nome)
+      setTitulos(filtered)
       setLoading(false)
     })
   }, [])
@@ -362,10 +369,12 @@ export default function TitulosPagar() {
           <option value="conta_fixa">Conta Fixa</option>
           <option value="outros">Outros</option>
         </FilterSelect>
-        <Button onClick={openCreate} className="ml-auto shrink-0">
-          <Plus className="h-4 w-4" />
-          Novo Título
-        </Button>
+        {isAdmin && (
+          <Button onClick={openCreate} className="ml-auto shrink-0">
+            <Plus className="h-4 w-4" />
+            Novo Título
+          </Button>
+        )}
       </div>
 
       {/* Tabs + Tables */}
@@ -417,7 +426,7 @@ export default function TitulosPagar() {
               <CardContent className="p-0">
                 <TitulosTable
                   items={emAbertoList}
-                  showBaixa
+                  showBaixa={isAdmin}
                   showMulta={false}
                   onBaixa={openBaixa}
                   onView={openView}
@@ -437,7 +446,7 @@ export default function TitulosPagar() {
               <CardContent className="p-0">
                 <TitulosTable
                   items={emAtrasoList}
-                  showBaixa
+                  showBaixa={isAdmin}
                   showMulta
                   onBaixa={openBaixa}
                   onView={openView}
@@ -487,6 +496,7 @@ export default function TitulosPagar() {
         onEdit={handleViewEdit}
         onBaixa={handleViewBaixa}
         onDeleteRequest={handleViewDeleteRequest}
+        canEdit={isAdmin}
       />
 
       {/* Baixa Dialog */}

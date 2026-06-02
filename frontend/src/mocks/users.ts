@@ -1,11 +1,12 @@
-export type UserProfile = 'admin' | 'aluno' | 'socio' | 'externo' | 'instrutor'
+export type UserProfile = 'admin' | 'aluno' | 'socio' | 'externo' | 'instrutor' | 'funcionario'
 
 export const PROFILE_LABELS: Record<UserProfile, string> = {
   admin: 'Administrador',
   aluno: 'Aluno',
   socio: 'Sócio',
-  externo: 'Cliente Externo',
+  externo: 'Aluno Externo',
   instrutor: 'Instrutor',
+  funcionario: 'Funcionário',
 }
 
 export const ALL_PROFILES: UserProfile[] = [
@@ -14,6 +15,7 @@ export const ALL_PROFILES: UserProfile[] = [
   'socio',
   'externo',
   'instrutor',
+  'funcionario',
 ]
 
 export interface User {

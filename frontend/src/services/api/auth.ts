@@ -1,3 +1,5 @@
+import { apiFetch } from './client'
+
 const BASE = import.meta.env.VITE_API_URL ?? ''
 
 export interface AuthUser {
@@ -8,7 +10,7 @@ export interface AuthUser {
   perfis: { id: number; perfil: string }[]
 }
 
-export async function login(email: string, password: string): Promise<void> {
+export async function login(email: string, password: string): Promise<AuthUser> {
   const res = await fetch(`${BASE}/api/v1/auth/token/`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -21,16 +23,27 @@ export async function login(email: string, password: string): Promise<void> {
   localStorage.setItem('access_token', data.access as string)
   localStorage.setItem('refresh_token', data.refresh as string)
 
-  // Fetch and store current user info
-  try {
-    const meRes = await fetch(`${BASE}/api/v1/usuarios/me/`, {
-      headers: { Authorization: `Bearer ${data.access as string}` },
-    })
-    if (meRes.ok) {
-      const user: AuthUser = await meRes.json()
-      localStorage.setItem('current_user', JSON.stringify(user))
-    }
-  } catch { /* ignore — user info is cosmetic */ }
+  const meRes = await fetch(`${BASE}/api/v1/usuarios/me/`, {
+    headers: { Authorization: `Bearer ${data.access as string}` },
+  })
+  if (!meRes.ok) throw new Error('Erro ao carregar dados do usuário')
+  const user: AuthUser = await meRes.json()
+  localStorage.setItem('current_user', JSON.stringify(user))
+  return user
+}
+
+export async function switchPerfilAtivo(userId: number, perfilAtivo: string): Promise<AuthUser> {
+  const res = await apiFetch(`/api/v1/usuarios/${userId}/perfil-ativo/`, {
+    method: 'PATCH',
+    body: JSON.stringify({ perfil_ativo: perfilAtivo }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Erro ao trocar perfil' }))
+    throw new Error(err.detail ?? 'Erro ao trocar perfil')
+  }
+  const user: AuthUser = await res.json()
+  localStorage.setItem('current_user', JSON.stringify(user))
+  return user
 }
 
 export function logout() {

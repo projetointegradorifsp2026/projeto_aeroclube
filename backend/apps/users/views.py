@@ -69,6 +69,22 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         usuario.save()
         return Response(UsuarioSerializer(usuario).data)
 
+    @action(detail=True, methods=["post"], url_path="resetar-senha", permission_classes=[IsAdminUser])
+    def resetar_senha(self, request, pk=None):
+        """POST /api/v1/usuarios/{id}/resetar-senha/ — reseta a senha para aero + 5 primeiros dígitos do CPF."""
+        usuario = self.get_object()
+        cpf = usuario.cpf_cnpj or ""
+        digits = "".join(filter(str.isdigit, cpf))
+        if len(digits) < 5:
+            return Response(
+                {"detail": "Usuário não possui CPF com ao menos 5 dígitos para resetar a senha."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        nova_senha = f"aero{digits[:5]}"
+        usuario.set_password(nova_senha)
+        usuario.save()
+        return Response({"detail": "Senha resetada com sucesso."}, status=status.HTTP_200_OK)
+
     @action(detail=True, methods=["post"], url_path="adicionar-perfil")
     def adicionar_perfil(self, request, pk=None):
         """POST /api/v1/usuarios/{id}/adicionar-perfil/ — adiciona um perfil ao usuário."""
@@ -80,3 +96,21 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         if not created:
             return Response({"detail": "Usuário já possui este perfil."}, status=status.HTTP_400_BAD_REQUEST)
         return Response(UsuarioPerfilSerializer(obj).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"], url_path="remover-perfil")
+    def remover_perfil(self, request, pk=None):
+        """POST /api/v1/usuarios/{id}/remover-perfil/ — remove um perfil do usuário."""
+        usuario = self.get_object()
+        perfil = request.data.get("perfil")
+        if not perfil:
+            return Response({"detail": "Campo 'perfil' é obrigatório."}, status=status.HTTP_400_BAD_REQUEST)
+        deleted, _ = UsuarioPerfil.objects.filter(usuario=usuario, perfil=perfil).delete()
+        if not deleted:
+            return Response({"detail": "Usuário não possui este perfil."}, status=status.HTTP_400_BAD_REQUEST)
+        # Se o perfil removido era o ativo, troca para o primeiro restante
+        if usuario.perfil_ativo == perfil:
+            primeiro = usuario.perfis.first()
+            if primeiro:
+                usuario.perfil_ativo = primeiro.perfil
+                usuario.save()
+        return Response({"detail": "Perfil removido."}, status=status.HTTP_200_OK)

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -16,9 +16,7 @@ export interface UserFormData {
   nome: string
   email: string
   cpf: string
-  password?: string
   perfis: UserProfile[]
-  perfil_ativo: UserProfile
   is_active: boolean
 }
 
@@ -27,6 +25,8 @@ interface UserFormModalProps {
   open: boolean
   onClose: () => void
   onSave: (data: UserFormData) => Promise<void>
+  /** Quando true, exibe apenas nome, e-mail e CPF (uso do próprio usuário não-admin) */
+  restrictedFields?: boolean
 }
 
 function maskCPF(value: string): string {
@@ -42,13 +42,12 @@ const emptyForm: UserFormData = {
   email: '',
   cpf: '',
   perfis: [],
-  perfil_ativo: 'aluno',
   is_active: true,
 }
 
 type FormErrors = Partial<Record<keyof UserFormData, string>>
 
-export function UserFormModal({ user, open, onClose, onSave }: UserFormModalProps) {
+export function UserFormModal({ user, open, onClose, onSave, restrictedFields = false }: UserFormModalProps) {
   const [form, setForm] = useState<UserFormData>(emptyForm)
   const [errors, setErrors] = useState<FormErrors>({})
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -65,7 +64,6 @@ export function UserFormModal({ user, open, onClose, onSave }: UserFormModalProp
               email: user.email,
               cpf: user.cpf,
               perfis: user.perfis,
-              perfil_ativo: user.perfil_ativo,
               is_active: user.is_active,
             }
           : emptyForm,
@@ -83,9 +81,7 @@ export function UserFormModal({ user, open, onClose, onSave }: UserFormModalProp
       e.email = 'E-mail inválido'
     }
     if (!form.cpf.trim()) e.cpf = 'CPF é obrigatório'
-    if (form.perfis.length === 0) e.perfis = 'Selecione ao menos um perfil'
-    if (!isEdit && !form.password?.trim()) e.password = 'Senha é obrigatória'
-    if (!isEdit && form.password && form.password.length < 8) e.password = 'Senha deve ter ao menos 8 caracteres'
+    if (!restrictedFields && form.perfis.length === 0) e.perfis = 'Selecione ao menos um perfil'
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -116,8 +112,7 @@ export function UserFormModal({ user, open, onClose, onSave }: UserFormModalProp
     setForm(prev => {
       const has = prev.perfis.includes(p)
       const next = has ? prev.perfis.filter(x => x !== p) : [...prev.perfis, p]
-      const ativo = next.includes(prev.perfil_ativo) ? prev.perfil_ativo : (next[0] ?? 'aluno')
-      return { ...prev, perfis: next, perfil_ativo: ativo }
+      return { ...prev, perfis: next }
     })
   }
 
@@ -129,7 +124,7 @@ export function UserFormModal({ user, open, onClose, onSave }: UserFormModalProp
           <DialogDescription>
             {isEdit
               ? 'Atualize as informações do usuário.'
-              : 'Preencha os dados para cadastrar um novo usuário.'}
+              : 'Preencha os dados para cadastrar um novo usuário. A senha inicial será gerada automaticamente: aero + 5 primeiros dígitos do CPF.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -171,87 +166,58 @@ export function UserFormModal({ user, open, onClose, onSave }: UserFormModalProp
             />
           </div>
 
-          {!isEdit && (
+          {!restrictedFields && (
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Senha</label>
-              <Input
-                type="password"
-                placeholder="Senha de acesso (mínimo 8 caracteres)"
-                value={form.password ?? ''}
-                onChange={e => setForm(p => ({ ...p, password: e.target.value }))}
-                hasError={!!errors.password}
-                helper={errors.password}
-                autoComplete="new-password"
-              />
-            </div>
-          )}
-
-          <div className="space-y-1.5">
-            <label className="text-sm font-medium">Perfis</label>
-            <div className="grid grid-cols-2 gap-2">
-              {ALL_PROFILES.map(p => (
-                <label
-                  key={p}
-                  className={cn(
-                    'flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer text-sm transition-colors select-none',
-                    form.perfis.includes(p)
-                      ? 'border-primary bg-primary/5 text-primary'
-                      : 'border-border hover:bg-muted/50',
-                  )}
-                >
-                  <input
-                    type="checkbox"
-                    className="sr-only"
-                    checked={form.perfis.includes(p)}
-                    onChange={() => togglePerfil(p)}
-                  />
-                  <span
+              <label className="text-sm font-medium">Perfis</label>
+              <div className="grid grid-cols-2 gap-2">
+                {ALL_PROFILES.map(p => (
+                  <label
+                    key={p}
                     className={cn(
-                      'h-3.5 w-3.5 rounded border flex items-center justify-center shrink-0',
-                      form.perfis.includes(p) ? 'border-primary bg-primary' : 'border-input',
+                      'flex items-center gap-2 rounded-lg border px-3 py-2 cursor-pointer text-sm transition-colors select-none',
+                      form.perfis.includes(p)
+                        ? 'border-primary bg-primary/5 text-primary'
+                        : 'border-border hover:bg-muted/50',
                     )}
                   >
-                    {form.perfis.includes(p) && (
-                      <svg viewBox="0 0 10 8" className="h-2 w-2 fill-white">
-                        <path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-                      </svg>
-                    )}
-                  </span>
-                  {PROFILE_LABELS[p]}
-                </label>
-              ))}
-            </div>
-            {errors.perfis && <p className="text-xs text-destructive">{errors.perfis}</p>}
-          </div>
-
-          {form.perfis.length > 1 && (
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Perfil ativo</label>
-              <select
-                className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-ring/50"
-                value={form.perfil_ativo}
-                onChange={e =>
-                  setForm(p => ({ ...p, perfil_ativo: e.target.value as UserProfile }))
-                }
-              >
-                {form.perfis.map(p => (
-                  <option key={p} value={p}>
+                    <input
+                      type="checkbox"
+                      className="sr-only"
+                      checked={form.perfis.includes(p)}
+                      onChange={() => togglePerfil(p)}
+                    />
+                    <span
+                      className={cn(
+                        'h-3.5 w-3.5 rounded border flex items-center justify-center shrink-0',
+                        form.perfis.includes(p) ? 'border-primary bg-primary' : 'border-input',
+                      )}
+                    >
+                      {form.perfis.includes(p) && (
+                        <svg viewBox="0 0 10 8" className="h-2 w-2 fill-white">
+                          <path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5" fill="none" strokeLinecap="round" />
+                        </svg>
+                      )}
+                    </span>
                     {PROFILE_LABELS[p]}
-                  </option>
+                  </label>
                 ))}
-              </select>
+              </div>
+              {errors.perfis && <p className="text-xs text-destructive">{errors.perfis}</p>}
             </div>
           )}
 
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={form.is_active}
-              onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))}
-              className="h-4 w-4 rounded border-input accent-primary"
-            />
-            <span className="text-sm">Usuário ativo</span>
-          </label>
+          {/* Ativo: apenas na edição e apenas para admin */}
+          {isEdit && !restrictedFields && (
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={form.is_active}
+                onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))}
+                className="h-4 w-4 rounded border-input accent-primary"
+              />
+              <span className="text-sm">Usuário ativo</span>
+            </label>
+          )}
 
           {saveError && (
             <p className="text-sm text-destructive rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">

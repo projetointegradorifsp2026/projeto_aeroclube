@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { getTitulosPagar } from '@/services/titulosPagarService'
 import { getTitulosReceber } from '@/services/titulosReceberService'
+import { getCurrentUser } from '@/services/api/auth'
 import { cn } from '@/lib/utils'
 
 const inputCls =
@@ -42,6 +43,9 @@ function StatusBadge({ status }: { status: MovStatus }) {
 }
 
 export default function Movimentacoes() {
+  const currentUser = getCurrentUser()
+  const isAdmin = currentUser?.perfil_ativo === 'admin'
+
   const [rows, setRows] = useState<MovRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -53,8 +57,15 @@ export default function Movimentacoes() {
 
   useEffect(() => {
     Promise.all([getTitulosPagar(), getTitulosReceber()]).then(([pagar, receber]) => {
+      const nomeUsuario = currentUser?.nome ?? ''
+
       const entradas: MovRow[] = receber
-        .filter(t => t.status === 'baixado' && t.tipo !== 'carteira' && !(t.valor_carteira && t.valor_carteira >= t.valor))
+        .filter(t =>
+          t.status === 'baixado' &&
+          t.tipo !== 'carteira' &&
+          !(t.valor_carteira && t.valor_carteira >= t.valor) &&
+          (isAdmin || t.usuario_nome === nomeUsuario)
+        )
         .map(t => ({
           id: `r-${t.id}`,
           tipo: 'entrada' as MovTipo,
@@ -66,7 +77,10 @@ export default function Movimentacoes() {
           status: t.status as MovStatus,
         }))
       const carteiraRows: MovRow[] = receber
-        .filter(t => t.tipo === 'carteira')
+        .filter(t =>
+          t.tipo === 'carteira' &&
+          (isAdmin || t.usuario_nome === nomeUsuario)
+        )
         .map(t => ({
           id: `c-${t.id}`,
           tipo: 'carteira' as MovTipo,
@@ -79,7 +93,10 @@ export default function Movimentacoes() {
           carteira_debito: t.carteira_debito,
         }))
       const saidas: MovRow[] = pagar
-        .filter(t => t.status === 'baixado')
+        .filter(t =>
+          t.status === 'baixado' &&
+          (isAdmin || t.favorecido === nomeUsuario)
+        )
         .map(t => ({
           id: `p-${t.id}`,
           tipo: 'saida' as MovTipo,

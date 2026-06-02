@@ -28,7 +28,9 @@
       "Bash(curl -s http://localhost:3000)",
       "Bash(curl -s http://localhost:8000/api/v1/contas-fixas/)",
       "Bash(docker exec projeto_aeroclube-frontend-1 *)",
-      "Bash(docker exec projeto_aeroclube-backend-1 *)"
+      "Bash(docker exec projeto_aeroclube-backend-1 *)",
+      "Bash(awk '{print $NF}')",
+      "Bash(sudo tee *)"
     ]
   }
 }

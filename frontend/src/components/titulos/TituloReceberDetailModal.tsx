@@ -48,6 +48,7 @@ interface Props {
   onEdit: (t: TituloReceber) => void
   onBaixa: (t: TituloReceber) => void
   onDeleteRequest: (t: TituloReceber) => void
+  canEdit?: boolean
 }
 
 export function TituloReceberDetailModal({
@@ -58,6 +59,7 @@ export function TituloReceberDetailModal({
   onEdit,
   onBaixa,
   onDeleteRequest,
+  canEdit = true,
 }: Props) {
   const [current, setCurrent] = useState<TituloReceber | null>(titulo)
 
@@ -255,7 +257,7 @@ export function TituloReceberDetailModal({
 
         <DialogFooter>
           <div className="flex w-full items-center gap-2">
-            {!isCarteira && (
+            {canEdit && !isCarteira && (
               <Button
                 variant="ghost"
                 className="text-destructive hover:text-destructive hover:bg-destructive/10 mr-auto"
@@ -269,13 +271,13 @@ export function TituloReceberDetailModal({
               <Button variant="outline" onClick={onClose}>
                 Fechar
               </Button>
-              {!isCarteira && (
+              {canEdit && !isCarteira && (
                 <Button variant="outline" onClick={() => onEdit(current)}>
                   <Pencil className="h-3.5 w-3.5" />
                   Editar
                 </Button>
               )}
-              {current.status !== 'baixado' && !isCarteira && (
+              {canEdit && current.status !== 'baixado' && !isCarteira && (
                 <Button onClick={() => onBaixa(current)}>
                   <CircleDollarSign className="h-3.5 w-3.5" />
                   Dar baixa

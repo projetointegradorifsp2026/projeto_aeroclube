@@ -17,6 +17,7 @@ import {
 import { getVoos, deleteVoo, type Voo } from '@/services/voosService'
 import { getAeronaves, type Aeronave } from '@/services/aeronavesService'
 import { TIPO_VOO_LABELS, type TipoVoo, ALL_TIPOS_VOO } from '@/mocks/voos'
+import { getCurrentUser } from '@/services/api/auth'
 import { cn } from '@/lib/utils'
 
 const inputCls =
@@ -35,6 +36,7 @@ const TIPO_VOO_COLORS: Record<TipoVoo, string> = {
 
 export default function Voos() {
   const navigate = useNavigate()
+  const isAdmin = getCurrentUser()?.perfil_ativo === 'admin'
 
   const [voos, setVoos] = useState<Voo[]>([])
   const [aeronaves, setAeronaves] = useState<Aeronave[]>([])
@@ -124,10 +126,12 @@ export default function Voos() {
             </option>
           ))}
         </FilterSelect>
-        <Button onClick={() => navigate('/voos/novo')} className="ml-auto shrink-0">
-          <Plus className="h-4 w-4" />
-          Registrar Voo
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => navigate('/voos/novo')} className="ml-auto shrink-0">
+            <Plus className="h-4 w-4" />
+            Registrar Voo
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -163,7 +167,7 @@ export default function Voos() {
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden lg:table-cell">Aeronave</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Tempo</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Valor</th>
-                    <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Ações</th>
+                    {isAdmin && <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Ações</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -205,27 +209,29 @@ export default function Voos() {
                       <td className="px-4 py-3 font-medium whitespace-nowrap">
                         {fmt(v.valor_voo)}
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => navigate(`/voos/${v.id}/editar`, { state: { voo: v } })}
-                            title="Editar voo"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => setDeleteTarget(v)}
-                            title="Excluir voo"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </td>
+                      {isAdmin && (
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => navigate(`/voos/${v.id}/editar`, { state: { voo: v } })}
+                              title="Editar voo"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => setDeleteTarget(v)}
+                              title="Excluir voo"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>

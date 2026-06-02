@@ -45,6 +45,7 @@ interface Props {
   onEdit: (t: TituloPagar) => void
   onBaixa: (t: TituloPagar) => void
   onDeleteRequest: (t: TituloPagar) => void
+  canEdit?: boolean
 }
 
 export function TituloPagarDetailModal({
@@ -55,6 +56,7 @@ export function TituloPagarDetailModal({
   onEdit,
   onBaixa,
   onDeleteRequest,
+  canEdit = true,
 }: Props) {
   const [current, setCurrent] = useState<TituloPagar | null>(titulo)
 
@@ -229,23 +231,27 @@ export function TituloPagarDetailModal({
 
         <DialogFooter>
           <div className="flex w-full items-center gap-2">
-            <Button
-              variant="ghost"
-              className="text-destructive hover:text-destructive hover:bg-destructive/10 mr-auto"
-              onClick={() => onDeleteRequest(current)}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Excluir
-            </Button>
+            {canEdit && (
+              <Button
+                variant="ghost"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 mr-auto"
+                onClick={() => onDeleteRequest(current)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Excluir
+              </Button>
+            )}
             <div className="flex gap-2 ml-auto">
               <Button variant="outline" onClick={onClose}>
                 Fechar
               </Button>
-              <Button variant="outline" onClick={() => onEdit(current)}>
-                <Pencil className="h-3.5 w-3.5" />
-                Editar
-              </Button>
-              {current.status !== 'baixado' && (
+              {canEdit && (
+                <Button variant="outline" onClick={() => onEdit(current)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                  Editar
+                </Button>
+              )}
+              {canEdit && current.status !== 'baixado' && (
                 <Button onClick={() => onBaixa(current)}>
                   <CircleDollarSign className="h-3.5 w-3.5" />
                   Dar baixa

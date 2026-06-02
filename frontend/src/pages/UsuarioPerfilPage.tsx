@@ -12,6 +12,7 @@ import {
   EyeOff,
   Plus,
   Minus,
+  KeyRound,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -27,8 +28,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { getUsers, updateUser, addSaldoCarteira, debitarCarteira, type User } from '@/services/usersService'
+import { getUsers, updateUser, addSaldoCarteira, debitarCarteira, resetPassword, type User } from '@/services/usersService'
 import { UserFormModal, type UserFormData } from '@/components/users/UserFormModal'
+import { getCurrentUser } from '@/services/api/auth'
 import {
   getTitulosReceber,
   baixarTituloReceber,
@@ -61,6 +63,7 @@ const PROFILE_COLORS: Record<UserProfile, string> = {
   socio: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
   externo: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
   instrutor: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  funcionario: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',
 }
 
 const TITULO_STATUS_LABELS: Record<TituloReceberStatus, string> = {
@@ -81,9 +84,16 @@ export default function UsuarioPerfilPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
+  const currentUser = getCurrentUser()
+  const isAdmin = currentUser?.perfil_ativo === 'admin'
+
   const [user, setUser] = useState<User | null>(null)
   const [loadingUser, setLoadingUser] = useState(true)
   const [editOpen, setEditOpen] = useState(false)
+
+  const [resetDialogOpen, setResetDialogOpen] = useState(false)
+  const [resetting, setResetting] = useState(false)
+  const [resetSuccess, setResetSuccess] = useState(false)
 
   // Carteira
   const [saldoVisible, setSaldoVisible] = useState(false)
@@ -151,57 +161,66 @@ export default function UsuarioPerfilPage() {
 
   useEffect(() => {
     if (!id) return
-    Promise.all([getUsers(), getTitulosReceber(), getTitulosPagar()]).then(
-      ([users, allReceber, allPagar]) => {
+    if (isAdmin) {
+      Promise.all([getUsers(), getTitulosReceber(), getTitulosPagar()]).then(
+        ([users, allReceber, allPagar]) => {
+          const found = users.find(u => u.id === id)
+          if (!found) { navigate('/usuarios'); return }
+
+          const userReceber = allReceber.filter(t => t.usuario_id === id && t.status === 'baixado' && t.tipo !== 'carteira' && !(t.valor_carteira && t.valor_carteira >= t.valor))
+          const userCarteira = allReceber.filter(t => t.usuario_id === id && t.tipo === 'carteira')
+          const userPagar = allPagar.filter(t => t.favorecido === found.nome && t.status === 'baixado')
+
+          const entradas: MovRow[] = userReceber.map(t => ({
+            id: `r-${t.id}`,
+            tipo: 'entrada' as const,
+            data: t.data_emissao,
+            descricao: t.descricao,
+            valor: t.valor,
+            valor_pago: t.valor_pago,
+            status: t.status,
+          }))
+          const carteiraRows: MovRow[] = userCarteira.map(t => ({
+            id: `c-${t.id}`,
+            tipo: 'carteira' as const,
+            data: t.data_emissao,
+            descricao: t.descricao,
+            valor: t.valor,
+            valor_pago: t.valor_pago,
+            status: t.status,
+            carteira_debito: t.carteira_debito,
+          }))
+          const saidas: MovRow[] = userPagar.map(t => ({
+            id: `p-${t.id}`,
+            tipo: 'saida' as const,
+            data: t.data_emissao,
+            descricao: t.descricao,
+            valor: t.valor,
+            valor_pago: t.valor_pago ?? 0,
+            status: t.status,
+          }))
+
+          setUser(found)
+          setMovimentacoes(
+            [...entradas, ...carteiraRows, ...saidas].sort((a, b) => b.data.localeCompare(a.data)),
+          )
+          setTitulos(
+            allReceber
+              .filter(t => t.usuario_id === id && t.status !== 'baixado')
+              .sort((a, b) => b.data_vencimento.localeCompare(a.data_vencimento)),
+          )
+          setLoadingUser(false)
+        },
+      )
+    } else {
+      getUsers().then(users => {
         const found = users.find(u => u.id === id)
-        if (!found) { navigate('/usuarios'); return }
-
-        const userReceber = allReceber.filter(t => t.usuario_id === id && t.status === 'baixado' && t.tipo !== 'carteira' && !(t.valor_carteira && t.valor_carteira >= t.valor))
-        const userCarteira = allReceber.filter(t => t.usuario_id === id && t.tipo === 'carteira')
-        const userPagar = allPagar.filter(t => t.favorecido === found.nome && t.status === 'baixado')
-
-        const entradas: MovRow[] = userReceber.map(t => ({
-          id: `r-${t.id}`,
-          tipo: 'entrada' as const,
-          data: t.data_emissao,
-          descricao: t.descricao,
-          valor: t.valor,
-          valor_pago: t.valor_pago,
-          status: t.status,
-        }))
-        const carteiraRows: MovRow[] = userCarteira.map(t => ({
-          id: `c-${t.id}`,
-          tipo: 'carteira' as const,
-          data: t.data_emissao,
-          descricao: t.descricao,
-          valor: t.valor,
-          valor_pago: t.valor_pago,
-          status: t.status,
-          carteira_debito: t.carteira_debito,
-        }))
-        const saidas: MovRow[] = userPagar.map(t => ({
-          id: `p-${t.id}`,
-          tipo: 'saida' as const,
-          data: t.data_emissao,
-          descricao: t.descricao,
-          valor: t.valor,
-          valor_pago: t.valor_pago ?? 0,
-          status: t.status,
-        }))
-
+        if (!found) { navigate('/dashboard'); return }
         setUser(found)
-        setMovimentacoes(
-          [...entradas, ...carteiraRows, ...saidas].sort((a, b) => b.data.localeCompare(a.data)),
-        )
-        setTitulos(
-          allReceber
-            .filter(t => t.usuario_id === id && t.status !== 'baixado')
-            .sort((a, b) => b.data_vencimento.localeCompare(a.data_vencimento)),
-        )
         setLoadingUser(false)
-      },
-    )
-  }, [id, navigate])
+      })
+    }
+  }, [id, navigate, isAdmin])
 
   const movTotalPages = Math.ceil(movimentacoes.length / PAGE_SIZE)
   const movPaginated = movimentacoes.slice((movPage - 1) * PAGE_SIZE, movPage * PAGE_SIZE)
@@ -238,8 +257,24 @@ export default function UsuarioPerfilPage() {
 
   async function handleSaveUser(data: UserFormData) {
     if (!user) return
-    const updated = await updateUser(user.id, data)
+    const updated = await updateUser(user.id, data, user.perfis)
     setUser(updated)
+  }
+
+  async function handleResetPassword() {
+    if (!user) return
+    setResetting(true)
+    try {
+      await resetPassword(user.id)
+      setResetSuccess(true)
+    } finally {
+      setResetting(false)
+    }
+  }
+
+  function closeResetDialog() {
+    setResetDialogOpen(false)
+    setResetSuccess(false)
   }
 
   async function handleAddSaldo() {
@@ -386,7 +421,7 @@ export default function UsuarioPerfilPage() {
     <div className="pt-2 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon-sm" onClick={() => navigate('/usuarios')}>
+        <Button variant="ghost" size="icon-sm" onClick={() => navigate(isAdmin ? '/usuarios' : '/dashboard')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
@@ -402,10 +437,18 @@ export default function UsuarioPerfilPage() {
           <CardHeader className="border-b pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold">Dados do Usuário</CardTitle>
-              <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-                <Pencil className="h-3.5 w-3.5" />
-                Editar
-              </Button>
+              <div className="flex gap-2">
+                {isAdmin && (
+                  <Button variant="outline" size="sm" onClick={() => setResetDialogOpen(true)}>
+                    <KeyRound className="h-3.5 w-3.5" />
+                    Resetar Senha
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                  Editar
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="pt-5 pb-5">
@@ -494,30 +537,34 @@ export default function UsuarioPerfilPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => { setAddSaldoValor(''); setAddSaldoData(todayStr()); setAddSaldoOpen(true) }}
-              >
-                <Plus className="h-4 w-4" />
-                Adicionar
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => { setRemoveSaldoValor(''); setRemoveSaldoData(todayStr()); setRemoveSaldoOpen(true) }}
-                disabled={user.saldo_carteira <= 0}
-              >
-                <Minus className="h-4 w-4" />
-                Remover
-              </Button>
+              {isAdmin && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setAddSaldoValor(''); setAddSaldoData(todayStr()); setAddSaldoOpen(true) }}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Adicionar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setRemoveSaldoValor(''); setRemoveSaldoData(todayStr()); setRemoveSaldoOpen(true) }}
+                    disabled={user.saldo_carteira <= 0}
+                  >
+                    <Minus className="h-4 w-4" />
+                    Remover
+                  </Button>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Movimentações */}
-      <Card>
+      {/* Movimentações — visível apenas para admin */}
+      {isAdmin && <Card>
         <CardHeader className="border-b pb-3">
           <div className="flex items-center gap-2">
             <Receipt className="h-4 w-4 text-muted-foreground" />
@@ -592,10 +639,10 @@ export default function UsuarioPerfilPage() {
           )}
           <TablePagination page={movPage} totalPages={movTotalPages} onPageChange={setMovPage} />
         </CardContent>
-      </Card>
+      </Card>}
 
-      {/* Títulos a Receber */}
-      <Card>
+      {/* Títulos a Receber — visível apenas para admin */}
+      {isAdmin && <Card>
         <CardHeader className="border-b pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -686,10 +733,10 @@ export default function UsuarioPerfilPage() {
           )}
           <TablePagination page={titulosPage} totalPages={titulosTotalPages} onPageChange={setTitulosPage} />
         </CardContent>
-      </Card>
+      </Card>}
 
       {/* Modal de edição */}
-      <UserFormModal user={user} open={editOpen} onClose={() => setEditOpen(false)} onSave={handleSaveUser} />
+      <UserFormModal user={user} open={editOpen} onClose={() => setEditOpen(false)} onSave={handleSaveUser} restrictedFields={!isAdmin} />
 
       {/* Dialog: Adicionar Saldo */}
       <Dialog open={addSaldoOpen} onOpenChange={o => !o && setAddSaldoOpen(false)}>
@@ -911,6 +958,34 @@ export default function UsuarioPerfilPage() {
             <Button onClick={handleBatchBaixa} disabled={batchBaixando || !batchData}>
               {batchBaixando ? 'Processando...' : `Confirmar ${selectedTitulos.length} título${selectedTitulos.length !== 1 ? 's' : ''}`}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Resetar Senha (admin only) */}
+      <Dialog open={resetDialogOpen} onOpenChange={o => !o && closeResetDialog()}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Resetar Senha</DialogTitle>
+            <DialogDescription>
+              {resetSuccess
+                ? `Senha de ${user.nome} resetada com sucesso. A nova senha é: aero + 5 primeiros dígitos do CPF.`
+                : `A senha de ${user.nome} será resetada para: aero + 5 primeiros dígitos do CPF. O usuário deverá trocar a senha no próximo acesso.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            {resetSuccess ? (
+              <Button onClick={closeResetDialog}>Fechar</Button>
+            ) : (
+              <>
+                <Button variant="outline" onClick={closeResetDialog} disabled={resetting}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleResetPassword} disabled={resetting}>
+                  {resetting ? 'Resetando...' : 'Resetar Senha'}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
