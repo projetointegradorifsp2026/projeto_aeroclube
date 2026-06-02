@@ -12,7 +12,6 @@ from django.core.exceptions import ValidationError
 
 from apps.users.models import Usuario
 from apps.aeronaves.models import Aeronave
-from apps.pessoas.models import Funcionario
 
 
 def calcular_tempo_decimal(duracao_minutos: int) -> Decimal:
@@ -69,13 +68,12 @@ class Voo(models.Model):
     )
     # Instrutor (obrigatório para tipos duplo comando)
     instrutor = models.ForeignKey(
-        Funcionario,
+        Usuario,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="voos_instrutor",
+        related_name="voos_como_instrutor",
         verbose_name="Instrutor",
-        limit_choices_to={"is_instrutor": True},
     )
     aeronave = models.ForeignKey(
         Aeronave,

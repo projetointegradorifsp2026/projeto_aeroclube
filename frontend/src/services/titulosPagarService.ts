@@ -62,9 +62,11 @@ export async function getTitulosPagar(): Promise<TituloPagar[]> {
 
 export async function createTituloPagar(data: Omit<TituloPagar, 'id'>): Promise<TituloPagar> {
   const tipoBackend = TIPO_FRONTEND_TO_BACKEND[data.tipo] ?? 'outros'
+  const usesId = data.tipo !== 'outros'
   const payload = {
     tipo: tipoBackend,
-    favorecido_nome: data.favorecido,
+    favorecido_id: usesId ? parseInt(data.favorecido, 10) : undefined,
+    favorecido_nome: !usesId ? data.favorecido : '',
     favorecido_tipo: data.tipo,
     descricao: data.descricao,
     num_parcela: data.num_parcela,

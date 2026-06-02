@@ -14,6 +14,7 @@ import {
   Minus,
   KeyRound,
   History,
+  ChevronDown,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -124,6 +125,8 @@ export default function UsuarioPerfilPage() {
   const [historicoOpen, setHistoricoOpen] = useState(false)
   const [historicoData, setHistoricoData] = useState<MovimentacaoCarteira[]>([])
   const [historicoLoading, setHistoricoLoading] = useState(false)
+  const [historicoAeronaves, setHistoricoAeronaves] = useState<Aeronave[]>([])
+  const [expandedEquiv, setExpandedEquiv] = useState<Set<string>>(new Set())
   const [removeSaldoOpen, setRemoveSaldoOpen] = useState(false)
   const [removeSaldoValor, setRemoveSaldoValor] = useState('')
   const [removeSaldoData, setRemoveSaldoData] = useState(todayStr())
@@ -387,8 +390,12 @@ export default function UsuarioPerfilPage() {
     setHistoricoOpen(true)
     setHistoricoLoading(true)
     try {
-      const mov = await getMovimentacoesCarteira(user.id)
-      setHistoricoData(mov)
+      const [mov, aeronaves] = await Promise.all([
+        getMovimentacoesCarteira(user.id),
+        getAeronaves(),
+      ])
+      setHistoricoData(mov.filter(m => m.tipo === 'credito'))
+      setHistoricoAeronaves(aeronaves.filter(a => a.is_active))
     } finally {
       setHistoricoLoading(false)
     }
@@ -1169,12 +1176,12 @@ export default function UsuarioPerfilPage() {
       </Dialog>
 
       {/* Dialog: Histórico da Carteira */}
-      <Dialog open={historicoOpen} onOpenChange={o => !o && setHistoricoOpen(false)}>
-        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+      <Dialog open={historicoOpen} onOpenChange={o => { if (!o) { setHistoricoOpen(false); setExpandedEquiv(new Set()) } }}>
+        <DialogContent className="sm:max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Histórico de Créditos — {user.nome}</DialogTitle>
             <DialogDescription>
-              Créditos adicionados à carteira, com validade e equivalência em horas.
+              Créditos adicionados à carteira com equivalência em horas por aeronave.
             </DialogDescription>
           </DialogHeader>
           <div className="overflow-y-auto flex-1">
@@ -1189,52 +1196,109 @@ export default function UsuarioPerfilPage() {
                 <Wallet className="h-8 w-8 mb-2 opacity-30" />
                 <p className="text-sm">Nenhum crédito registrado</p>
               </div>
-            ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/30">
-                    <th className="text-left px-4 py-2 font-medium text-muted-foreground">Data</th>
-                    <th className="text-left px-4 py-2 font-medium text-muted-foreground">Descrição</th>
-                    <th className="text-right px-4 py-2 font-medium text-muted-foreground">Valor R$</th>
-                    <th className="text-left px-4 py-2 font-medium text-muted-foreground hidden sm:table-cell">Vencimento</th>
-                    <th className="text-left px-4 py-2 font-medium text-muted-foreground hidden md:table-cell">Equivalência</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {historicoData.map(m => {
-                    const hoje = new Date().toISOString().split('T')[0]
-                    const vencido = m.data_vencimento && m.data_vencimento < hoje
-                    return (
-                      <tr key={m.id} className={cn('hover:bg-muted/20', vencido && 'opacity-50')}>
-                        <td className="px-4 py-2 whitespace-nowrap text-muted-foreground">
-                          {fmtDate(m.data_transacao.split('T')[0])}
-                        </td>
-                        <td className="px-4 py-2 max-w-[200px] truncate">{m.descricao}</td>
-                        <td className="px-4 py-2 text-right font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
-                          +{fmt(m.valor)}
-                        </td>
-                        <td className="px-4 py-2 hidden sm:table-cell whitespace-nowrap">
-                          {m.data_vencimento ? (
-                            <span className={cn(vencido && 'text-rose-500')}>
-                              {fmtDate(m.data_vencimento)}
-                              {vencido && <span className="ml-1 text-xs">(expirado)</span>}
-                            </span>
-                          ) : '—'}
-                        </td>
-                        <td className="px-4 py-2 hidden md:table-cell text-muted-foreground text-xs">
-                          {m.metadados
-                            ? `${m.metadados.horas.toFixed(2)}h ${m.metadados.aeronave_nome} @ ${fmt(m.metadados.tarifa)}/h`
-                            : '—'}
-                        </td>
+            ) : (() => {
+              const hoje = new Date().toISOString().split('T')[0]
+              const totalVencido = historicoData
+                .filter(m => m.data_vencimento && m.data_vencimento < hoje)
+                .reduce((acc, m) => acc + m.valor, 0)
+              return (
+                <>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/30">
+                        <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Data</th>
+                        <th className="text-right px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Valor R$</th>
+                        <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Vencimento</th>
+                        <th className="text-left px-4 py-2 font-medium text-muted-foreground">Equivalência</th>
                       </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            )}
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {historicoData.map(m => {
+                        const vencido = !!(m.data_vencimento && m.data_vencimento < hoje)
+                        const expanded = expandedEquiv.has(m.id)
+                        return (
+                          <tr key={m.id} className={cn('hover:bg-muted/20', vencido && 'opacity-60')}>
+                            <td className="px-4 py-2 whitespace-nowrap text-muted-foreground">
+                              {fmtDate(m.data_transacao.split('T')[0])}
+                            </td>
+                            <td className="px-4 py-2 text-right whitespace-nowrap">
+                              <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                                +{fmt(m.valor)}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2 whitespace-nowrap">
+                              {m.data_vencimento ? (
+                                <span className={cn('text-sm', vencido ? 'text-rose-500' : '')}>
+                                  {fmtDate(m.data_vencimento)}
+                                  {vencido && <span className="ml-1 text-xs">(expirado)</span>}
+                                </span>
+                              ) : '—'}
+                            </td>
+                            <td className="px-4 py-2">
+                              <button
+                                type="button"
+                                onClick={() => setExpandedEquiv(prev => {
+                                  const next = new Set(prev)
+                                  next.has(m.id) ? next.delete(m.id) : next.add(m.id)
+                                  return next
+                                })}
+                                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                Ver equivalência
+                                <ChevronDown className={cn('h-3 w-3 transition-transform', expanded && 'rotate-180')} />
+                              </button>
+                              {expanded && (
+                                <div className="flex flex-col gap-0.5 text-xs text-muted-foreground mt-1.5">
+                                  {historicoAeronaves.map(a => {
+                                    if (a.tipo === 'aviao') {
+                                      const solo = a.valor_solo > 0 ? `${(m.valor / a.valor_solo).toFixed(1)}h solo` : null
+                                      const duplo = a.valor_duplo > 0 ? `${(m.valor / a.valor_duplo).toFixed(1)}h duplo` : null
+                                      const eq = [solo, duplo].filter(Boolean).join(' / ')
+                                      return <span key={a.id}><span className="font-medium text-foreground">{a.nome}:</span> {eq}</span>
+                                    } else {
+                                      const sessoes = a.valor_fixo_inicial > 0
+                                        ? `${(m.valor / a.valor_fixo_inicial).toFixed(1)} sessões`
+                                        : '—'
+                                      return <span key={a.id}><span className="font-medium text-foreground">{a.nome}:</span> {sessoes}</span>
+                                    }
+                                  })}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                  {totalVencido > 0 && (
+                    <div className="mx-4 my-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm dark:border-rose-900 dark:bg-rose-950/30">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-rose-700 dark:text-rose-400 font-semibold">Saldo vencido</span>
+                        <span className="text-rose-700 dark:text-rose-400 font-bold">{fmt(totalVencido)}</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5 text-xs text-rose-600 dark:text-rose-400">
+                        {historicoAeronaves.map(a => {
+                          if (a.tipo === 'aviao') {
+                            const solo = a.valor_solo > 0 ? `${(totalVencido / a.valor_solo).toFixed(1)}h solo` : null
+                            const duplo = a.valor_duplo > 0 ? `${(totalVencido / a.valor_duplo).toFixed(1)}h duplo` : null
+                            const eq = [solo, duplo].filter(Boolean).join(' / ')
+                            return <span key={a.id}><span className="font-medium">{a.nome}:</span> {eq}</span>
+                          } else {
+                            const sessoes = a.valor_fixo_inicial > 0
+                              ? `${(totalVencido / a.valor_fixo_inicial).toFixed(1)} sessões`
+                              : '—'
+                            return <span key={a.id}><span className="font-medium">{a.nome}:</span> {sessoes}</span>
+                          }
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )
+            })()}
           </div>
           <DialogFooter>
-            <Button onClick={() => setHistoricoOpen(false)}>Fechar</Button>
+            <Button onClick={() => { setHistoricoOpen(false); setExpandedEquiv(new Set()) }}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

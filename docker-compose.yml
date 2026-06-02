@@ -57,8 +57,3 @@ networks:
   aeroclube_network:
     driver: bridge
 
-# -----------------------------------------------------------------------------
-# VOLUMES NOMEADOS
-# Dados do banco persistem entre restarts do container.
-volumes:
-  db_data:

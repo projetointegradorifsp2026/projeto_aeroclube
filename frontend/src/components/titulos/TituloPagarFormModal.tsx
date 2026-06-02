@@ -176,7 +176,7 @@ export function TituloPagarFormModal({
     if (cf) {
       setForm(p => ({
         ...p,
-        favorecido: cf.favorecido,
+        favorecido: cfId,
         valor: cf.valor,
         parcela_valores: distributeValor(cf.valor, p.total_parcelas),
       }))
@@ -281,7 +281,7 @@ export function TituloPagarFormModal({
     if (form.tipo === 'fornecedor') {
       return (
         <SearchSelect
-          options={fornecedores.map(f => ({ value: f.nome, label: f.nome }))}
+          options={fornecedores.map(f => ({ value: f.id, label: f.nome }))}
           value={form.favorecido}
           onChange={v => setForm(p => ({ ...p, favorecido: v }))}
           placeholder="Selecione o fornecedor"
@@ -292,7 +292,7 @@ export function TituloPagarFormModal({
     if (form.tipo === 'folha') {
       return (
         <SearchSelect
-          options={instrutores.map(u => ({ value: u.nome, label: u.nome }))}
+          options={instrutores.map(u => ({ value: u.id, label: u.nome }))}
           value={form.favorecido}
           onChange={v => setForm(p => ({ ...p, favorecido: v }))}
           placeholder="Selecione o instrutor/funcionário"

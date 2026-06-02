@@ -23,11 +23,13 @@ class EntidadePagar(models.Model):
     TIPO_FORNECEDOR = "fornecedor"
     TIPO_FUNCIONARIO = "funcionario"
     TIPO_INSTRUTOR = "instrutor"
+    TIPO_CLIENTE = "cliente"
 
     TIPO_CHOICES = [
         (TIPO_FORNECEDOR, "Fornecedor"),
         (TIPO_FUNCIONARIO, "Funcionário"),
         (TIPO_INSTRUTOR, "Instrutor"),
+        (TIPO_CLIENTE, "Cliente"),
     ]
 
     nome = models.CharField("Nome / Razão Social", max_length=200)

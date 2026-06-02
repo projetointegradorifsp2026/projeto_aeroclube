@@ -12,10 +12,17 @@ from .serializers import (
 
 
 class EntidadePagarViewSet(viewsets.ModelViewSet):
-    """GET /api/v1/entidades/ — lista todas as entidades (fornecedores, funcionários, instrutores)."""
+    """GET /api/v1/entidades/?tipo=cliente|fornecedor|funcionario|instrutor"""
     queryset = EntidadePagar.objects.filter(is_active=True).order_by("nome")
     serializer_class = EntidadePagarSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        tipo = self.request.query_params.get("tipo")
+        if tipo:
+            qs = qs.filter(tipo=tipo)
+        return qs
 
     def destroy(self, request, *args, **kwargs):
         obj = self.get_object()
@@ -30,6 +37,12 @@ class FornecedorViewSet(viewsets.ModelViewSet):
     serializer_class = FornecedorSerializer
     permission_classes = [IsAuthenticated]
 
+    def destroy(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.is_active = False
+        obj.save()
+        return Response({"detail": "Fornecedor desativado."}, status=status.HTTP_200_OK)
+
 
 class FuncionarioViewSet(viewsets.ModelViewSet):
     """GET /api/v1/funcionarios/  (inclui instrutores)"""
@@ -43,3 +56,9 @@ class FuncionarioViewSet(viewsets.ModelViewSet):
         if is_instrutor is not None:
             qs = qs.filter(is_instrutor=is_instrutor.lower() == "true")
         return qs
+
+    def destroy(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.is_active = False
+        obj.save()
+        return Response({"detail": "Funcionário desativado."}, status=status.HTTP_200_OK)

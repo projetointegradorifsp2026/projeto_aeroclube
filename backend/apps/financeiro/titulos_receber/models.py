@@ -62,7 +62,7 @@ class TituloReceber(models.Model):
     juros_aplicado = models.DecimalField("Juros aplicado (R$)", max_digits=8, decimal_places=2, default=Decimal("0.00"))
     valor_pago = models.DecimalField("Valor pago (R$)", max_digits=10, decimal_places=2, default=Decimal("0.00"))
 
-    data_emissao = models.DateField("Data de emissão", default=timezone.now)
+    data_emissao = models.DateField("Data de emissão", default=timezone.localdate)
     data_vencimento = models.DateField("Data de vencimento")
     data_pagamento = models.DateField("Data do último pagamento", null=True, blank=True)
 

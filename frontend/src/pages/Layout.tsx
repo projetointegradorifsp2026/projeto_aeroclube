@@ -332,6 +332,11 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, currentUse
                                             <span className="text-xs text-muted-foreground truncate text-start">
                                                 {userEmail}
                                             </span>
+                                            {perfil && (
+                                                <span className="inline-flex w-fit mt-0.5 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary leading-tight">
+                                                    {PROFILE_LABELS[perfil as keyof typeof PROFILE_LABELS] ?? perfil}
+                                                </span>
+                                            )}
                                         </div>
                                     )}
                                 </div>

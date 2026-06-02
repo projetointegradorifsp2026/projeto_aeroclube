@@ -425,7 +425,7 @@ export default function VooFormPage() {
         if (voo.instrutor_id && voo.instrutor_nome && voo.taxa_instrutor && voo.taxa_instrutor > 0) {
           await createTituloPagar({
             tipo: 'instrutor',
-            favorecido: voo.instrutor_nome,
+            favorecido: voo.instrutor_id,
             descricao: `Instrução – ${descricaoVoo}`,
             num_parcela: 1,
             total_parcelas: 1,
@@ -499,8 +499,8 @@ export default function VooFormPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* ── Aeronave ─────────────────────────────────────────────────────── */}
-        <Card>
-          <CardContent className="p-6 space-y-4">
+        <Card className="overflow-visible">
+          <CardContent className="p-6 space-y-4 overflow-visible">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               Aeronave
             </p>

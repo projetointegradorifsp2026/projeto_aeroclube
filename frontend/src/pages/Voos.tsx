@@ -201,10 +201,11 @@ export default function Voos() {
                           <span className="font-medium">{v.aeronave_nome}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 font-medium whitespace-nowrap">
-                        {v.tipo_aeronave === 'planador'
-                          ? `${Math.round(v.tempo_decimal * 60)}min`
-                          : `${v.tempo_decimal.toFixed(1)}h`}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <p className="font-medium">{Math.round(v.tempo_decimal * 60)} min</p>
+                        <p className="text-xs text-muted-foreground">
+                          {v.tempo_decimal.toFixed(1).replace('.', ',')} h
+                        </p>
                       </td>
                       <td className="px-4 py-3 font-medium whitespace-nowrap">
                         {fmt(v.valor_voo)}

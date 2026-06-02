@@ -96,7 +96,7 @@ const selectCls =
 const dateCls =
   'h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
 
-const CLIENTE_PERFIS = ['aluno', 'socio'] as const
+const CLIENTE_PERFIS = ['aluno', 'socio', 'externo'] as const
 
 export function TituloReceberFormModal({
   titulo,
@@ -246,10 +246,10 @@ export function TituloReceberFormModal({
     if (form.tipo === 'servico') {
       return (
         <SearchSelect
-          options={usuariosOptions}
+          options={clientesOptions}
           value={form.usuario_id}
-          onChange={v => handleDevedorChange(v, usuariosOptions)}
-          placeholder="Selecione o devedor"
+          onChange={v => handleDevedorChange(v, clientesOptions)}
+          placeholder="Selecione o cliente"
           hasError={!!errors.usuario_nome}
         />
       )

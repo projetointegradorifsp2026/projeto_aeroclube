@@ -21,15 +21,14 @@ interface BackendFuncionario {
   is_active: boolean
 }
 
-interface BackendUser {
+interface BackendEntidade {
   id: number
   nome: string
   cpf_cnpj: string | null
-  email: string
+  email: string | null
+  contato: string | null
+  tipo: string
   is_active: boolean
-  perfis: { id: number; perfil: string }[]
-  perfil_ativo: string
-  date_joined: string
 }
 
 function adaptFornecedor(f: BackendFornecedor): Entidade {
@@ -56,15 +55,15 @@ function adaptFuncionario(f: BackendFuncionario): Entidade {
   }
 }
 
-function adaptCliente(u: BackendUser): Entidade {
+function adaptEntidade(e: BackendEntidade): Entidade {
   return {
-    id: String(u.id),
-    nome: u.nome,
-    cpf_cnpj: u.cpf_cnpj ?? '',
-    email: u.email,
-    contato: '',
-    tipo: 'cliente',
-    is_active: u.is_active,
+    id: String(e.id),
+    nome: e.nome,
+    cpf_cnpj: e.cpf_cnpj ?? '',
+    email: e.email ?? '',
+    contato: e.contato ?? '',
+    tipo: e.tipo as EntidadeTipo,
+    is_active: e.is_active,
   }
 }
 
@@ -82,20 +81,22 @@ export async function getEntidades(tipo?: EntidadeTipo): Promise<Entidade[]> {
     return items.map(adaptFuncionario)
   }
   if (tipo === 'cliente') {
-    const items = await apiList<BackendUser>('/api/v1/usuarios/?perfil=externo')
-    return items.map(adaptCliente)
+    const items = await apiList<BackendEntidade>('/api/v1/entidades/?tipo=cliente')
+    return items.map(adaptEntidade)
   }
 
-  // No filter: fetch all types in parallel
-  const [fornecedores, funcionarios, instrutores] = await Promise.all([
+  // Sem filtro: busca todos em paralelo
+  const [fornecedores, funcionarios, instrutores, clientes] = await Promise.all([
     apiList<BackendFornecedor>('/api/v1/fornecedores/'),
     apiList<BackendFuncionario>('/api/v1/funcionarios/?instrutor=false'),
     apiList<BackendFuncionario>('/api/v1/funcionarios/?instrutor=true'),
+    apiList<BackendEntidade>('/api/v1/entidades/?tipo=cliente'),
   ])
   return [
     ...fornecedores.map(adaptFornecedor),
     ...funcionarios.map(adaptFuncionario),
     ...instrutores.map(adaptFuncionario),
+    ...clientes.map(adaptEntidade),
   ].sort((a, b) => a.nome.localeCompare(b.nome))
 }
 
@@ -124,14 +125,13 @@ export async function createEntidade(data: Omit<Entidade, 'id'>): Promise<Entida
   if (data.tipo === 'cliente') {
     const payload = {
       nome: data.nome,
-      email: data.email || '',
       cpf_cnpj: data.cpf_cnpj || null,
-      perfil_ativo: 'externo',
-      password: 'Mudar@123',
+      email: data.email || null,
+      contato: data.contato || null,
+      tipo: 'cliente',
     }
-    const created = await apiPost<BackendUser>('/api/v1/usuarios/', payload)
-    await apiPost(`/api/v1/usuarios/${created.id}/adicionar-perfil/`, { perfil: 'externo' })
-    return adaptCliente(created)
+    const created = await apiPost<BackendEntidade>('/api/v1/entidades/', payload)
+    return adaptEntidade(created)
   }
   throw new Error(`Tipo de entidade '${data.tipo}' não suportado para criação`)
 }
@@ -153,14 +153,8 @@ export async function updateEntidade(
     return adaptFornecedor(updated)
   }
   if (existingTipo === 'cliente') {
-    // Clientes são usuarios — contato não existe no model Usuario
-    const userPayload: Record<string, unknown> = {}
-    if (data.nome !== undefined) userPayload.nome = data.nome
-    if (data.email !== undefined) userPayload.email = data.email || null
-    if (data.cpf_cnpj !== undefined) userPayload.cpf_cnpj = data.cpf_cnpj || null
-    if (data.is_active !== undefined) userPayload.is_active = data.is_active
-    const updated = await apiPatch<BackendUser>(`/api/v1/usuarios/${id}/`, userPayload)
-    return adaptCliente(updated)
+    const updated = await apiPatch<BackendEntidade>(`/api/v1/entidades/${id}/`, payload)
+    return adaptEntidade(updated)
   }
   const updated = await apiPatch<BackendFuncionario>(`/api/v1/funcionarios/${id}/`, payload)
   return adaptFuncionario(updated)
@@ -168,7 +162,7 @@ export async function updateEntidade(
 
 export async function deleteEntidade(id: string, tipo?: EntidadeTipo): Promise<void> {
   if (tipo === 'cliente') {
-    await apiPatch(`/api/v1/usuarios/${id}/`, { is_active: false })
+    await apiDelete(`/api/v1/entidades/${id}/`)
     return
   }
   if (tipo === 'fornecedor') {
