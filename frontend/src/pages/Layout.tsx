@@ -105,8 +105,12 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, currentUse
     }
 
     const titulosReceberLabel = ['aluno', 'socio', 'externo'].includes(perfil)
-        ? 'Títulos a pagar'
+        ? 'Minhas Faturas'
         : 'Títulos a receber'
+
+    const titulosPagarLabel = ['instrutor', 'funcionario'].includes(perfil)
+        ? 'Meus Pagamentos'
+        : 'Títulos a pagar'
 
     return (
         <>
@@ -218,11 +222,11 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, currentUse
                                         <SidebarMenuButton
                                             asChild
                                             isActive={pathname.startsWith("/titulos-a-pagar")}
-                                            tooltip="Títulos a pagar"
+                                            tooltip={titulosPagarLabel}
                                         >
                                             <Link to="/titulos-a-pagar">
                                                 <FileOutput />
-                                                <span className="group-data-[collapsible=icon]:hidden">Títulos a pagar</span>
+                                                <span className="group-data-[collapsible=icon]:hidden">{titulosPagarLabel}</span>
                                             </Link>
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>

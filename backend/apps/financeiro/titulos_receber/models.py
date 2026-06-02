@@ -39,6 +39,17 @@ class TituloReceber(models.Model):
         on_delete=models.PROTECT,
         related_name="titulos_receber",
         verbose_name="Participante",
+        null=True,
+        blank=True,
+    )
+    # Clientes externos (empresas/pessoas que não são usuários do sistema)
+    cliente_externo = models.ForeignKey(
+        "pessoas.EntidadePagar",
+        on_delete=models.PROTECT,
+        related_name="titulos_receber",
+        verbose_name="Cliente externo",
+        null=True,
+        blank=True,
     )
     tipo = models.CharField("Tipo", max_length=20, choices=TIPO_CHOICES)
     descricao = models.CharField("Descrição", max_length=300)
@@ -77,7 +88,12 @@ class TituloReceber(models.Model):
         ordering = ["data_vencimento"]
 
     def __str__(self):
-        return f"{self.participante.nome} | {self.descricao} | {self.get_status_display()}"
+        nome = (
+            self.participante.nome if self.participante
+            else self.cliente_externo.nome if self.cliente_externo
+            else "—"
+        )
+        return f"{nome} | {self.descricao} | {self.get_status_display()}"
 
     @property
     def valor_total_com_juros(self) -> Decimal:

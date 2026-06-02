@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils'
 export interface TituloReceberFormData {
   usuario_id: string
   usuario_nome: string
+  cliente_externo_id?: string
   tipo: TituloReceberTipo
   descricao: string
   total_parcelas: number
@@ -41,7 +42,8 @@ interface TituloReceberFormModalProps {
   onDeleteRequest?: () => void
 }
 
-const TIPOS_FORM: TituloReceberTipo[] = ['mensalidade', 'pontual', 'servico']
+const TIPOS_FORM_CREATE: TituloReceberTipo[] = ['mensalidade', 'pontual', 'servico']
+const TIPOS_FORM_EDIT: TituloReceberTipo[] = ['mensalidade', 'pontual', 'servico', 'voo']
 
 const todayStr = () => new Date().toISOString().split('T')[0]
 
@@ -162,7 +164,7 @@ export function TituloReceberFormModal({
   }, [titulo, open])
 
   function handleTipoChange(newTipo: TituloReceberTipo) {
-    setForm(p => ({ ...p, tipo: newTipo, usuario_id: '', usuario_nome: '' }))
+    setForm(p => ({ ...p, tipo: newTipo, usuario_id: '', usuario_nome: '', cliente_externo_id: undefined }))
   }
 
   function handleValorChange(val: number) {
@@ -247,8 +249,11 @@ export function TituloReceberFormModal({
       return (
         <SearchSelect
           options={clientesOptions}
-          value={form.usuario_id}
-          onChange={v => handleDevedorChange(v, clientesOptions)}
+          value={form.cliente_externo_id ?? ''}
+          onChange={v => {
+            const found = clientesOptions.find(o => o.value === v)
+            setForm(p => ({ ...p, cliente_externo_id: v, usuario_id: '', usuario_nome: found?.label ?? v }))
+          }}
           placeholder="Selecione o cliente"
           hasError={!!errors.usuario_nome}
         />
@@ -304,7 +309,7 @@ export function TituloReceberFormModal({
                 value={form.tipo}
                 onChange={e => handleTipoChange(e.target.value as TituloReceberTipo)}
               >
-                {TIPOS_FORM.map(t => (
+                {(isEdit ? TIPOS_FORM_EDIT : TIPOS_FORM_CREATE).map(t => (
                   <option key={t} value={t}>
                     {TITULO_RECEBER_TIPO_LABELS[t]}
                   </option>

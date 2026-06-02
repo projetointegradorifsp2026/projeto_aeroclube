@@ -184,7 +184,7 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessa
                   >
                     <Eye className="h-3.5 w-3.5" />
                   </Button>
-                  {showBaixa && t.tipo !== 'carteira' && (
+                  {showBaixa && (
                     <Button size="sm" onClick={() => onBaixa(t)}>
                       Dar baixa
                       <CircleDollarSign className="h-3.5 w-3.5" />
@@ -279,6 +279,7 @@ export default function TitulosReceber() {
           createTituloReceber({
             usuario_id: data.usuario_id,
             usuario_nome: data.usuario_nome,
+            cliente_externo_id: data.cliente_externo_id,
             tipo: data.tipo,
             descricao: data.descricao,
             num_parcela: i + 1,

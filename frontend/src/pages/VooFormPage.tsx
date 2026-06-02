@@ -25,7 +25,7 @@ import { type TipoAeronave, type Aeronave } from '@/mocks/aeronaves'
 import { getAeronaves } from '@/services/aeronavesService'
 import { getUsers, type User } from '@/services/usersService'
 import { createVoo, updateVoo, deleteVoo } from '@/services/voosService'
-import { createTituloReceber } from '@/services/titulosReceberService'
+import { createTituloReceber, baixarTituloReceber } from '@/services/titulosReceberService'
 import { createTituloPagar } from '@/services/titulosPagarService'
 import { debitarCarteira } from '@/services/usersService'
 import { cn } from '@/lib/utils'
@@ -403,8 +403,8 @@ export default function VooFormPage() {
             status: 'em_aberto',
           })
         } else if (carteiraUsadaNum > 0) {
-          // Full wallet coverage — create a baixado título as record
-          await createTituloReceber({
+          // Full wallet coverage — create título and immediately baixar it
+          const tituloVoo = await createTituloReceber({
             usuario_id: voo.participante_id,
             usuario_nome: voo.participante_nome,
             tipo: 'voo',
@@ -412,14 +412,15 @@ export default function VooFormPage() {
             num_parcela: 1,
             total_parcelas: 1,
             valor: voo.valor_voo,
-            valor_pago: voo.valor_voo,
+            valor_pago: 0,
             juros_aplicado: 0,
             valor_carteira: voo.valor_voo,
             data_emissao: voo.data,
             data_vencimento: voo.data_vencimento,
-            data_pagamento: voo.data,
-            status: 'baixado',
+            data_pagamento: null,
+            status: 'em_aberto',
           })
+          await baixarTituloReceber(tituloVoo.id, voo.valor_voo, voo.data)
         }
 
         if (voo.instrutor_id && voo.instrutor_nome && voo.taxa_instrutor && voo.taxa_instrutor > 0) {

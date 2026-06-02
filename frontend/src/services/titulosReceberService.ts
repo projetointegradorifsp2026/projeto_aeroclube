@@ -3,7 +3,8 @@ import { type TituloReceber, type TituloReceberTipo, type TituloReceberStatus } 
 
 interface BackendTituloReceber {
   id: number
-  participante: number
+  participante: number | null
+  cliente_externo: number | null
   participante_nome: string
   tipo: string
   descricao: string
@@ -49,9 +50,10 @@ function adaptTitulo(t: BackendTituloReceber): TituloReceber {
     status = 'em_aberto'
   }
 
+  const juros = parseFloat(t.juros_aplicado)
   return {
     id: String(t.id),
-    usuario_id: String(t.participante),
+    usuario_id: t.participante ? String(t.participante) : String(t.cliente_externo ?? ''),
     usuario_nome: t.participante_nome,
     tipo: (TIPO_BACKEND_TO_FRONTEND[t.tipo] ?? 'pontual') as TituloReceberTipo,
     descricao: t.descricao,
@@ -59,7 +61,8 @@ function adaptTitulo(t: BackendTituloReceber): TituloReceber {
     total_parcelas: t.total_parcelas,
     valor: parseFloat(t.valor_original),
     valor_pago: valorPago,
-    juros_aplicado: parseFloat(t.juros_aplicado),
+    juros_aplicado: juros,
+    multa: juros > 0 ? juros : undefined,
     data_emissao: t.data_emissao,
     data_vencimento: t.data_vencimento,
     data_pagamento: t.data_pagamento,
@@ -72,9 +75,13 @@ export async function getTitulosReceber(): Promise<TituloReceber[]> {
   return titulos.map(adaptTitulo)
 }
 
-export async function createTituloReceber(data: Omit<TituloReceber, 'id'>): Promise<TituloReceber> {
+export async function createTituloReceber(
+  data: Omit<TituloReceber, 'id'> & { cliente_externo_id?: string },
+): Promise<TituloReceber> {
+  const isExternal = !!data.cliente_externo_id
   const payload = {
-    participante: data.usuario_id ? parseInt(data.usuario_id) : undefined,
+    participante: isExternal ? undefined : (data.usuario_id ? parseInt(data.usuario_id) : undefined),
+    cliente_externo: isExternal ? parseInt(data.cliente_externo_id!) : undefined,
     tipo: TIPO_FRONTEND_TO_BACKEND[data.tipo] ?? 'outros',
     descricao: data.descricao,
     num_parcela: data.num_parcela,

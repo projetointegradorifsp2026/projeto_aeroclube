@@ -53,7 +53,7 @@ export const TITULO_RECEBER_TIPO_LABELS: Record<TituloReceberTipo, string> = {
   mensalidade: 'Mensalidade',
   pontual: 'Pontual',
   servico: 'Serviço',
-  voo: 'Voo',
+  voo: 'Cobrança de Voo',
   carteira: 'Carteira',
 }
 

@@ -8,12 +8,12 @@ class TituloReceberSerializer(serializers.ModelSerializer):
     esta_atrasado = serializers.BooleanField(read_only=True)
     saldo_devedor = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     valor_total_com_juros = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
-    participante_nome = serializers.CharField(source="participante.nome", read_only=True)
+    participante_nome = serializers.SerializerMethodField()
 
     class Meta:
         model = TituloReceber
         fields = [
-            "id", "participante", "participante_nome",
+            "id", "participante", "cliente_externo", "participante_nome",
             "tipo", "tipo_display", "descricao",
             "voo",
             "num_parcela", "total_parcelas",
@@ -24,6 +24,22 @@ class TituloReceberSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = ["id", "created_at", "valor_pago", "juros_aplicado"]
+
+    def get_participante_nome(self, obj):
+        if obj.participante:
+            return obj.participante.nome
+        if obj.cliente_externo:
+            return obj.cliente_externo.nome
+        return "—"
+
+    def validate(self, data):
+        participante = data.get("participante") or self.instance and self.instance.participante
+        cliente_externo = data.get("cliente_externo") or self.instance and self.instance.cliente_externo
+        if not participante and not cliente_externo:
+            raise serializers.ValidationError(
+                {"participante": "Informe participante ou cliente externo."}
+            )
+        return data
 
 
 class BaixaParcialSerializer(serializers.Serializer):

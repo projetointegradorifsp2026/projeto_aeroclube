@@ -20,8 +20,10 @@ class AviaoViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        qs = Aviao.objects.all() if self.request.query_params.get("all") == "true" else Aviao.objects.filter(is_active=True)
-        return qs.order_by("nome")
+        qs = Aviao.objects.all().order_by("nome")
+        if self.action == 'list' and self.request.query_params.get("all") != "true":
+            qs = qs.filter(is_active=True)
+        return qs
 
     def perform_update(self, serializer):
         """Registra histórico antes de salvar."""
@@ -52,8 +54,10 @@ class PlanadorViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        qs = Planador.objects.all() if self.request.query_params.get("all") == "true" else Planador.objects.filter(is_active=True)
-        return qs.order_by("nome")
+        qs = Planador.objects.all().order_by("nome")
+        if self.action == 'list' and self.request.query_params.get("all") != "true":
+            qs = qs.filter(is_active=True)
+        return qs
 
     def destroy(self, request, *args, **kwargs):
         obj = self.get_object()

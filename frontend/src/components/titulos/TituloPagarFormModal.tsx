@@ -254,6 +254,7 @@ export function TituloPagarFormModal({
   function validate(): boolean {
     const e: FormErrors = {}
     if (!form.favorecido.trim()) e.favorecido = 'Favorecido é obrigatório'
+    if (!form.descricao.trim()) e.descricao = 'Descrição é obrigatória'
     if (!form.valor || form.valor <= 0) e.valor = 'Valor deve ser maior que zero'
     if (!form.data_emissao) e.data_emissao = 'Data de emissão é obrigatória'
     if (form.parcela_vencimentos.some(d => !d))
