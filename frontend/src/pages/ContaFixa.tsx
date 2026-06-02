@@ -47,10 +47,12 @@ export default function ContaFixa() {
   useEffect(() => { setPage(1) }, [search, statusFilter])
 
   useEffect(() => {
-    getContasFixas().then(data => {
-      setContas(data)
-      setLoading(false)
-    })
+    getContasFixas()
+      .then(data => {
+        setContas(data)
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
   }, [])
 
   const filtered = useMemo(() => {

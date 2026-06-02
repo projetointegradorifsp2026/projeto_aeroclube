@@ -244,7 +244,7 @@ export default function TitulosReceber() {
         const matchTipo = tipoFilter === 'all' || t.tipo === tipoFilter
         return matchSearch && matchTipo
       })
-      .sort((a, b) => b.data_vencimento.localeCompare(a.data_vencimento))
+      .sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento))
   }, [titulos, search, tipoFilter])
 
   const emAbertoList = filtered.filter(

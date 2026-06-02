@@ -13,6 +13,7 @@ import {
   Plus,
   Minus,
   KeyRound,
+  History,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,6 +21,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TablePagination } from '@/components/ui/pagination'
 import { Input } from '@/components/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog,
   DialogContent,
@@ -28,13 +30,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { getUsers, updateUser, addSaldoCarteira, debitarCarteira, resetPassword, type User } from '@/services/usersService'
+import {
+  getUsers,
+  updateUser,
+  addSaldoCarteira,
+  debitarCarteira,
+  resetPassword,
+  getMovimentacoesCarteira,
+  type User,
+  type MovimentacaoCarteira,
+  type CreditoHorasMetadados,
+} from '@/services/usersService'
+import { getAeronaves, type Aeronave } from '@/services/aeronavesService'
 import { UserFormModal, type UserFormData } from '@/components/users/UserFormModal'
 import { getCurrentUser } from '@/services/api/auth'
 import {
   getTitulosReceber,
   baixarTituloReceber,
-  createTituloReceber,
   type TituloReceber,
 } from '@/services/titulosReceberService'
 import { getTitulosPagar, createTituloPagar } from '@/services/titulosPagarService'
@@ -98,9 +110,20 @@ export default function UsuarioPerfilPage() {
   // Carteira
   const [saldoVisible, setSaldoVisible] = useState(false)
   const [addSaldoOpen, setAddSaldoOpen] = useState(false)
+  const [addSaldoTab, setAddSaldoTab] = useState<'valor' | 'horas'>('valor')
   const [addSaldoValor, setAddSaldoValor] = useState('')
   const [addSaldoData, setAddSaldoData] = useState(todayStr())
   const [addSaldoSaving, setAddSaldoSaving] = useState(false)
+  // Aba "Por Horas"
+  const [aeronaves, setAeronaves] = useState<Aeronave[]>([])
+  const [horasAeronaveId, setHorasAeronaveId] = useState('')
+  const [horasTipoVoo, setHorasTipoVoo] = useState<'solo' | 'duplo'>('solo')
+  const [horasQtd, setHorasQtd] = useState('')
+  const [horasValorInput, setHorasValorInput] = useState('')
+  // Histórico da carteira
+  const [historicoOpen, setHistoricoOpen] = useState(false)
+  const [historicoData, setHistoricoData] = useState<MovimentacaoCarteira[]>([])
+  const [historicoLoading, setHistoricoLoading] = useState(false)
   const [removeSaldoOpen, setRemoveSaldoOpen] = useState(false)
   const [removeSaldoValor, setRemoveSaldoValor] = useState('')
   const [removeSaldoData, setRemoveSaldoData] = useState(todayStr())
@@ -277,34 +300,98 @@ export default function UsuarioPerfilPage() {
     setResetSuccess(false)
   }
 
+  function getHorasTarifa(): number {
+    if (!horasAeronaveId) return 0
+    const aeronave = aeronaves.find(a => a.id === horasAeronaveId)
+    if (!aeronave) return 0
+    if (aeronave.tipo === 'aviao') return horasTipoVoo === 'duplo' ? aeronave.valor_duplo : aeronave.valor_solo
+    return aeronave.valor_fixo_inicial
+  }
+
+  function handleHorasQtdChange(val: string) {
+    setHorasQtd(val)
+    const tarifa = getHorasTarifa()
+    if (tarifa > 0 && val) {
+      setHorasValorInput((parseFloat(val) * tarifa).toFixed(2))
+    } else {
+      setHorasValorInput('')
+    }
+  }
+
+  function handleHorasValorChange(val: string) {
+    setHorasValorInput(val)
+    const tarifa = getHorasTarifa()
+    if (tarifa > 0 && val) {
+      setHorasQtd((parseFloat(val) / tarifa).toFixed(2))
+    } else {
+      setHorasQtd('')
+    }
+  }
+
+  function openAddSaldo() {
+    setAddSaldoValor('')
+    setAddSaldoData(todayStr())
+    setAddSaldoTab('valor')
+    setHorasAeronaveId('')
+    setHorasTipoVoo('solo')
+    setHorasQtd('')
+    setHorasValorInput('')
+    if (aeronaves.length === 0) {
+      getAeronaves().then(av => setAeronaves(av.filter(a => a.is_active)))
+    }
+    setAddSaldoOpen(true)
+  }
+
   async function handleAddSaldo() {
     if (!user) return
-    const valor = parseFloat(addSaldoValor)
+    const tarifa = getHorasTarifa()
+    const valor = addSaldoTab === 'horas'
+      ? parseFloat(horasValorInput)
+      : parseFloat(addSaldoValor)
     if (!valor || valor <= 0 || !addSaldoData) return
+
+    let descricao = 'Recarga de carteira'
+    let horasMetadados: CreditoHorasMetadados | undefined
+
+    if (addSaldoTab === 'horas' && horasAeronaveId) {
+      const aeronave = aeronaves.find(a => a.id === horasAeronaveId)
+      if (aeronave) {
+        const labelTipo = aeronave.tipo === 'aviao'
+          ? (horasTipoVoo === 'duplo' ? 'Duplo Comando' : 'Solo')
+          : 'Sessão'
+        descricao = `Compra de horas — ${aeronave.nome} (${parseFloat(horasQtd).toFixed(2)}h ${labelTipo})`
+        horasMetadados = {
+          aeronave_id: parseInt(aeronave.id),
+          aeronave_nome: aeronave.nome,
+          aeronave_tipo: aeronave.tipo as 'aviao' | 'planador',
+          tipo_voo: aeronave.tipo === 'aviao' ? horasTipoVoo : null,
+          tarifa,
+          horas: parseFloat(horasQtd),
+        }
+      }
+    }
+
     setAddSaldoSaving(true)
-    const [updatedUser] = await Promise.all([
-      addSaldoCarteira(user.id, valor),
-      createTituloReceber({
-        usuario_id: user.id,
-        usuario_nome: user.nome,
-        tipo: 'carteira',
-        descricao: `Recarga de carteira`,
-        num_parcela: 1,
-        total_parcelas: 1,
-        valor,
-        valor_pago: valor,
-        juros_aplicado: 0,
-        data_emissao: addSaldoData,
-        data_vencimento: addSaldoData,
-        data_pagamento: addSaldoData,
-        status: 'baixado',
-      }),
-    ])
-    setUser(updatedUser)
-    await reloadMovimentacoes(updatedUser.nome)
-    setAddSaldoOpen(false)
-    setAddSaldoValor('')
-    setAddSaldoSaving(false)
+    try {
+      const updatedUser = await addSaldoCarteira(user.id, valor, descricao, addSaldoData, horasMetadados)
+      setUser(updatedUser)
+      await reloadMovimentacoes(updatedUser.nome)
+      setAddSaldoOpen(false)
+    } finally {
+      setAddSaldoSaving(false)
+    }
+  }
+
+  async function handleOpenHistorico() {
+    if (!user) return
+    setHistoricoOpen(true)
+    setHistoricoLoading(true)
+    try {
+      const mov = await getMovimentacoesCarteira(user.id)
+      setHistoricoData(mov)
+    } finally {
+      setHistoricoLoading(false)
+    }
   }
 
   async function handleRemoveSaldo() {
@@ -508,9 +595,14 @@ export default function UsuarioPerfilPage() {
         {/* Carteira */}
         <Card className="lg:col-span-1">
           <CardHeader className="border-b pb-3">
-            <div className="flex items-center gap-2">
-              <Wallet className="h-4 w-4 text-muted-foreground" />
-              <CardTitle className="text-base font-semibold">Carteira</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Wallet className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-base font-semibold">Carteira</CardTitle>
+              </div>
+              <Button variant="ghost" size="icon-sm" onClick={handleOpenHistorico} title="Histórico de créditos">
+                <History className="h-4 w-4 text-muted-foreground" />
+              </Button>
             </div>
           </CardHeader>
           <CardContent className="pt-5 pb-5 space-y-5">
@@ -542,7 +634,7 @@ export default function UsuarioPerfilPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => { setAddSaldoValor(''); setAddSaldoData(todayStr()); setAddSaldoOpen(true) }}
+                    onClick={openAddSaldo}
                   >
                     <Plus className="h-4 w-4" />
                     Adicionar
@@ -738,50 +830,165 @@ export default function UsuarioPerfilPage() {
       {/* Modal de edição */}
       <UserFormModal user={user} open={editOpen} onClose={() => setEditOpen(false)} onSave={handleSaveUser} restrictedFields={!isAdmin} />
 
-      {/* Dialog: Adicionar Saldo */}
+      {/* Dialog: Adicionar Saldo (Por Valor ou Por Horas) */}
       <Dialog open={addSaldoOpen} onOpenChange={o => !o && setAddSaldoOpen(false)}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Adicionar Saldo</DialogTitle>
             <DialogDescription>
               Um título baixado será gerado como comprovante do crédito adicionado.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-1">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Valor a adicionar (R$)</label>
-              <Input
-                type="number"
-                min={0.01}
-                step={0.01}
-                placeholder="0,00"
-                value={addSaldoValor}
-                onChange={e => setAddSaldoValor(e.target.value)}
-                hasError={!!addSaldoError}
-                helper={addSaldoError ?? undefined}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Data</label>
-              <Input
-                type="date"
-                value={addSaldoData}
-                onChange={e => setAddSaldoData(e.target.value)}
-              />
-            </div>
-            <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm">
-              <span className="text-muted-foreground">Saldo atual: </span>
-              <span className="font-medium">{fmt(user.saldo_carteira)}</span>
-              {addSaldoValor && !addSaldoError && parseFloat(addSaldoValor) > 0 && (
-                <>
-                  <span className="text-muted-foreground mx-1.5">→</span>
-                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                    {fmt(user.saldo_carteira + parseFloat(addSaldoValor))}
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
+
+          <Tabs value={addSaldoTab} onValueChange={v => setAddSaldoTab(v as 'valor' | 'horas')}>
+            <TabsList className="w-full">
+              <TabsTrigger value="valor" className="flex-1">Por Valor</TabsTrigger>
+              <TabsTrigger value="horas" className="flex-1">Por Horas</TabsTrigger>
+            </TabsList>
+
+            {/* ABA: Por Valor */}
+            <TabsContent value="valor" className="space-y-3 pt-2">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Valor a adicionar (R$)</label>
+                <Input
+                  type="number"
+                  min={0.01}
+                  step={0.01}
+                  placeholder="0,00"
+                  value={addSaldoValor}
+                  onChange={e => setAddSaldoValor(e.target.value)}
+                  hasError={!!addSaldoError}
+                  helper={addSaldoError ?? undefined}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Data de vencimento</label>
+                <Input
+                  type="date"
+                  value={addSaldoData}
+                  onChange={e => setAddSaldoData(e.target.value)}
+                />
+              </div>
+              <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm">
+                <span className="text-muted-foreground">Saldo atual: </span>
+                <span className="font-medium">{fmt(user.saldo_carteira)}</span>
+                {addSaldoValor && !addSaldoError && parseFloat(addSaldoValor) > 0 && (
+                  <>
+                    <span className="text-muted-foreground mx-1.5">→</span>
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                      {fmt(user.saldo_carteira + parseFloat(addSaldoValor))}
+                    </span>
+                  </>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* ABA: Por Horas */}
+            <TabsContent value="horas" className="space-y-3 pt-2">
+              {(() => {
+                const selectCls = 'h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
+                const selectedAeronave = aeronaves.find(a => a.id === horasAeronaveId)
+                const tarifa = getHorasTarifa()
+                const horasLabel = selectedAeronave?.tipo === 'planador' ? 'Sessões' : 'Horas de voo'
+
+                return (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Aeronave</label>
+                        <select
+                          className={selectCls}
+                          value={horasAeronaveId}
+                          onChange={e => {
+                            setHorasAeronaveId(e.target.value)
+                            setHorasQtd('')
+                            setHorasValorInput('')
+                          }}
+                        >
+                          <option value="">Selecione</option>
+                          {aeronaves.map(a => (
+                            <option key={a.id} value={a.id}>{a.nome}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {selectedAeronave?.tipo === 'aviao' && (
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium">Tipo de voo</label>
+                          <select
+                            className={selectCls}
+                            value={horasTipoVoo}
+                            onChange={e => {
+                              setHorasTipoVoo(e.target.value as 'solo' | 'duplo')
+                              setHorasQtd('')
+                              setHorasValorInput('')
+                            }}
+                          >
+                            <option value="solo">Solo</option>
+                            <option value="duplo">Duplo Comando</option>
+                          </select>
+                        </div>
+                      )}
+                    </div>
+
+                    {selectedAeronave && tarifa > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Tarifa vigente: {fmt(tarifa)}/{selectedAeronave.tipo === 'planador' ? 'sessão' : 'hora'}
+                      </p>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">{horasLabel}</label>
+                        <Input
+                          type="number"
+                          min={0.1}
+                          step={0.1}
+                          placeholder="0,0"
+                          value={horasQtd}
+                          onChange={e => handleHorasQtdChange(e.target.value)}
+                          disabled={!horasAeronaveId}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Valor R$</label>
+                        <Input
+                          type="number"
+                          min={0.01}
+                          step={0.01}
+                          placeholder="0,00"
+                          value={horasValorInput}
+                          onChange={e => handleHorasValorChange(e.target.value)}
+                          disabled={!horasAeronaveId}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Data de vencimento</label>
+                      <Input
+                        type="date"
+                        value={addSaldoData}
+                        onChange={e => setAddSaldoData(e.target.value)}
+                      />
+                    </div>
+
+                    {horasValorInput && parseFloat(horasValorInput) > 0 && (
+                      <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm">
+                        <span className="text-muted-foreground">Saldo atual: </span>
+                        <span className="font-medium">{fmt(user.saldo_carteira)}</span>
+                        <span className="text-muted-foreground mx-1.5">→</span>
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                          {fmt(user.saldo_carteira + parseFloat(horasValorInput))}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
+            </TabsContent>
+          </Tabs>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddSaldoOpen(false)} disabled={addSaldoSaving}>
               Cancelar
@@ -790,10 +997,9 @@ export default function UsuarioPerfilPage() {
               onClick={handleAddSaldo}
               disabled={
                 addSaldoSaving ||
-                !addSaldoValor ||
-                !!addSaldoError ||
-                parseFloat(addSaldoValor) <= 0 ||
-                !addSaldoData
+                !addSaldoData ||
+                (addSaldoTab === 'valor' && (!addSaldoValor || !!addSaldoError || parseFloat(addSaldoValor) <= 0)) ||
+                (addSaldoTab === 'horas' && (!horasAeronaveId || !horasValorInput || parseFloat(horasValorInput) <= 0))
               }
             >
               {addSaldoSaving ? 'Salvando...' : 'Confirmar'}
@@ -958,6 +1164,77 @@ export default function UsuarioPerfilPage() {
             <Button onClick={handleBatchBaixa} disabled={batchBaixando || !batchData}>
               {batchBaixando ? 'Processando...' : `Confirmar ${selectedTitulos.length} título${selectedTitulos.length !== 1 ? 's' : ''}`}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Histórico da Carteira */}
+      <Dialog open={historicoOpen} onOpenChange={o => !o && setHistoricoOpen(false)}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Histórico de Créditos — {user.nome}</DialogTitle>
+            <DialogDescription>
+              Créditos adicionados à carteira, com validade e equivalência em horas.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1">
+            {historicoLoading ? (
+              <div className="space-y-2 p-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : historicoData.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                <Wallet className="h-8 w-8 mb-2 opacity-30" />
+                <p className="text-sm">Nenhum crédito registrado</p>
+              </div>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground">Data</th>
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground">Descrição</th>
+                    <th className="text-right px-4 py-2 font-medium text-muted-foreground">Valor R$</th>
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground hidden sm:table-cell">Vencimento</th>
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground hidden md:table-cell">Equivalência</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {historicoData.map(m => {
+                    const hoje = new Date().toISOString().split('T')[0]
+                    const vencido = m.data_vencimento && m.data_vencimento < hoje
+                    return (
+                      <tr key={m.id} className={cn('hover:bg-muted/20', vencido && 'opacity-50')}>
+                        <td className="px-4 py-2 whitespace-nowrap text-muted-foreground">
+                          {fmtDate(m.data_transacao.split('T')[0])}
+                        </td>
+                        <td className="px-4 py-2 max-w-[200px] truncate">{m.descricao}</td>
+                        <td className="px-4 py-2 text-right font-medium text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                          +{fmt(m.valor)}
+                        </td>
+                        <td className="px-4 py-2 hidden sm:table-cell whitespace-nowrap">
+                          {m.data_vencimento ? (
+                            <span className={cn(vencido && 'text-rose-500')}>
+                              {fmtDate(m.data_vencimento)}
+                              {vencido && <span className="ml-1 text-xs">(expirado)</span>}
+                            </span>
+                          ) : '—'}
+                        </td>
+                        <td className="px-4 py-2 hidden md:table-cell text-muted-foreground text-xs">
+                          {m.metadados
+                            ? `${m.metadados.horas.toFixed(2)}h ${m.metadados.aeronave_nome} @ ${fmt(m.metadados.tarifa)}/h`
+                            : '—'}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setHistoricoOpen(false)}>Fechar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

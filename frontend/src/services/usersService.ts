@@ -126,17 +126,77 @@ export async function resetPassword(id: string): Promise<void> {
   await apiPost(`/api/v1/usuarios/${id}/resetar-senha/`, {})
 }
 
-export async function addSaldoCarteira(id: string, valor: number): Promise<User> {
+export interface CreditoHorasMetadados {
+  aeronave_id: number
+  aeronave_nome: string
+  aeronave_tipo: 'aviao' | 'planador'
+  tipo_voo: 'solo' | 'duplo' | null
+  tarifa: number
+  horas: number
+}
+
+export async function addSaldoCarteira(
+  id: string,
+  valor: number,
+  descricao: string,
+  dataVencimento: string,
+  horasMetadados?: CreditoHorasMetadados,
+): Promise<User> {
   const carteira = await getOrCreateCarteira(id)
   await apiPost(`/api/v1/carteiras/${carteira.id}/creditar/`, {
     valor: valor.toFixed(2),
-    descricao: 'Adição de saldo via sistema',
+    descricao,
+    data_vencimento: dataVencimento,
+    ...(horasMetadados
+      ? {
+          aeronave_id: horasMetadados.aeronave_id,
+          tipo_voo: horasMetadados.tipo_voo,
+          horas: horasMetadados.horas.toFixed(2),
+        }
+      : {}),
   })
   const [user, saldoMap] = await Promise.all([
     apiGet<BackendUser>(`/api/v1/usuarios/${id}/`),
     getSaldoMap(),
   ])
   return adaptUser(user, saldoMap.get(user.id) ?? 0)
+}
+
+export interface MovimentacaoCarteira {
+  id: string
+  tipo: 'credito' | 'debito' | 'ajuste'
+  valor: number
+  descricao: string
+  data_transacao: string
+  data_vencimento: string | null
+  metadados: CreditoHorasMetadados | null
+}
+
+interface BackendMovimentacao {
+  id: number
+  tipo: string
+  valor: string
+  descricao: string
+  data_transacao: string
+  data_vencimento: string | null
+  metadados: CreditoHorasMetadados | null
+}
+
+export async function getMovimentacoesCarteira(userId: string): Promise<MovimentacaoCarteira[]> {
+  const items = await apiList<BackendMovimentacao>(
+    `/api/v1/movimentacoes-carteira/?participante=${userId}`,
+  )
+  return items
+    .filter(m => m.tipo === 'credito')
+    .map(m => ({
+      id: String(m.id),
+      tipo: m.tipo as 'credito' | 'debito' | 'ajuste',
+      valor: parseFloat(m.valor),
+      descricao: m.descricao,
+      data_transacao: m.data_transacao,
+      data_vencimento: m.data_vencimento,
+      metadados: m.metadados,
+    }))
 }
 
 export async function debitarCarteira(id: string, valor: number): Promise<User> {

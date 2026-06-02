@@ -265,7 +265,7 @@ export default function TitulosPagar() {
             descricao: data.descricao,
             num_parcela: i + 1,
             total_parcelas: data.total_parcelas,
-            valor: data.recorrente ? (data.parcela_valores[i] ?? data.valor) : data.valor,
+            valor: data.parcela_valores[i] ?? data.valor,
             multa: 0,
             data_emissao: data.data_emissao,
             data_vencimento: venc,

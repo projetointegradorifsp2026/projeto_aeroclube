@@ -122,7 +122,10 @@ export function TituloPagarFormModal({
         getContasFixas(),
       ]).then(([f, us, cfs]) => {
         setFornecedores(f.filter(e => e.is_active))
-        setInstrutores(us.filter(u => u.is_active && u.perfis.includes('instrutor' as UserProfile)))
+        setInstrutores(us.filter(u =>
+          u.is_active &&
+          (u.perfis.includes('instrutor' as UserProfile) || u.perfis.includes('funcionario' as UserProfile)),
+        ))
         setContasFixas(cfs.filter(cf => cf.is_active))
       }).catch(() => {})
     }

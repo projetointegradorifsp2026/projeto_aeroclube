@@ -15,6 +15,7 @@ class MovimentacaoCarteiraSerializer(serializers.ModelSerializer):
             "data_transacao", "data_vencimento",
             "voo",
             "participante_id", "participante_nome",
+            "metadados",
         ]
         read_only_fields = ["id", "data_transacao"]
 
@@ -43,3 +44,7 @@ class CreditarCarteiraSerializer(serializers.Serializer):
     valor = serializers.DecimalField(max_digits=10, decimal_places=2)
     descricao = serializers.CharField(max_length=300, default="Compra de horas pré-pagas")
     data_vencimento = serializers.DateField(required=False, allow_null=True)
+    # Campos opcionais para compra por horas (price freeze)
+    aeronave_id = serializers.IntegerField(required=False, allow_null=True)
+    tipo_voo = serializers.CharField(max_length=20, required=False, allow_null=True)
+    horas = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, allow_null=True)

@@ -62,7 +62,7 @@ class CarteiraViewSet(mixins.CreateModelMixin,
         """
         POST /api/v1/carteiras/{id}/creditar/
         RF12: Registra compra antecipada de horas.
-        Cria movimentação de crédito + título a receber.
+        Cria movimentação de crédito + título a receber já baixado.
         """
         carteira = self.get_object()
         ser = CreditarCarteiraSerializer(data=request.data)
@@ -70,19 +70,57 @@ class CarteiraViewSet(mixins.CreateModelMixin,
 
         valor = ser.validated_data["valor"]
         descricao = ser.validated_data["descricao"]
-        data_vencimento = ser.validated_data.get("data_vencimento")
+        data_vencimento = ser.validated_data.get("data_vencimento") or timezone.now().date()
+        aeronave_id = ser.validated_data.get("aeronave_id")
+        tipo_voo = ser.validated_data.get("tipo_voo")
+        horas = ser.validated_data.get("horas")
+
+        # Monta metadados de price freeze se compra for por horas
+        metadados = None
+        if aeronave_id and horas:
+            from apps.aeronaves.models import Aeronave
+            try:
+                aeronave = Aeronave.objects.get(pk=aeronave_id)
+                tarifa = None
+                if aeronave.tipo == Aeronave.TIPO_AVIAO:
+                    aviao = aeronave.aviao
+                    tarifa = float(
+                        aviao.tarifa_duplo_comando if tipo_voo == "duplo" else aviao.tarifa_solo
+                    )
+                elif aeronave.tipo == Aeronave.TIPO_PLANADOR:
+                    tarifa = float(aeronave.planador.valor_fixo_inicial)
+                metadados = {
+                    "aeronave_id": aeronave_id,
+                    "aeronave_nome": aeronave.nome,
+                    "aeronave_tipo": aeronave.tipo,
+                    "tipo_voo": tipo_voo,
+                    "tarifa": tarifa,
+                    "horas": float(horas),
+                }
+            except Aeronave.DoesNotExist:
+                pass
+
+        hoje = timezone.now().date()
 
         with transaction.atomic():
-            # Credita na carteira
-            carteira.creditar(valor=valor, descricao=descricao, data_vencimento=data_vencimento)
+            # Credita na carteira com metadados de price freeze
+            carteira.creditar(
+                valor=valor,
+                descricao=descricao,
+                data_vencimento=data_vencimento,
+                metadados=metadados,
+            )
 
-            # Gera título a receber pela compra das horas
+            # Gera título a receber já baixado (não duplicar no frontend)
             titulo = TituloReceber.objects.create(
                 participante=carteira.participante,
                 tipo=TituloReceber.TIPO_HORAS_PRE_PAGAS,
-                descricao=f"Compra de horas pré-pagas — {descricao}",
+                descricao=descricao,
                 valor_original=valor,
-                data_vencimento=timezone.now().date(),
+                valor_pago=valor,
+                status=TituloReceber.STATUS_BAIXADO,
+                data_pagamento=hoje,
+                data_vencimento=data_vencimento,
             )
 
         return Response({
