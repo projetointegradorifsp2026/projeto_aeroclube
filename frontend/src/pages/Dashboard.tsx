@@ -28,13 +28,16 @@ import {
     type Movimentacao,
     type TituloVencer,
 } from '@/services/dashboardService'
-import { getTitulosReceber, type TituloReceber } from '@/services/titulosReceberService'
-import { getTitulosPagar, type TituloPagar } from '@/services/titulosPagarService'
+import { getTitulosReceber, createTituloReceber, type TituloReceber } from '@/services/titulosReceberService'
+import { getTitulosPagar, createTituloPagar, type TituloPagar } from '@/services/titulosPagarService'
 import { getVoos, type Voo } from '@/services/voosService'
 import { getCurrentUser } from '@/services/api/auth'
-import { getUsers, type User } from '@/services/usersService'
+import { getUsers, createUser, type User } from '@/services/usersService'
 import { Link, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import { UserFormModal, type UserFormData } from '@/components/users/UserFormModal'
+import { TituloPagarFormModal, type TituloPagarFormData } from '@/components/titulos/TituloPagarFormModal'
+import { TituloReceberFormModal, type TituloReceberFormData } from '@/components/titulos/TituloReceberFormModal'
 
 // ─── Formatters ──────────────────────────────────────────────────────────────
 
@@ -166,17 +169,18 @@ function BarChart({ data }: { data: DespesaCategoria[] }) {
 
 interface QuickLinkItem {
     label: string
-    to: string
+    to?: string
+    onClick?: () => void
     icon: typeof Plane
     iconBg: string
     iconColor: string
 }
 
-const QUICK_LINKS_ADMIN: QuickLinkItem[] = [
-    { label: 'Registrar voo', to: '/voos', icon: Plane, iconBg: 'bg-blue-100 dark:bg-blue-900/30', iconColor: 'text-blue-600 dark:text-blue-400' },
-    { label: 'Títulos a Pagar', to: '/titulos-a-pagar', icon: FileText, iconBg: 'bg-rose-100 dark:bg-rose-900/30', iconColor: 'text-rose-600 dark:text-rose-400' },
-    { label: 'Títulos a Receber', to: '/titulos-a-receber', icon: BookOpen, iconBg: 'bg-emerald-100 dark:bg-emerald-900/30', iconColor: 'text-emerald-600 dark:text-emerald-400' },
-    { label: 'Cadastrar usuário', to: '/usuarios', icon: UserPlus, iconBg: 'bg-violet-100 dark:bg-violet-900/30', iconColor: 'text-violet-600 dark:text-violet-400' },
+const QUICK_LINKS_ADMIN_BASE: Omit<QuickLinkItem, 'onClick'>[] = [
+    { label: 'Registrar voo', to: '/voos/novo', icon: Plane, iconBg: 'bg-blue-100 dark:bg-blue-900/30', iconColor: 'text-blue-600 dark:text-blue-400' },
+    { label: 'Títulos a Pagar', icon: FileText, iconBg: 'bg-rose-100 dark:bg-rose-900/30', iconColor: 'text-rose-600 dark:text-rose-400' },
+    { label: 'Títulos a Receber', icon: BookOpen, iconBg: 'bg-emerald-100 dark:bg-emerald-900/30', iconColor: 'text-emerald-600 dark:text-emerald-400' },
+    { label: 'Cadastrar usuário', icon: UserPlus, iconBg: 'bg-violet-100 dark:bg-violet-900/30', iconColor: 'text-violet-600 dark:text-violet-400' },
 ]
 
 const QUICK_LINKS_ALUNO: QuickLinkItem[] = [
@@ -199,29 +203,35 @@ const QUICK_LINKS_FUNCIONARIO: QuickLinkItem[] = [
     { label: 'Meu Perfil', to: '#perfil', icon: BookOpen, iconBg: 'bg-violet-100 dark:bg-violet-900/30', iconColor: 'text-violet-600 dark:text-violet-400' },
 ]
 
-function QuickCard({ label, to, icon: Icon, iconBg, iconColor }: QuickLinkItem) {
+function QuickCard({ label, to, onClick, icon: Icon, iconBg, iconColor }: QuickLinkItem) {
     const navigate = useNavigate()
-    const isProfileLink = to === '#perfil'
     const user = getCurrentUser()
 
+    const className = "flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium hover:shadow-sm hover:border-border/80 transition-all group w-full text-left"
+    const inner = (
+        <>
+            <div className={cn('rounded-lg p-2 shrink-0', iconBg)}>
+                <Icon className={cn('h-4 w-4', iconColor)} />
+            </div>
+            <span className="flex-1">{label}</span>
+            <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
+        </>
+    )
+
+    if (onClick) {
+        return <button onClick={onClick} className={className}>{inner}</button>
+    }
+
     function handleClick(e: React.MouseEvent) {
-        if (isProfileLink && user) {
+        if (to === '#perfil' && user) {
             e.preventDefault()
             navigate(`/usuarios/${user.id}`)
         }
     }
 
     return (
-        <Link
-            to={to}
-            onClick={handleClick}
-            className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 text-sm font-medium hover:shadow-sm hover:border-border/80 transition-all group"
-        >
-            <div className={cn('rounded-lg p-2 shrink-0', iconBg)}>
-                <Icon className={cn('h-4 w-4', iconColor)} />
-            </div>
-            <span className="flex-1">{label}</span>
-            <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground group-hover:text-foreground transition-colors" />
+        <Link to={to!} onClick={handleClick} className={className}>
+            {inner}
         </Link>
     )
 }
@@ -469,6 +479,9 @@ function DashboardAdmin() {
     const [movs, setMovs] = useState<Movimentacao[]>([])
     const [titulos, setTitulos] = useState<TituloVencer[]>([])
     const [loading, setLoading] = useState(true)
+    const [userModalOpen, setUserModalOpen] = useState(false)
+    const [pagarModalOpen, setPagarModalOpen] = useState(false)
+    const [receberModalOpen, setReceberModalOpen] = useState(false)
 
     useEffect(() => {
         Promise.all([getResumoFinanceiro(), getPeriodoData(), getDespesas(), getMovimentacoes(), getTitulosVencer()])
@@ -477,6 +490,66 @@ function DashboardAdmin() {
                 setLoading(false)
             })
     }, [])
+
+    async function handleSaveUser(data: UserFormData) {
+        await createUser(data)
+        setUserModalOpen(false)
+    }
+
+    async function handleSavePagar(data: TituloPagarFormData) {
+        await Promise.all(
+            data.parcela_vencimentos.map((venc, i) =>
+                createTituloPagar({
+                    tipo: data.tipo,
+                    favorecido: data.favorecido,
+                    descricao: data.descricao,
+                    num_parcela: i + 1,
+                    total_parcelas: data.total_parcelas,
+                    valor: data.parcela_valores[i] ?? data.valor,
+                    multa: 0,
+                    data_emissao: data.data_emissao,
+                    data_vencimento: venc,
+                    status: 'em_aberto',
+                    valor_pago: null,
+                    data_pagamento: null,
+                    recorrente: data.recorrente,
+                })
+            )
+        )
+        setPagarModalOpen(false)
+    }
+
+    async function handleSaveReceber(data: TituloReceberFormData) {
+        await Promise.all(
+            data.parcela_vencimentos.map((venc, i) =>
+                createTituloReceber({
+                    usuario_id: data.usuario_id,
+                    usuario_nome: data.usuario_nome,
+                    cliente_externo_id: data.cliente_externo_id,
+                    tipo: data.tipo,
+                    descricao: data.descricao,
+                    num_parcela: i + 1,
+                    total_parcelas: data.total_parcelas,
+                    valor: data.parcela_valores[i] ?? data.valor,
+                    valor_pago: 0,
+                    juros_aplicado: 0,
+                    multa: 0,
+                    data_emissao: data.data_emissao,
+                    data_vencimento: venc,
+                    data_pagamento: null,
+                    status: 'em_aberto',
+                })
+            )
+        )
+        setReceberModalOpen(false)
+    }
+
+    const adminQuickLinks: QuickLinkItem[] = QUICK_LINKS_ADMIN_BASE.map(l => {
+        if (l.label === 'Títulos a Pagar') return { ...l, onClick: () => setPagarModalOpen(true) }
+        if (l.label === 'Títulos a Receber') return { ...l, onClick: () => setReceberModalOpen(true) }
+        if (l.label === 'Cadastrar usuário') return { ...l, onClick: () => setUserModalOpen(true) }
+        return l
+    })
 
     const titulosGrouped = titulos.reduce<Record<string, TituloVencer[]>>((acc, t) => {
         if (!acc[t.data]) acc[t.data] = []
@@ -497,7 +570,7 @@ function DashboardAdmin() {
                     <section>
                         <p className="text-sm font-medium text-muted-foreground mb-3">Acessos rápidos</p>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            {QUICK_LINKS_ADMIN.map(l => <QuickCard key={l.label} {...l} />)}
+                            {adminQuickLinks.map(l => <QuickCard key={l.label} {...l} />)}
                         </div>
                     </section>
 
@@ -569,6 +642,22 @@ function DashboardAdmin() {
                     </div>
                 </div>
             </div>
+
+            <UserFormModal
+                open={userModalOpen}
+                onClose={() => setUserModalOpen(false)}
+                onSave={handleSaveUser}
+            />
+            <TituloPagarFormModal
+                open={pagarModalOpen}
+                onClose={() => setPagarModalOpen(false)}
+                onSave={handleSavePagar}
+            />
+            <TituloReceberFormModal
+                open={receberModalOpen}
+                onClose={() => setReceberModalOpen(false)}
+                onSave={handleSaveReceber}
+            />
         </div>
     )
 }
