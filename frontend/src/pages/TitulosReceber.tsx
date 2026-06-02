@@ -69,9 +69,11 @@ interface TableProps {
   onBaixa: (t: TituloReceber) => void
   onView: (t: TituloReceber) => void
   emptyMessage: string
+  hideDevedor?: boolean
+  labelPago?: string
 }
 
-function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessage }: TableProps) {
+function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessage, hideDevedor, labelPago }: TableProps) {
   const [page, setPage] = useState(1)
   useEffect(() => { setPage(1) }, [items])
   const PAGE_SIZE = 10
@@ -93,9 +95,11 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessa
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/30">
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
-                Devedor
-              </th>
+              {!hideDevedor && (
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
+                  Devedor
+                </th>
+              )}
               <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">
                 Tipo
               </th>
@@ -124,9 +128,11 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessa
           <tbody className="divide-y divide-border">
             {paginated.map(t => (
             <tr key={t.id} className="hover:bg-muted/20 transition-colors">
-              <td className="px-4 py-3">
-                <p className="font-medium">{t.usuario_nome}</p>
-              </td>
+              {!hideDevedor && (
+                <td className="px-4 py-3">
+                  <p className="font-medium">{t.usuario_nome}</p>
+                </td>
+              )}
               <td className="px-4 py-3 hidden sm:table-cell">
                 <TipoBadge tipo={t.tipo} />
               </td>
@@ -140,7 +146,7 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessa
                 {t.status === 'baixado' && t.data_pagamento ? (
                   <div>
                     <p className="text-muted-foreground">{fmtDate(t.data_vencimento)}</p>
-                    <p className="text-xs text-emerald-600">Recebido em {fmtDate(t.data_pagamento)}</p>
+                    <p className="text-xs text-emerald-600">{labelPago ?? 'Recebido em'} {fmtDate(t.data_pagamento)}</p>
                   </div>
                 ) : (
                   <p className={cn('text-muted-foreground', isAtrasado(t) && 'text-rose-500 font-medium')}>
@@ -402,22 +408,22 @@ export default function TitulosReceber() {
     <div className="pt-2 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Títulos a Receber</h1>
+        <h1 className="text-2xl font-bold text-foreground">
+          {isAdmin ? 'Títulos a Receber' : 'Minhas Faturas'}
+        </h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Gerencie os títulos a receber do aeroclube
+          {isAdmin ? 'Gerencie os títulos a receber do aeroclube' : 'Acompanhe seus pagamentos ao aeroclube'}
         </p>
       </div>
 
       {/* Filters */}
       <div className="flex items-center gap-3">
         <FilterInput
-          size="sm"
           value={search}
           onChange={setSearch}
-          placeholder="Buscar por devedor ou descrição..."
+          placeholder={isAdmin ? 'Buscar por devedor ou descrição...' : 'Buscar por descrição...'}
         />
         <FilterSelect
-          size="sm"
           value={tipoFilter}
           onChange={v => setTipoFilter(v as TipoFilter)}
         >
@@ -466,7 +472,7 @@ export default function TitulosReceber() {
               )}
             </TabsTrigger>
             <TabsTrigger value="baixado">
-              Baixados
+              {isAdmin ? 'Baixados' : 'Quitados'}
               {baixadoList.length > 0 && (
                 <span className="ml-1.5 rounded-full bg-emerald-100 text-emerald-700 px-1.5 py-0.5 text-xs font-medium">
                   {baixadoList.length}
@@ -490,6 +496,8 @@ export default function TitulosReceber() {
                   onBaixa={openBaixa}
                   onView={openView}
                   emptyMessage="Nenhum título em aberto"
+                  hideDevedor={!isAdmin}
+                  labelPago={isAdmin ? 'Recebido em' : 'Pago em'}
                 />
               </CardContent>
             </Card>
@@ -510,6 +518,8 @@ export default function TitulosReceber() {
                   onBaixa={openBaixa}
                   onView={openView}
                   emptyMessage="Nenhum título em atraso"
+                  hideDevedor={!isAdmin}
+                  labelPago={isAdmin ? 'Recebido em' : 'Pago em'}
                 />
               </CardContent>
             </Card>
@@ -530,6 +540,8 @@ export default function TitulosReceber() {
                   onBaixa={openBaixa}
                   onView={openView}
                   emptyMessage="Nenhum título baixado"
+                  hideDevedor={!isAdmin}
+                  labelPago={isAdmin ? 'Recebido em' : 'Pago em'}
                 />
               </CardContent>
             </Card>

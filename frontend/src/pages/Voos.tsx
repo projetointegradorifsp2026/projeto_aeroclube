@@ -36,7 +36,8 @@ const TIPO_VOO_COLORS: Record<TipoVoo, string> = {
 
 export default function Voos() {
   const navigate = useNavigate()
-  const isAdmin = getCurrentUser()?.perfil_ativo === 'admin'
+  const currentUser = getCurrentUser()
+  const isAdmin = currentUser?.perfil_ativo === 'admin'
 
   const [voos, setVoos] = useState<Voo[]>([])
   const [aeronaves, setAeronaves] = useState<Aeronave[]>([])
@@ -54,7 +55,7 @@ export default function Voos() {
 
   useEffect(() => {
     Promise.all([getVoos(), getAeronaves()]).then(([vs, avs]) => {
-      setVoos(vs)
+      setVoos(isAdmin ? vs : vs.filter(v => v.participante_id === String(currentUser?.id) || v.instrutor_id === String(currentUser?.id)))
       setAeronaves(avs)
       setLoading(false)
     })

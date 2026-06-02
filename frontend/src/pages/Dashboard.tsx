@@ -12,6 +12,7 @@ import {
     CheckCircle2,
     Clock,
     History,
+    ChartSpline,
 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -181,7 +182,7 @@ const QUICK_LINKS_ADMIN: QuickLinkItem[] = [
 const QUICK_LINKS_ALUNO: QuickLinkItem[] = [
     { label: 'Meus Voos', to: '/voos', icon: Plane, iconBg: 'bg-blue-100 dark:bg-blue-900/30', iconColor: 'text-blue-600 dark:text-blue-400' },
     { label: 'Minhas Faturas', to: '/titulos-a-receber', icon: FileText, iconBg: 'bg-rose-100 dark:bg-rose-900/30', iconColor: 'text-rose-600 dark:text-rose-400' },
-    { label: 'Minha Carteira', to: '/movimentacoes', icon: Wallet, iconBg: 'bg-teal-100 dark:bg-teal-900/30', iconColor: 'text-teal-600 dark:text-teal-400' },
+    { label: 'Movimentações', to: '/movimentacoes', icon: ChartSpline, iconBg: 'bg-teal-100 dark:bg-teal-900/30', iconColor: 'text-teal-600 dark:text-teal-400' },
     { label: 'Meu Perfil', to: '#perfil', icon: BookOpen, iconBg: 'bg-violet-100 dark:bg-violet-900/30', iconColor: 'text-violet-600 dark:text-violet-400' },
 ]
 
