@@ -333,7 +333,8 @@ export default function TitulosReceber() {
     setBaixaUsarCarteira(false)
     setBaixaCarteiraValor('')
     setBaixaUserSaldo(null)
-    if (t.usuario_id) {
+    // Bug 3: só busca saldo de carteira para participantes (não para clientes externos)
+    if (t.usuario_id && !t.is_cliente_externo) {
       getUsers().then(users => {
         const user = users.find(u => u.id === t.usuario_id)
         setBaixaUserSaldo(user?.saldo_carteira ?? 0)
@@ -366,26 +367,10 @@ export default function TitulosReceber() {
     const multa = parseFloat(baixaMulta) || 0
     const carteiraAmount = baixaUsarCarteira ? (parseFloat(baixaCarteiraValor) || 0) : 0
 
+    // Bug 5: debita a carteira diretamente (a MovimentacaoCarteira já registra o evento)
+    // Não cria mais TituloReceber fantasma de tipo 'carteira'
     if (carteiraAmount > 0 && baixaTarget.usuario_id) {
-      await Promise.all([
-        debitarCarteira(baixaTarget.usuario_id, carteiraAmount),
-        createTituloReceber({
-          usuario_id: baixaTarget.usuario_id,
-          usuario_nome: baixaTarget.usuario_nome,
-          tipo: 'carteira',
-          descricao: `Débito carteira – ${baixaTarget.descricao}`,
-          num_parcela: 1,
-          total_parcelas: 1,
-          valor: carteiraAmount,
-          valor_pago: carteiraAmount,
-          juros_aplicado: 0,
-          data_emissao: baixaData,
-          data_vencimento: baixaData,
-          data_pagamento: baixaData,
-          status: 'baixado',
-          carteira_debito: true,
-        }),
-      ])
+      await debitarCarteira(baixaTarget.usuario_id, carteiraAmount)
     }
 
     const totalPayment = (parseFloat(baixaValor) || 0) + carteiraAmount
@@ -702,7 +687,16 @@ export default function TitulosReceber() {
                       step={0.01}
                       className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow"
                       value={baixaMulta}
-                      onChange={e => setBaixaMulta(e.target.value)}
+                      onChange={e => {
+                        const novaMulta = parseFloat(e.target.value) || 0
+                        setBaixaMulta(e.target.value)
+                        // Bug 2: recalcula o valor em dinheiro para cobrir original + nova multa
+                        if (baixaTarget) {
+                          const novoRestante = baixaTarget.valor + novaMulta - baixaTarget.valor_pago
+                          const carteiraAtual = baixaUsarCarteira ? (parseFloat(baixaCarteiraValor) || 0) : 0
+                          setBaixaValor(Math.max(0, novoRestante - carteiraAtual).toFixed(2))
+                        }
+                      }}
                     />
                   </div>
                 )}

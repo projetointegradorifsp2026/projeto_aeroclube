@@ -17,13 +17,13 @@ class TituloReceberSerializer(serializers.ModelSerializer):
             "tipo", "tipo_display", "descricao",
             "voo",
             "num_parcela", "total_parcelas",
-            "valor_original", "juros_aplicado", "valor_pago",
+            "valor_original", "juros_aplicado", "valor_pago", "valor_via_carteira",
             "valor_total_com_juros", "saldo_devedor",
             "data_emissao", "data_vencimento", "data_pagamento",
             "status", "status_display", "esta_atrasado",
             "created_at",
         ]
-        read_only_fields = ["id", "created_at", "valor_pago", "juros_aplicado"]
+        read_only_fields = ["id", "created_at", "valor_pago", "juros_aplicado", "valor_via_carteira"]
 
     def get_participante_nome(self, obj):
         if obj.participante:
@@ -47,6 +47,7 @@ class BaixaParcialSerializer(serializers.Serializer):
     valor = serializers.DecimalField(max_digits=10, decimal_places=2)
     juros = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, default=0)
     data_pagamento = serializers.DateField(required=False, allow_null=True)
+    valor_via_carteira = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=0)
 
 
 class QuitacaoMultiplaSerializer(serializers.Serializer):

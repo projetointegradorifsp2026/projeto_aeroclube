@@ -72,6 +72,7 @@ class TituloReceber(models.Model):
     valor_original = models.DecimalField("Valor original (R$)", max_digits=10, decimal_places=2)
     juros_aplicado = models.DecimalField("Juros aplicado (R$)", max_digits=8, decimal_places=2, default=Decimal("0.00"))
     valor_pago = models.DecimalField("Valor pago (R$)", max_digits=10, decimal_places=2, default=Decimal("0.00"))
+    valor_via_carteira = models.DecimalField("Valor pago via carteira (R$)", max_digits=10, decimal_places=2, default=Decimal("0.00"))
 
     data_emissao = models.DateField("Data de emissão", default=timezone.localdate)
     data_vencimento = models.DateField("Data de vencimento")
@@ -107,12 +108,13 @@ class TituloReceber(models.Model):
     def esta_atrasado(self) -> bool:
         return self.status == self.STATUS_ABERTO and self.data_vencimento < timezone.now().date()
 
-    def aplicar_baixa_parcial(self, valor: Decimal, juros: Decimal = Decimal("0"), data=None):
+    def aplicar_baixa_parcial(self, valor: Decimal, juros: Decimal = Decimal("0"), data=None, valor_via_carteira: Decimal = Decimal("0")):
         """
         RF06: Aplica uma baixa parcial. Se o valor cobre o saldo total, baixa o título.
         """
         self.juros_aplicado += juros
         self.valor_pago += valor
+        self.valor_via_carteira += valor_via_carteira
         self.data_pagamento = data or timezone.now().date()
         if self.valor_pago >= self.valor_total_com_juros:
             self.status = self.STATUS_BAIXADO

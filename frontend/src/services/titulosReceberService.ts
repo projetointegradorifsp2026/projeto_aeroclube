@@ -14,6 +14,7 @@ interface BackendTituloReceber {
   valor_original: string
   juros_aplicado: string
   valor_pago: string
+  valor_via_carteira: string
   valor_total_com_juros: string
   saldo_devedor: string
   data_emissao: string
@@ -51,10 +52,12 @@ function adaptTitulo(t: BackendTituloReceber): TituloReceber {
   }
 
   const juros = parseFloat(t.juros_aplicado)
+  const valorViaCarteira = parseFloat(t.valor_via_carteira || '0')
   return {
     id: String(t.id),
     usuario_id: t.participante ? String(t.participante) : String(t.cliente_externo ?? ''),
     usuario_nome: t.participante_nome,
+    is_cliente_externo: t.cliente_externo !== null && t.participante === null,
     tipo: (TIPO_BACKEND_TO_FRONTEND[t.tipo] ?? 'pontual') as TituloReceberTipo,
     descricao: t.descricao,
     num_parcela: t.num_parcela,
@@ -63,6 +66,7 @@ function adaptTitulo(t: BackendTituloReceber): TituloReceber {
     valor_pago: valorPago,
     juros_aplicado: juros,
     multa: juros > 0 ? juros : undefined,
+    valor_carteira: valorViaCarteira > 0 ? valorViaCarteira : undefined,
     data_emissao: t.data_emissao,
     data_vencimento: t.data_vencimento,
     data_pagamento: t.data_pagamento,
@@ -128,7 +132,7 @@ export async function baixarTituloReceber(
   valorNovoPagamento: number,
   dataPagamento: string,
   multa = 0,
-  _valorCarteira = 0,
+  valorCarteira = 0,
 ): Promise<TituloReceber> {
   const updated = await apiPost<BackendTituloReceber>(
     `/api/v1/titulos-receber/${id}/baixa-parcial/`,
@@ -136,6 +140,7 @@ export async function baixarTituloReceber(
       valor: valorNovoPagamento.toFixed(2),
       juros: multa.toFixed(2),
       data_pagamento: dataPagamento,
+      valor_via_carteira: valorCarteira.toFixed(2),
     },
   )
   return adaptTitulo(updated)

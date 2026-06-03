@@ -25,6 +25,7 @@ export interface TituloReceber {
   id: string
   usuario_id?: string
   usuario_nome: string
+  is_cliente_externo?: boolean
   tipo: TituloReceberTipo
   descricao: string
   num_parcela: number
@@ -34,7 +35,6 @@ export interface TituloReceber {
   juros_aplicado: number
   multa?: number
   valor_carteira?: number
-  carteira_debito?: boolean
   data_emissao: string
   data_vencimento: string
   data_pagamento: string | null
