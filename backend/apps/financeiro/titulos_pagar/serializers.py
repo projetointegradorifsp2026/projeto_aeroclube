@@ -23,7 +23,7 @@ class TituloPagarSerializer(serializers.ModelSerializer):
             "valor",
             "data_emissao", "data_vencimento",
             "status", "status_display", "esta_atrasado",
-            "valor_pago", "data_pagamento",
+            "multa", "valor_pago", "data_pagamento",
             "is_recorrente", "periodicidade_dias",
             "created_at",
         ]
@@ -120,3 +120,4 @@ class TituloPagarWriteSerializer(serializers.ModelSerializer):
 class BaixaTituloPagarSerializer(serializers.Serializer):
     valor_pago = serializers.DecimalField(max_digits=10, decimal_places=2)
     data_pagamento = serializers.DateField(required=False, allow_null=True)
+    multa = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, default=0)

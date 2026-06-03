@@ -10,6 +10,7 @@ interface BackendTituloPagar {
   num_parcela: number
   total_parcelas: number
   valor: string
+  multa: string
   data_emissao: string
   data_vencimento: string
   status: string
@@ -45,7 +46,7 @@ function adaptTitulo(t: BackendTituloPagar): TituloPagar {
     num_parcela: t.num_parcela,
     total_parcelas: t.total_parcelas,
     valor: parseFloat(t.valor),
-    multa: 0,
+    multa: parseFloat(t.multa || '0'),
     data_emissao: t.data_emissao,
     data_vencimento: t.data_vencimento,
     status: statusFront,
@@ -103,13 +104,14 @@ export async function baixarTituloPagar(
   id: string,
   valorPago: number,
   dataPagamento: string,
-  _multa?: number,
+  multa = 0,
 ): Promise<TituloPagar> {
   const updated = await apiPost<BackendTituloPagar>(
     `/api/v1/titulos-pagar/${id}/baixar/`,
     {
       valor_pago: valorPago.toFixed(2),
       data_pagamento: dataPagamento,
+      multa: multa.toFixed(2),
     },
   )
   return adaptTitulo(updated)

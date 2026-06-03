@@ -6,6 +6,7 @@ RF02: Status: aberto_em_dia, aberto_atrasado, baixado.
 RF03: Baixa total com valor pago e data.
 RF04: Títulos recorrentes para colaboradores.
 """
+from decimal import Decimal
 from django.db import models
 from django.utils import timezone
 
@@ -55,6 +56,7 @@ class TituloPagar(models.Model):
     status = models.CharField("Status", max_length=10, choices=STATUS_CHOICES, default=STATUS_ABERTO)
 
     # Campos preenchidos na baixa
+    multa = models.DecimalField("Multa (R$)", max_digits=8, decimal_places=2, default=Decimal("0.00"))
     valor_pago = models.DecimalField("Valor pago (R$)", max_digits=10, decimal_places=2, null=True, blank=True)
     data_pagamento = models.DateField("Data de pagamento", null=True, blank=True)
 
@@ -83,8 +85,9 @@ class TituloPagar(models.Model):
         """RF02: Título em aberto e vencido."""
         return self.status == self.STATUS_ABERTO and self.data_vencimento < timezone.now().date()
 
-    def baixar(self, valor_pago, data_pagamento=None):
+    def baixar(self, valor_pago, data_pagamento=None, multa=Decimal("0.00")):
         """RF03: Registra a baixa total do título."""
+        self.multa = multa
         self.valor_pago = valor_pago
         self.data_pagamento = data_pagamento or timezone.now().date()
         self.status = self.STATUS_BAIXADO
