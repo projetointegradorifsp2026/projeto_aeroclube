@@ -44,7 +44,7 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import {
     ChevronsUpDown, LogOut, User, Users, ChevronDown, ChartSpline, FileInput, FileOutput,
     Plane, ChartNoAxesColumnIncreasing, FolderPlus, FileUser, Truck, DollarSign,
-    RefreshCw
+    RefreshCw, BarChart2
 } from "lucide-react"
 
 import { Link, useLocation, useNavigate } from "react-router-dom"
@@ -175,6 +175,21 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, currentUse
                                         <Link to="/movimentacoes">
                                             <ChartSpline />
                                             <span className="group-data-[collapsible=icon]:hidden">Movimentações</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            )}
+
+                            {canAccess(perfil, '/relatorios') && (
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={pathname === "/relatorios"}
+                                        tooltip="Relatórios"
+                                    >
+                                        <Link to="/relatorios">
+                                            <BarChart2 />
+                                            <span className="group-data-[collapsible=icon]:hidden">Relatórios</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>

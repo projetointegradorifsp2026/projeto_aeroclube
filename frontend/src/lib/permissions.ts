@@ -16,6 +16,7 @@ export const ROUTE_PERMISSIONS: Record<string, UserProfile[]> = {
   '/clientes': ['admin'],
   '/fornecedores': ['admin'],
   '/conta-fixa': ['admin'],
+  '/relatorios': ['admin'],
 }
 
 export function canAccess(profile: string | undefined, route: string): boolean {

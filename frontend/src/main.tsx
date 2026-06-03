@@ -17,6 +17,7 @@ import ContaFixa from './pages/ContaFixa';
 import Voos from './pages/Voos';
 import VooFormPage from './pages/VooFormPage'
 import UsuarioPerfilPage from './pages/UsuarioPerfilPage'
+import Relatorios from './pages/Relatorios'
 import { getCurrentUser, isAuthenticated } from './services/api/auth';
 import { canAccess } from './lib/permissions';
 import type { UserProfile } from './mocks/users';
@@ -84,6 +85,10 @@ const router = createBrowserRouter([
       },
       { path: "voos/novo", element: <VooFormPage /> },
       { path: "voos/:id/editar", element: <VooFormPage /> },
+      {
+        path: "relatorios",
+        element: <ProtectedRoute route="/relatorios"><Relatorios /></ProtectedRoute>
+      },
     ]
   }
 ])

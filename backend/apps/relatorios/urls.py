@@ -4,11 +4,17 @@ from .views import (
     DashboardVencidosPorMesView,
     DashboardEntradasPorGrupoView,
     DashboardHistoricoAnualView,
+    RelatorioMetadadosView,
+    RelatorioTitulosView,
 )
 
 urlpatterns = [
+    # Dashboard
     path('dashboard/resumo/', DashboardResumoView.as_view(), name='dashboard-resumo'),
     path('dashboard/vencidos-por-mes/', DashboardVencidosPorMesView.as_view(), name='dashboard-vencidos-por-mes'),
     path('dashboard/entradas-por-grupo/', DashboardEntradasPorGrupoView.as_view(), name='dashboard-entradas-por-grupo'),
     path('dashboard/historico-anual/', DashboardHistoricoAnualView.as_view(), name='dashboard-historico-anual'),
+    # Relatórios
+    path('relatorios/metadados/', RelatorioMetadadosView.as_view(), name='relatorio-metadados'),
+    path('relatorios/titulos/', RelatorioTitulosView.as_view(), name='relatorio-titulos'),
 ]
