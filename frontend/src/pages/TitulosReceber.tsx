@@ -373,7 +373,7 @@ export default function TitulosReceber() {
       await debitarCarteira(baixaTarget.usuario_id, carteiraAmount)
     }
 
-    const totalPayment = (parseFloat(baixaValor) || 0) + carteiraAmount
+    const totalPayment = (parseFloat(baixaValor) || 0) + multa + carteiraAmount
     const updated = await baixarTituloReceber(
       baixaTarget.id,
       totalPayment,

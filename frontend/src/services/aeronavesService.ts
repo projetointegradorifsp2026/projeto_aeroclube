@@ -18,6 +18,8 @@ interface BackendPlanador {
   minutos_franquia: number
   valor_fixo_inicial: string
   valor_minuto_adicional: string
+  valor_fixo_duplo: string | null
+  valor_minuto_duplo: string | null
   foto: string | null
   is_active: boolean
 }
@@ -49,6 +51,8 @@ function adaptPlanador(p: BackendPlanador): Aeronave {
     valor_fixo_inicial: parseFloat(p.valor_fixo_inicial),
     tempo_limite: p.minutos_franquia,
     valor_por_minuto: parseFloat(p.valor_minuto_adicional),
+    valor_fixo_duplo: p.valor_fixo_duplo != null ? parseFloat(p.valor_fixo_duplo) : undefined,
+    valor_minuto_duplo: p.valor_minuto_duplo != null ? parseFloat(p.valor_minuto_duplo) : undefined,
   }
 }
 
@@ -75,13 +79,15 @@ export async function createAeronave(data: Omit<Aeronave, 'id'>): Promise<Aerona
     const created = await apiPost<BackendAviao>('/api/v1/avioes/', payload)
     return adaptAviao(created)
   } else {
-    const payload = {
+    const payload: Record<string, unknown> = {
       nome: data.nome,
       foto: data.foto || null,
       is_active: data.is_active,
       minutos_franquia: data.tempo_limite,
       valor_fixo_inicial: data.valor_fixo_inicial.toFixed(2),
       valor_minuto_adicional: data.valor_por_minuto.toFixed(2),
+      valor_fixo_duplo: data.valor_fixo_duplo != null ? data.valor_fixo_duplo.toFixed(2) : null,
+      valor_minuto_duplo: data.valor_minuto_duplo != null ? data.valor_minuto_duplo.toFixed(2) : null,
     }
     const created = await apiPost<BackendPlanador>('/api/v1/planadores/', payload)
     return adaptPlanador(created)
@@ -110,6 +116,8 @@ export async function updateAeronave(
     if (data.tempo_limite !== undefined) payload.minutos_franquia = data.tempo_limite
     if (data.valor_fixo_inicial !== undefined) payload.valor_fixo_inicial = data.valor_fixo_inicial.toFixed(2)
     if (data.valor_por_minuto !== undefined) payload.valor_minuto_adicional = data.valor_por_minuto.toFixed(2)
+    if ('valor_fixo_duplo' in data) payload.valor_fixo_duplo = data.valor_fixo_duplo != null ? (data.valor_fixo_duplo as number).toFixed(2) : null
+    if ('valor_minuto_duplo' in data) payload.valor_minuto_duplo = data.valor_minuto_duplo != null ? (data.valor_minuto_duplo as number).toFixed(2) : null
     const updated = await apiPatch<BackendPlanador>(`/api/v1/planadores/${id}/`, payload)
     return adaptPlanador(updated)
   }

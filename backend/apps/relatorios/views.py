@@ -29,7 +29,7 @@ MONTH_LABELS = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
 TIPO_RECEBER_LABELS = {
     TituloReceber.TIPO_MENSALIDADE: 'Mensalidade',
     TituloReceber.TIPO_VOO: 'Cobrança de Voo',
-    TituloReceber.TIPO_HORAS_PRE_PAGAS: 'Carteira',
+    TituloReceber.TIPO_HORAS_PRE_PAGAS: 'Recarga de Carteira',
     TituloReceber.TIPO_SERVICO: 'Serviço',
     TituloReceber.TIPO_OUTROS: 'Outros',
 }
@@ -41,8 +41,8 @@ TIPO_PAGAR_LABELS = {
     TituloPagar.TIPO_OUTROS: 'Outros',
 }
 
-# tipos de TituloReceber excluídos dos indicadores financeiros (são movimentações internas)
-_EXCLUIR_RECEBER = [TituloReceber.TIPO_HORAS_PRE_PAGAS]
+# tipos de TituloReceber excluídos dos indicadores financeiros
+_EXCLUIR_RECEBER: list = []  # recargas de carteira agora incluídas nos gráficos
 
 
 def _parse_mes(value: str) -> date:
@@ -335,7 +335,7 @@ class RelatorioMetadadosView(APIView):
                     'data_pagamento': 'Data de Pagamento',
                     'valor_original': 'Valor (R$)',
                     'valor_pago': 'Valor Pago (R$)',
-                    'juros_aplicado': 'Juros (R$)',
+                    'multa': 'Multa (R$)',
                     'saldo_devedor': 'Saldo Devedor (R$)',
                     'status': 'Situação',
                     'num_parcela': 'Parcela',
@@ -360,7 +360,6 @@ class RelatorioMetadadosView(APIView):
                 'receber': [
                     {'value': k, 'label': v}
                     for k, v in TituloReceber.TIPO_CHOICES
-                    if k != TituloReceber.TIPO_HORAS_PRE_PAGAS
                 ],
                 'pagar': [
                     {'value': k, 'label': v}
@@ -439,7 +438,7 @@ class RelatorioTitulosView(APIView):
         'data_pagamento': 'Data de Pagamento',
         'valor_original': 'Valor (R$)',
         'valor_pago': 'Valor Pago (R$)',
-        'juros_aplicado': 'Juros (R$)',
+        'multa': 'Multa (R$)',
         'saldo_devedor': 'Saldo Devedor (R$)',
         'status': 'Situação',
         'num_parcela': 'Parcela',
@@ -494,7 +493,7 @@ class RelatorioTitulosView(APIView):
                 return obj.get_status_display()
             if campo == 'saldo_devedor':
                 return self._fmt_decimal(obj.saldo_devedor)
-            if campo in ('valor_original', 'juros_aplicado', 'valor_pago'):
+            if campo in ('valor_original', 'multa', 'valor_pago'):
                 return self._fmt_decimal(getattr(obj, campo))
             if campo in ('data_emissao', 'data_vencimento', 'data_pagamento'):
                 return self._fmt_date(getattr(obj, campo))
@@ -529,7 +528,6 @@ class RelatorioTitulosView(APIView):
         qs = (
             TituloReceber.objects
             .select_related('participante', 'cliente_externo')
-            .exclude(tipo=TituloReceber.TIPO_HORAS_PRE_PAGAS)
         )
         data_field = params.get('data_field', 'data_vencimento')
         if data_field not in ('data_emissao', 'data_vencimento', 'data_pagamento'):

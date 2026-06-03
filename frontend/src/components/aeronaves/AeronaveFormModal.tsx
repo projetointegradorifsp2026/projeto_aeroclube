@@ -23,6 +23,8 @@ export interface AeronaveFormData {
   valor_fixo_inicial: number
   tempo_limite: number
   valor_por_minuto: number
+  valor_fixo_duplo?: number
+  valor_minuto_duplo?: number
 }
 
 interface AeronaveFormModalProps {
@@ -53,6 +55,8 @@ function makeEmpty(): AeronaveFormData {
     valor_fixo_inicial: 0,
     tempo_limite: 30,
     valor_por_minuto: 0,
+    valor_fixo_duplo: undefined,
+    valor_minuto_duplo: undefined,
   }
 }
 
@@ -82,6 +86,8 @@ export function AeronaveFormModal({
               valor_fixo_inicial: aeronave.valor_fixo_inicial,
               tempo_limite: aeronave.tempo_limite,
               valor_por_minuto: aeronave.valor_por_minuto,
+              valor_fixo_duplo: aeronave.valor_fixo_duplo,
+              valor_minuto_duplo: aeronave.valor_minuto_duplo,
             }
           : makeEmpty(),
       )
@@ -245,6 +251,38 @@ export function AeronaveFormModal({
                     }
                     hasError={!!errors.valor_por_minuto}
                     helper={errors.valor_por_minuto}
+                  />
+                </div>
+              </div>
+              {/* Duplo comando (opcional) */}
+              <p className="text-xs text-muted-foreground font-medium pt-1">Duplo comando (opcional)</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-muted-foreground">Valor fixo duplo (R$)</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    placeholder="0,00"
+                    value={form.valor_fixo_duplo ?? ''}
+                    onChange={e => {
+                      const v = e.target.value
+                      setForm(p => ({ ...p, valor_fixo_duplo: v === '' ? undefined : parseFloat(v) || 0 }))
+                    }}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-muted-foreground">Adicional duplo (R$/min)</label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    placeholder="0,00"
+                    value={form.valor_minuto_duplo ?? ''}
+                    onChange={e => {
+                      const v = e.target.value
+                      setForm(p => ({ ...p, valor_minuto_duplo: v === '' ? undefined : parseFloat(v) || 0 }))
+                    }}
                   />
                 </div>
               </div>

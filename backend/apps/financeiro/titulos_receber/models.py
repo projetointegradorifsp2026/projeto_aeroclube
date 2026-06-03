@@ -70,7 +70,7 @@ class TituloReceber(models.Model):
 
     # Valores
     valor_original = models.DecimalField("Valor original (R$)", max_digits=10, decimal_places=2)
-    juros_aplicado = models.DecimalField("Juros aplicado (R$)", max_digits=8, decimal_places=2, default=Decimal("0.00"))
+    multa = models.DecimalField("Multa (R$)", max_digits=8, decimal_places=2, default=Decimal("0.00"))
     valor_pago = models.DecimalField("Valor pago (R$)", max_digits=10, decimal_places=2, default=Decimal("0.00"))
     valor_via_carteira = models.DecimalField("Valor pago via carteira (R$)", max_digits=10, decimal_places=2, default=Decimal("0.00"))
 
@@ -98,7 +98,7 @@ class TituloReceber(models.Model):
 
     @property
     def valor_total_com_juros(self) -> Decimal:
-        return self.valor_original + self.juros_aplicado
+        return self.valor_original + self.multa
 
     @property
     def saldo_devedor(self) -> Decimal:
@@ -112,7 +112,7 @@ class TituloReceber(models.Model):
         """
         RF06: Aplica uma baixa parcial. Se o valor cobre o saldo total, baixa o título.
         """
-        self.juros_aplicado += juros
+        self.multa += juros
         self.valor_pago += valor
         self.valor_via_carteira += valor_via_carteira
         self.data_pagamento = data or timezone.now().date()

@@ -133,10 +133,12 @@ class CarteiraViewSet(mixins.CreateModelMixin,
         """
         POST /api/v1/carteiras/{id}/debitar/
         Débito manual (usado quando voo é pago via carteira no frontend).
+        Quando a descrição indica remoção manual de saldo, cria TituloPagar baixado.
         """
         carteira = self.get_object()
         valor_raw = request.data.get("valor")
         descricao = request.data.get("descricao", "Débito via carteira")
+        is_remocao = request.data.get("remocao_saldo", False)
         if not valor_raw:
             return Response({"detail": "Campo 'valor' é obrigatório."}, status=status.HTTP_400_BAD_REQUEST)
         try:
@@ -145,7 +147,32 @@ class CarteiraViewSet(mixins.CreateModelMixin,
             return Response({"detail": "Valor inválido."}, status=status.HTTP_400_BAD_REQUEST)
         if not carteira.tem_saldo_suficiente(valor):
             return Response({"detail": "Saldo insuficiente."}, status=status.HTTP_400_BAD_REQUEST)
-        carteira.debitar(valor=valor, descricao=descricao)
+
+        hoje = timezone.now().date()
+        with transaction.atomic():
+            carteira.debitar(valor=valor, descricao=descricao)
+
+            if is_remocao:
+                from apps.financeiro.titulos_pagar.models import TituloPagar
+                from apps.pessoas.models import Favorecido, EntidadePagar
+
+                entidade, _ = EntidadePagar.objects.get_or_create(
+                    nome="Remoção de Saldo",
+                    defaults={"tipo": EntidadePagar.TIPO_FORNECEDOR},
+                )
+                fav, _ = Favorecido.objects.get_or_create(entidade=entidade)
+                TituloPagar.objects.create(
+                    tipo=TituloPagar.TIPO_OUTROS,
+                    favorecido=fav,
+                    descricao=descricao or f"Remoção de saldo – {carteira.participante.nome}",
+                    valor=valor,
+                    valor_pago=valor,
+                    data_emissao=hoje,
+                    data_vencimento=hoje,
+                    data_pagamento=hoje,
+                    status=TituloPagar.STATUS_BAIXADO,
+                )
+
         return Response(CarteiraSerializer(carteira).data)
 
 

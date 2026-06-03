@@ -89,6 +89,7 @@ export async function updateTituloPagar(
   const payload: Record<string, unknown> = {}
   if (data.descricao !== undefined) payload.descricao = data.descricao
   if (data.valor !== undefined) payload.valor = data.valor.toFixed(2)
+  if (data.multa !== undefined) payload.multa = data.multa.toFixed(2)
   if (data.data_vencimento !== undefined) payload.data_vencimento = data.data_vencimento
   if (data.recorrente !== undefined) payload.is_recorrente = data.recorrente
 

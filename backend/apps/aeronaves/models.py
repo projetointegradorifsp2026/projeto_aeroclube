@@ -109,6 +109,22 @@ class Planador(Aeronave):
         decimal_places=2,
         help_text="Valor por minuto após esgotar a franquia.",
     )
+    valor_fixo_duplo = models.DecimalField(
+        "Valor fixo duplo comando (R$)",
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Valor fixo para voo com instrutor. Se vazio, usa valor_fixo_inicial.",
+    )
+    valor_minuto_duplo = models.DecimalField(
+        "Valor por minuto duplo (R$)",
+        max_digits=6,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Valor por minuto adicional para voo duplo. Se vazio, usa valor_minuto_adicional.",
+    )
 
     class Meta:
         verbose_name = "Planador"
@@ -118,18 +134,27 @@ class Planador(Aeronave):
         self.tipo = Aeronave.TIPO_PLANADOR
         super().save(*args, **kwargs)
 
-    def calcular_valor_voo(self, duracao_minutos: int) -> "Decimal":
+    def calcular_valor_voo(self, duracao_minutos: int, duplo: bool = False) -> "Decimal":
         """
         Calcula o valor do voo para esta aeronave.
         RF09/RF11: preservar regra de cálculo junto ao modelo.
         """
         from decimal import Decimal
 
-        valor_fixo = self.valor_fixo_inicial
+        if duplo and self.valor_fixo_duplo is not None:
+            valor_fixo = self.valor_fixo_duplo
+        else:
+            valor_fixo = self.valor_fixo_inicial
+
+        if duplo and self.valor_minuto_duplo is not None:
+            valor_minuto = self.valor_minuto_duplo
+        else:
+            valor_minuto = self.valor_minuto_adicional
+
         if duracao_minutos <= self.minutos_franquia:
             return valor_fixo
         excedente = duracao_minutos - self.minutos_franquia
-        return valor_fixo + (Decimal(excedente) * self.valor_minuto_adicional)
+        return valor_fixo + (Decimal(excedente) * valor_minuto)
 
 
 class HistoricoTarifaAeronave(models.Model):

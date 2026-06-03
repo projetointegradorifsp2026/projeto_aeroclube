@@ -25,7 +25,7 @@ import { type TipoAeronave, type Aeronave } from '@/mocks/aeronaves'
 import { getAeronaves } from '@/services/aeronavesService'
 import { getUsers, type User } from '@/services/usersService'
 import { createVoo, updateVoo, deleteVoo } from '@/services/voosService'
-import { createTituloReceber, baixarTituloReceber } from '@/services/titulosReceberService'
+import { createTituloReceber } from '@/services/titulosReceberService'
 import { createTituloPagar } from '@/services/titulosPagarService'
 import { debitarCarteira } from '@/services/usersService'
 import { cn } from '@/lib/utils'
@@ -61,11 +61,13 @@ function calcMinutosPlanador(inicio: string, fim: string): number {
   return Math.max(0, h2 * 60 + m2 - (h1 * 60 + m1))
 }
 
-function calcValorPlanador(inicio: string, fim: string, aeronave: Aeronave): number {
+function calcValorPlanador(inicio: string, fim: string, aeronave: Aeronave, duplo = false): number {
   const totalMin = calcMinutosPlanador(inicio, fim)
   if (totalMin <= 0) return 0
-  if (totalMin <= aeronave.tempo_limite) return aeronave.valor_fixo_inicial
-  return aeronave.valor_fixo_inicial + (totalMin - aeronave.tempo_limite) * aeronave.valor_por_minuto
+  const valorFixo = (duplo && aeronave.valor_fixo_duplo != null) ? aeronave.valor_fixo_duplo : aeronave.valor_fixo_inicial
+  const valorMinuto = (duplo && aeronave.valor_minuto_duplo != null) ? aeronave.valor_minuto_duplo : aeronave.valor_por_minuto
+  if (totalMin <= aeronave.tempo_limite) return valorFixo
+  return valorFixo + (totalMin - aeronave.tempo_limite) * valorMinuto
 }
 
 const PERFIL_POR_TIPO: Record<TipoVoo, 'aluno' | 'socio' | 'externo'> = {
@@ -233,10 +235,11 @@ export default function VooFormPage() {
   const valorVoo = useMemo(() => {
     if (!selectedAeronave) return 0
     if (selectedAeronave.tipo === 'planador') {
-      return calcValorPlanador(form.inicio, form.fim, selectedAeronave)
+      const isDuplo = TIPOS_VOO_COM_INSTRUTOR.includes(form.tipo_voo)
+      return calcValorPlanador(form.inicio, form.fim, selectedAeronave, isDuplo)
     }
     return form.tempo_decimal * form.valor_hora
-  }, [selectedAeronave, form.inicio, form.fim, form.tempo_decimal, form.valor_hora])
+  }, [selectedAeronave, form.inicio, form.fim, form.tempo_decimal, form.valor_hora, form.tipo_voo])
 
   const minutosPlanador = useMemo(
     () => calcMinutosPlanador(form.inicio, form.fim),
@@ -362,22 +365,6 @@ export default function VooFormPage() {
         // Debit wallet if used
         if (carteiraUsadaNum > 0) {
           await debitarCarteira(voo.participante_id, carteiraUsadaNum)
-          await createTituloReceber({
-            usuario_id: voo.participante_id,
-            usuario_nome: voo.participante_nome,
-            tipo: 'carteira',
-            descricao: `Débito carteira – ${descricaoVoo}`,
-            num_parcela: 1,
-            total_parcelas: 1,
-            valor: carteiraUsadaNum,
-            valor_pago: carteiraUsadaNum,
-            juros_aplicado: 0,
-            data_emissao: voo.data,
-            data_vencimento: voo.data,
-            data_pagamento: voo.data,
-            status: 'baixado',
-            carteira_debito: true,
-          })
         }
 
         if (valorTitulo > 0) {
@@ -396,32 +383,15 @@ export default function VooFormPage() {
             valor: valorTitulo,
             valor_pago: 0,
             juros_aplicado: 0,
+            multa: 0,
             valor_carteira: carteiraUsadaNum > 0 ? carteiraUsadaNum : undefined,
             data_emissao: voo.data,
             data_vencimento: voo.data_vencimento,
             data_pagamento: null,
             status: 'em_aberto',
           })
-        } else if (carteiraUsadaNum > 0) {
-          // Full wallet coverage — create título and immediately baixar it
-          const tituloVoo = await createTituloReceber({
-            usuario_id: voo.participante_id,
-            usuario_nome: voo.participante_nome,
-            tipo: 'voo',
-            descricao: `${descricaoVoo} (pago via carteira)`,
-            num_parcela: 1,
-            total_parcelas: 1,
-            valor: voo.valor_voo,
-            valor_pago: 0,
-            juros_aplicado: 0,
-            valor_carteira: voo.valor_voo,
-            data_emissao: voo.data,
-            data_vencimento: voo.data_vencimento,
-            data_pagamento: null,
-            status: 'em_aberto',
-          })
-          await baixarTituloReceber(tituloVoo.id, voo.valor_voo, voo.data)
         }
+        // If valorTitulo <= 0, payment was fully covered by wallet — no título needed
 
         if (voo.instrutor_id && voo.instrutor_nome && voo.taxa_instrutor && voo.taxa_instrutor > 0) {
           await createTituloPagar({

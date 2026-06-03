@@ -424,8 +424,8 @@ export default function UsuarioPerfilPage() {
         recorrente: false
       }),
     ])
-    setUser(updatedUser)
-    await reloadMovimentacoes(updatedUser.nome)
+    if (updatedUser) setUser(updatedUser)
+    await reloadMovimentacoes(updatedUser?.nome ?? user.nome)
     setRemoveSaldoOpen(false)
     setRemoveSaldoValor('')
     setRemoveSaldoSaving(false)

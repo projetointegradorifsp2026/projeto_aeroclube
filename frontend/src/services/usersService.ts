@@ -199,17 +199,22 @@ export async function getMovimentacoesCarteira(userId: string): Promise<Moviment
     }))
 }
 
-export async function debitarCarteira(id: string, valor: number): Promise<User> {
+export async function debitarCarteira(id: string, valor: number): Promise<User | null> {
   const carteira = await getOrCreateCarteira(id)
   await apiPost(`/api/v1/carteiras/${carteira.id}/debitar/`, {
     valor: valor.toFixed(2),
     descricao: 'Débito via carteira',
   })
-  const [user, saldoMap] = await Promise.all([
-    apiGet<BackendUser>(`/api/v1/usuarios/${id}/`),
-    getSaldoMap(),
-  ])
-  return adaptUser(user, saldoMap.get(user.id) ?? 0)
+  // Refresh do usuário é não-crítico: o débito já ocorreu; se falhar, não bloqueia o fluxo
+  try {
+    const [user, saldoMap] = await Promise.all([
+      apiGet<BackendUser>(`/api/v1/usuarios/${id}/`),
+      getSaldoMap(),
+    ])
+    return adaptUser(user, saldoMap.get(user.id) ?? 0)
+  } catch {
+    return null
+  }
 }
 
 export type { User, UserProfile }

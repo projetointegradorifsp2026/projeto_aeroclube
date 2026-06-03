@@ -12,7 +12,8 @@ interface BackendTituloReceber {
   num_parcela: number
   total_parcelas: number
   valor_original: string
-  juros_aplicado: string
+  multa: string
+  juros_aplicado?: string  // compatibilidade temporária com campo antigo
   valor_pago: string
   valor_via_carteira: string
   valor_total_com_juros: string
@@ -51,7 +52,7 @@ function adaptTitulo(t: BackendTituloReceber): TituloReceber {
     status = 'em_aberto'
   }
 
-  const juros = parseFloat(t.juros_aplicado)
+  const multaVal = parseFloat(t.multa ?? t.juros_aplicado ?? '0')
   const valorViaCarteira = parseFloat(t.valor_via_carteira || '0')
   return {
     id: String(t.id),
@@ -64,8 +65,8 @@ function adaptTitulo(t: BackendTituloReceber): TituloReceber {
     total_parcelas: t.total_parcelas,
     valor: parseFloat(t.valor_original),
     valor_pago: valorPago,
-    juros_aplicado: juros,
-    multa: juros > 0 ? juros : undefined,
+    juros_aplicado: multaVal,
+    multa: multaVal,
     valor_carteira: valorViaCarteira > 0 ? valorViaCarteira : undefined,
     data_emissao: t.data_emissao,
     data_vencimento: t.data_vencimento,
@@ -107,6 +108,7 @@ export async function updateTituloReceber(
   const payload: Record<string, unknown> = {}
   if (data.descricao !== undefined) payload.descricao = data.descricao
   if (data.data_vencimento !== undefined) payload.data_vencimento = data.data_vencimento
+  if (data.multa !== undefined) payload.multa = data.multa.toFixed ? data.multa.toFixed(2) : String(data.multa)
 
   const res = await fetch(
     `${import.meta.env.VITE_API_URL ?? ''}/api/v1/titulos-receber/${id}/`,
@@ -138,7 +140,7 @@ export async function baixarTituloReceber(
     `/api/v1/titulos-receber/${id}/baixa-parcial/`,
     {
       valor: valorNovoPagamento.toFixed(2),
-      juros: multa.toFixed(2),
+      multa: multa.toFixed(2),
       data_pagamento: dataPagamento,
       valor_via_carteira: valorCarteira.toFixed(2),
     },

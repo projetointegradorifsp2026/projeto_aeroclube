@@ -14,9 +14,9 @@ import {
     History,
     ChartSpline,
     BarChart2,
-    PieChart as PieChartIcon,
-    BarChartHorizontal,
     RefreshCw,
+    SlidersHorizontal,
+    ChevronDown,
 } from 'lucide-react'
 import {
     BarChart,
@@ -204,8 +204,11 @@ interface FinCardProps {
 
 function FinCard({ label, value, loading, icon: Icon, iconBg, iconColor, trend, subtitle, valueColor }: FinCardProps) {
     return (
-        <Card>
-            <CardContent className="px-3 py-3 sm:px-5 sm:py-4">
+        <Card className="relative">
+            <CardContent className="px-3 py-3 sm:px-4 sm:py-2">
+                <div className="absolute bottom-[-8px] right-[-8px]">
+                    <Icon className={cn('h-0 w-0 md:h-20 md:w-20', iconColor)} />
+                </div>
                 {loading ? (
                     <>
                         <Skeleton className="h-4 w-3/4 mb-3" />
@@ -214,13 +217,11 @@ function FinCard({ label, value, loading, icon: Icon, iconBg, iconColor, trend, 
                     </>
                 ) : (
                     <>
-                        <div className="flex items-start justify-between gap-2 mb-2 sm:mb-3">
+                        <div className="flex items-start justify-between gap-2 mb-2 sm:mb-3 z-40">
                             <p className="text-xs sm:text-sm text-muted-foreground leading-snug">{label}</p>
-                            <div className={cn('rounded-lg p-1.5 sm:p-2 shrink-0', iconBg)}>
-                                <Icon className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', iconColor)} />
-                            </div>
+
                         </div>
-                        <p className={cn('text-xl sm:text-2xl font-bold tracking-tight', valueColor)}>{fmt(value)}</p>
+                        <p className={cn('text-xl sm:text-2xl font-bold tracking-tight  z-40', valueColor)}>{fmt(value)}</p>
                         {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
                         {trend && (
                             <p className={cn('flex items-center gap-1 text-xs mt-1.5', trend.up ? 'text-emerald-600' : 'text-rose-500')}>
@@ -230,6 +231,8 @@ function FinCard({ label, value, loading, icon: Icon, iconBg, iconColor, trend, 
                         )}
                     </>
                 )}
+
+
             </CardContent>
         </Card>
     )
@@ -247,7 +250,7 @@ function MovRow({ mov }: { mov: Movimentacao }) {
                 <span className={cn('inline-flex rounded-full px-2 py-0.5 text-xs font-medium mb-1',
                     isEntrada ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                         : isCarteira ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
-                        : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+                            : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
                 )}>
                     {isEntrada ? 'Entrada' : isCarteira ? 'Carteira' : 'Saída'}
                 </span>
@@ -259,7 +262,7 @@ function MovRow({ mov }: { mov: Movimentacao }) {
             <td className="px-4 py-3 text-sm font-medium whitespace-nowrap">
                 <span className={isEntrada ? 'text-emerald-600 dark:text-emerald-400'
                     : isCarteira ? 'text-teal-600 dark:text-teal-400'
-                    : 'text-rose-600 dark:text-rose-400'}>
+                        : 'text-rose-600 dark:text-rose-400'}>
                     {isEntrada ? '+' : isDebito ? '−' : isCarteira ? '+' : '−'}{fmt(mov.valor)}
                 </span>
             </td>
@@ -446,13 +449,24 @@ function ChartCard({
     children: React.ReactNode
     empty?: boolean
 }) {
+    const [filtersOpen, setFiltersOpen] = useState(false)
     return (
-        <Card>
+        <Card className="h-full">
             <CardContent className="p-4 sm:p-5">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                     <p className="font-semibold text-sm">{title}</p>
-                    <div className="flex flex-wrap items-center gap-2">
-                        {filters}
+                    <div className="flex items-center gap-2">
+                        {filters && (
+                            <button
+                                type="button"
+                                onClick={() => setFiltersOpen(o => !o)}
+                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors border border-border"
+                            >
+                                <SlidersHorizontal className="h-3.5 w-3.5" />
+                                Filtros
+                                <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', filtersOpen && 'rotate-180')} />
+                            </button>
+                        )}
                         {onRefresh && (
                             <button
                                 onClick={onRefresh}
@@ -465,6 +479,11 @@ function ChartCard({
                         )}
                     </div>
                 </div>
+                {filters && filtersOpen && (
+                    <div className="flex flex-wrap items-start gap-3 mb-4 p-3 rounded-lg bg-muted/30 border border-border">
+                        {filters}
+                    </div>
+                )}
                 {loading ? (
                     <div className="h-48 flex items-end gap-3 px-2">
                         {Array.from({ length: 8 }).map((_, i) => (
@@ -481,39 +500,6 @@ function ChartCard({
                 )}
             </CardContent>
         </Card>
-    )
-}
-
-// ─── ToggleGroup helper ───────────────────────────────────────────────────────
-
-function ToggleGroup<T extends string>({
-    options,
-    value,
-    onChange,
-}: {
-    options: { value: T; label: string; icon?: React.ReactNode }[]
-    value: T
-    onChange: (v: T) => void
-}) {
-    return (
-        <div className="flex items-center rounded-lg border border-border overflow-hidden">
-            {options.map((opt, i) => (
-                <button
-                    key={opt.value}
-                    onClick={() => onChange(opt.value)}
-                    className={cn(
-                        'px-2.5 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors',
-                        i > 0 && 'border-l border-border',
-                        value === opt.value
-                            ? 'bg-primary text-primary-foreground'
-                            : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',
-                    )}
-                >
-                    {opt.icon}
-                    {opt.label}
-                </button>
-            ))}
-        </div>
     )
 }
 
@@ -580,22 +566,14 @@ function GraficoVencidosPorMes() {
             empty={!loading && data.length === 0}
             filters={
                 <>
-                    <ToggleGroup
-                        options={[
-                            { value: 'receber', label: 'A Receber' },
-                            { value: 'pagar', label: 'A Pagar' },
-                        ]}
-                        value={tipo}
-                        onChange={v => { setTipo(v); setCategoria('') }}
-                    />
-                    <ToggleGroup
-                        options={[
-                            { value: 'valor', label: 'Valor' },
-                            { value: 'quantidade', label: 'Qtd' },
-                        ]}
-                        value={metrica}
-                        onChange={setMetrica}
-                    />
+                    <FilterSelect value={tipo} onChange={v => { setTipo(v as 'receber' | 'pagar'); setCategoria('') }} defaultValue="receber">
+                        <option value="receber">A Receber</option>
+                        <option value="pagar">A Pagar</option>
+                    </FilterSelect>
+                    <FilterSelect value={metrica} onChange={v => setMetrica(v as 'valor' | 'quantidade')} defaultValue="valor">
+                        <option value="valor">Valor</option>
+                        <option value="quantidade">Quantidade</option>
+                    </FilterSelect>
                     <FilterSelect value={meses} onChange={setMeses} defaultValue="12">
                         {MESES_OPCOES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </FilterSelect>
@@ -657,10 +635,6 @@ function buildPeriodoDatas(periodo: string): { data_inicio: string; data_fim: st
     return { data_inicio: inicio.toISOString().split('T')[0], data_fim: fim }
 }
 
-const LABEL_PIZZA = { value: 'pizza' as GrupoVisualizacao, label: 'Pizza', icon: <PieChartIcon className="h-3 w-3" /> }
-const LABEL_BARRAS = { value: 'barras' as GrupoVisualizacao, label: 'Barras', icon: <BarChartHorizontal className="h-3 w-3" /> }
-const LABEL_COLUNAS = { value: 'colunas' as GrupoVisualizacao, label: 'Colunas', icon: <BarChart2 className="h-3 w-3" /> }
-
 function GraficoEntradasPorGrupo() {
     const [periodo, setPeriodo] = useState('mes')
     const [vis, setVis] = useState<GrupoVisualizacao>('pizza')
@@ -689,11 +663,11 @@ function GraficoEntradasPorGrupo() {
                     <FilterSelect value={periodo} onChange={setPeriodo} defaultValue="mes">
                         {PERIODO_OPCOES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                     </FilterSelect>
-                    <ToggleGroup
-                        options={[LABEL_PIZZA, LABEL_BARRAS, LABEL_COLUNAS]}
-                        value={vis}
-                        onChange={setVis}
-                    />
+                    <FilterSelect value={vis} onChange={v => setVis(v as GrupoVisualizacao)} defaultValue="pizza">
+                        <option value="pizza">Pizza</option>
+                        <option value="barras">Barras</option>
+                        <option value="colunas">Colunas</option>
+                    </FilterSelect>
                 </>
             }
         >
@@ -828,7 +802,6 @@ function GraficoHistoricoAnual() {
     const [tiposPagar, setTiposPagar] = useState<string[]>([])
     const [data, setData] = useState<MesHistorico[]>([])
     const [loading, setLoading] = useState(true)
-    const [showFiltros, setShowFiltros] = useState(false)
 
     const anosOpcoes = Array.from({ length: 5 }, (_, i) => anoAtual - i)
 
@@ -897,20 +870,6 @@ function GraficoHistoricoAnual() {
                             </button>
                         ))}
                     </div>
-                    <button
-                        onClick={() => setShowFiltros(f => !f)}
-                        className={cn(
-                            'px-2.5 py-1.5 text-xs rounded-lg border border-border transition-colors',
-                            showFiltros ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted-foreground hover:bg-muted/50',
-                        )}
-                    >
-                        Filtros
-                    </button>
-                </>
-            }
-        >
-            {showFiltros && (
-                <div className="flex flex-col sm:flex-row gap-4 mb-4 p-3 rounded-lg bg-muted/30 border border-border">
                     <MultiCheckbox
                         label="Tipo Entradas (A Receber)"
                         options={TIPO_RECEBER_OPCOES}
@@ -923,9 +882,9 @@ function GraficoHistoricoAnual() {
                         selected={tiposPagar}
                         onChange={setTiposPagar}
                     />
-                </div>
-            )}
-
+                </>
+            }
+        >
             <ResponsiveContainer width="100%" height={240}>
                 <AreaChart data={dataExibida} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                     <defs>
@@ -1055,7 +1014,7 @@ function DashboardAdmin() {
                 <p className="text-sm text-muted-foreground mt-0.5">Visão financeira e operacional do aeroclube.</p>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-10">
+            <div className="grid grid-cols-1 gap-10">
                 {/* ── Coluna principal ── */}
                 <div className="space-y-6 min-w-0 h-fit">
 
@@ -1076,8 +1035,8 @@ function DashboardAdmin() {
                                 value={resumo?.total_receber ?? 0}
                                 loading={loading}
                                 icon={TrendingUp}
-                                iconBg="bg-emerald-100 dark:bg-emerald-900/30"
-                                iconColor="text-emerald-600 dark:text-emerald-400"
+                                iconBg="bg-muted"
+                                iconColor="text-gray-200"
                                 subtitle="Saldo em aberto"
                             />
                             <FinCard
@@ -1085,8 +1044,8 @@ function DashboardAdmin() {
                                 value={resumo?.total_pagar ?? 0}
                                 loading={loading}
                                 icon={TrendingDown}
-                                iconBg="bg-rose-100 dark:bg-rose-900/30"
-                                iconColor="text-rose-600 dark:text-rose-400"
+                                iconBg="bg-muted"
+                                iconColor="text-gray-200"
                                 subtitle="Saldo em aberto"
                             />
                             <FinCard
@@ -1094,9 +1053,8 @@ function DashboardAdmin() {
                                 value={resumo?.vencidos_receber ?? 0}
                                 loading={loading}
                                 icon={AlertTriangle}
-                                iconBg="bg-amber-100 dark:bg-amber-900/30"
-                                iconColor="text-amber-600 dark:text-amber-400"
-                                valueColor={(resumo?.vencidos_receber ?? 0) > 0 ? 'text-amber-600 dark:text-amber-400' : undefined}
+                                iconBg="bg-muted"
+                                iconColor="text-gray-200"
                                 subtitle="Títulos vencidos"
                             />
                             <FinCard
@@ -1104,8 +1062,8 @@ function DashboardAdmin() {
                                 value={resumo?.recebidos_mes ?? 0}
                                 loading={loading}
                                 icon={CheckCircle2}
-                                iconBg="bg-emerald-100 dark:bg-emerald-900/30"
-                                iconColor="text-emerald-600 dark:text-emerald-400"
+                                iconBg="bg-muted"
+                                iconColor="text-gray-200"
                                 subtitle="Baixas no mês atual"
                             />
                             <FinCard
@@ -1113,8 +1071,8 @@ function DashboardAdmin() {
                                 value={resumo?.pagos_mes ?? 0}
                                 loading={loading}
                                 icon={Wallet}
-                                iconBg="bg-blue-100 dark:bg-blue-900/30"
-                                iconColor="text-blue-600 dark:text-blue-400"
+                                iconBg="bg-muted"
+                                iconColor="text-gray-200"
                                 subtitle="Saídas no mês atual"
                             />
                             <FinCard
@@ -1122,87 +1080,28 @@ function DashboardAdmin() {
                                 value={resumo?.saldo_mes ?? 0}
                                 loading={loading}
                                 icon={ChartSpline}
-                                iconBg={(resumo?.saldo_mes ?? 0) >= 0 ? 'bg-indigo-100 dark:bg-indigo-900/30' : 'bg-rose-100 dark:bg-rose-900/30'}
-                                iconColor={(resumo?.saldo_mes ?? 0) >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-rose-600 dark:text-rose-400'}
-                                valueColor={(resumo?.saldo_mes ?? 0) >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-rose-600 dark:text-rose-400'}
+                                iconBg="bg-muted"
+                                iconColor="text-gray-200"
                                 subtitle="Entradas − Saídas"
                             />
                         </div>
                     </section>
 
-                    {/* Gráfico 1 */}
-                    <section>
-                        <GraficoVencidosPorMes />
-                    </section>
+                    {/* Gráfico 1 + 2 */}
+                    <div className="grid grid-cols-2 gap-4 items-start">
+                        <section className="h-full">
+                            <GraficoVencidosPorMes />
+                        </section>
+                        <section className="h-full">
+                            <GraficoEntradasPorGrupo />
+                        </section>
+                    </div>
 
-                    {/* Gráfico 2 */}
-                    <section>
-                        <GraficoEntradasPorGrupo />
-                    </section>
 
                     {/* Gráfico 3 */}
                     <section>
                         <GraficoHistoricoAnual />
                     </section>
-
-                    {/* Últimas movimentações */}
-                    <section>
-                        <p className="text-sm font-medium text-muted-foreground mb-3">Últimas movimentações</p>
-                        <Card>
-                            <CardContent className="p-0">
-                                {loading ? (
-                                    <div className="p-4 space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)}</div>
-                                ) : (
-                                    <table className="w-full text-sm">
-                                        <thead>
-                                            <tr className="border-b bg-muted/30">
-                                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Título</th>
-                                                <th className="px-4 py-3 text-left font-medium text-muted-foreground">Descrição</th>
-                                                <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Valor</th>
-                                                <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Data</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>{movs.map(m => <MovRow key={m.id} mov={m} />)}</tbody>
-                                    </table>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </section>
-                </div>
-
-                {/* ── Coluna lateral: títulos a vencer ── */}
-                <div className="h-full">
-                    <div className="mt-8 rounded-xl border border-border bg-card h-full flex flex-col overflow-hidden max-h-[810px]">
-                        <div className="px-4 pt-4 pb-3 border-b border-border shrink-0">
-                            <p className="font-semibold text-base">Títulos a vencer</p>
-                        </div>
-                        <div className="flex-1 overflow-hidden min-h-0"
-                            style={{ maskImage: 'linear-gradient(to bottom, black calc(100% - 3.5rem), transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black calc(100% - 3.5rem), transparent 100%)' }}>
-                            {loading ? (
-                                <div className="p-4 space-y-3">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}</div>
-                            ) : titulosDates.length === 0 ? (
-                                <p className="p-4 text-sm text-muted-foreground">Nenhum título a vencer.</p>
-                            ) : (
-                                <div className="p-4 space-y-5 overflow-hidden">
-                                    {titulosDates.map(date => (
-                                        <div key={date}>
-                                            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 capitalize">
-                                                {fmtDateLong(date)}
-                                            </p>
-                                            <div className="space-y-2">
-                                                {titulosGrouped[date].map(t => <TituloCard key={t.id} titulo={t} />)}
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                        <div className="px-4 py-3 border-t border-border shrink-0">
-                            <Link to="/titulos-a-receber" className="flex w-full items-center justify-center gap-1.5 rounded-lg py-2 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors">
-                                Ver mais <ArrowUpRight className="h-3.5 w-3.5" />
-                            </Link>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -1404,7 +1303,7 @@ function DashboardInstrutor({ perfil }: { perfil: string }) {
                 ))
                 setMeusVoos(
                     vs.filter(v => v.instrutor_id === userId || v.participante_id === userId)
-                      .sort((a, b) => b.data.localeCompare(a.data))
+                        .sort((a, b) => b.data.localeCompare(a.data))
                 )
                 setLoading(false)
             })

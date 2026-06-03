@@ -13,6 +13,9 @@ export interface Aeronave {
   valor_fixo_inicial: number
   tempo_limite: number      // minutos incluídos no valor fixo
   valor_por_minuto: number  // R$ por minuto adicional
+  // Planador duplo comando (opcional)
+  valor_fixo_duplo?: number
+  valor_minuto_duplo?: number
 }
 
 export const mockAeronaves: Aeronave[] = [
