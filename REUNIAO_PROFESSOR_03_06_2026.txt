@@ -1,0 +1,158 @@
+================================================================================
+  AEROCLUBE — NOVOS REQUISITOS (Reunião com Professor — 03/06/2026)
+  Comparativo: O que JÁ EXISTE vs O que FOI SOLICITADO
+================================================================================
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. INTEGRAÇÃO CNAB / GERAÇÃO DE ARQUIVO DE REMESSA (.REM) — SICOOB
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+O QUE EXISTE HOJE:
+  - O sistema possui módulo de Títulos a Receber (TituloReceber) com campos de
+    valor, vencimento, participante/cliente externo, status (aberto/baixado).
+  - NÃO existe nenhuma geração de boleto, CNAB ou arquivo de remessa.
+  - Nenhuma integração com banco (SICOOB ou qualquer outro).
+
+O QUE FOI SOLICITADO:
+  - Integrar o padrão CNAB de pagamento conforme layout da SICOOB.
+  - Gerar um arquivo de remessa em texto puro (.REM) a partir dos títulos
+    cadastrados no sistema.
+  - O professor indicou a biblioteca Python: https://pypi.org/project/sicoob-sdk/
+    como ponto de partida.
+
+COMPLEXIDADE / OPINIÃO:
+  - É o requisito mais trabalhoso do lote. CNAB tem um layout posicional rígido
+    (campos em posições fixas de caracteres) e a SICOOB tem suas próprias
+    customizações em cima do padrão FEBRABAN (CNAB 240 ou 400).
+  - A biblioteca sicoob-sdk pode ajudar, mas precisa ser avaliada: verificar se
+    está ativa/mantida, se cobre o layout exato que o aeroclube usa.
+  - O arquivo .REM é importado pelo banco para registrar cobranças. O retorno
+    (.RET) que o banco manda de volta confirmando pagamentos fica para uma fase
+    posterior, mas é bom ter em mente.
+  - Precisaremos dos dados bancários do aeroclube (agência, conta, convênio
+    SICOOB, cedente) para montar o header do arquivo.
+  - SUGESTÃO DE IMPLEMENTAÇÃO: criar um endpoint no backend que recebe uma
+    lista de IDs de TituloReceber e retorna o arquivo .REM para download.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. SEPARAÇÃO DE CUSTOS E TÍTULOS (gerar boleto somente para o que faz sentido)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+O QUE EXISTE HOJE:
+  - TituloReceber: cobre cobranças de voo, mensalidade, horas pré-pagas,
+    serviços e outros. Cada voo registrado gera automaticamente um TituloReceber.
+  - ContaFixa: despesas recorrentes mensais (lado "a pagar"), cadastradas
+    manualmente.
+  - TituloPagar: títulos de despesa para fornecedores/entidades.
+  - Não existe o conceito de "custo" separado de "título cobrável" no lado
+    Receber. Tudo que entra já vira título diretamente.
+
+O QUE FOI SOLICITADO:
+  - Separar claramente "custos" de "títulos a cobrar" (boletos).
+  - Dar ao operador a opção de escolher quais custos vão gerar um boleto e
+    quais não vão — evitando boletos redundantes ou desnecessários.
+  - Exemplo: um voo pode gerar um custo de hora de voo, mas o operador decide
+    se vai emitir boleto para aquilo ou consolidar com outras cobranças.
+
+COMPLEXIDADE / OPINIÃO:
+  - É uma mudança conceitual no modelo de dados, mas não é a mais complexa
+    tecnicamente. Requer pensar bem no modelo antes de sair codando.
+  - Uma abordagem razoável: adicionar um campo booleano "gerar_boleto" (ou
+    similar) no TituloReceber, e na tela de títulos mostrar um botão de
+    "selecionar para remessa" ao invés de gerar tudo automaticamente.
+  - Outra abordagem: criar uma entidade intermediária "Lote de Cobrança" que
+    agrupa vários TituloReceber e gera um único .REM para aquele lote.
+  - Precisamos alinhar com o aeroclube o que exatamente causa o "redundante"
+    na visão deles — provavelmente voos pequenos ou de treinamento que são
+    pagos de outra forma.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. PUBLICAÇÃO DA APLICAÇÃO (DEPLOY)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+O QUE EXISTE HOJE:
+  - O projeto JÁ tem docker-compose.prod.yml configurado com Nginx (porta 80
+    e 443), Gunicorn (3 workers), Django em modo produção e MariaDB com volume
+    persistente. A infraestrutura está pronta para deploy.
+  - Roda apenas localmente (localhost:3000 dev / localhost prod).
+  - Não está hospedado em nenhum servidor externo.
+
+O QUE FOI SOLICITADO:
+  - Publicar a aplicação em algum lugar acessível para uso real.
+
+COMPLEXIDADE / OPINIÃO:
+  - A infraestrutura Docker de produção já está pronta — é a parte mais
+    trabalhosa e já está feita. O que falta é um servidor.
+  - Opções de hospedagem (em ordem de facilidade/custo):
+      a) Railway.app ou Render.com — suportam Docker Compose, plano gratuito
+         limitado, simples de configurar, bom para demonstração acadêmica.
+      b) DigitalOcean Droplet (VPS) — ~$6/mês, controle total, rodar o
+         docker-compose.prod.yml diretamente.
+      c) Oracle Cloud Free Tier — gratuito, mas configuração mais trabalhosa.
+  - Ponto de atenção: precisamos definir onde ficam as variáveis de ambiente
+    de produção (SECRET_KEY do Django, credenciais do banco, etc.) antes de
+    subir. Não podem estar no repositório.
+  - SUGESTÃO: para o contexto acadêmico, Railway ou Render são os mais rápidos
+    de colocar no ar.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. TROCA DE SENHA PELO PRÓPRIO USUÁRIO + ESQUECI A SENHA POR E-MAIL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+O QUE EXISTE HOJE:
+  - Apenas o admin pode resetar senha de outros usuários, via endpoint
+    POST /api/v1/usuarios/{id}/resetar-senha/ — reseta para "aero" + 5
+    primeiros dígitos do CPF.
+  - Usuário comum NÃO tem como alterar a própria senha pelo sistema.
+  - NÃO existe fluxo de "esqueci a senha" por e-mail.
+
+O QUE FOI SOLICITADO:
+  a) Usuário não-admin deve poder alterar a própria senha na interface.
+  b) Se esqueceu a senha, receber um link de reset por e-mail.
+
+COMPLEXIDADE / OPINIÃO:
+  - Item (a) — SIMPLES: criar um endpoint autenticado
+    POST /api/v1/me/alterar-senha/ que recebe senha_atual e nova_senha,
+    valida e salva. No frontend, uma tela/modal de "Alterar minha senha".
+    Já existe a página UsuarioPerfilPage.tsx que é o lugar natural para isso.
+
+  - Item (b) — MÉDIO: Django tem suporte nativo a reset de senha por e-mail
+    (django.contrib.auth.views). Precisa configurar um serviço de e-mail
+    (SMTP) — pode ser Gmail com senha de app, SendGrid gratuito, ou similar.
+    O fluxo: usuário informa e-mail → recebe link com token → acessa link →
+    define nova senha. É padrão e seguro.
+
+  - Ponto de atenção: para o item (b) funcionar em produção, o servidor
+    precisa ter um e-mail configurado (variável EMAIL_HOST, EMAIL_HOST_USER,
+    etc. nas settings). Em desenvolvimento pode usar o console backend como
+    saída de e-mail para testar sem mandar de verdade.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  PRIORIZAÇÃO SUGERIDA (do mais simples ao mais complexo)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  1. [FÁCIL]  Alterar senha pelo próprio usuário (back + front)
+  2. [MÉDIO]  Esqueci a senha por e-mail (Django built-in + configuração SMTP)
+  3. [MÉDIO]  Deploy em Railway/Render (infraestrutura já pronta)
+  4. [MÉDIO]  Separação custos × títulos (redesenho conceitual do modelo)
+  5. [DIFÍCIL] Geração de arquivo CNAB/REM para SICOOB (depende de dados do
+               aeroclube e validação do layout com o banco)
+
+================================================================================
+  PERGUNTAS QUE PRECISAMOS FAZER AO AEROCLUBE / PROFESSOR
+================================================================================
+
+  - Dados bancários da conta SICOOB do aeroclube (agência, conta, convênio,
+    código do cedente) para a geração do .REM.
+  - Qual o layout exato: CNAB 240 ou CNAB 400?
+  - O que exatamente está gerando boletos "redundantes" na visão deles?
+    Exemplos concretos ajudariam.
+  - Têm e-mail institucional do aeroclube para configurar o envio de e-mails?
+  - Onde querem hospedar? Eles têm servidor próprio ou precisamos sugerir?
+
+================================================================================

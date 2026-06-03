@@ -1,0 +1,426 @@
+================================================================================
+  AEROCLUBE — FLUXOS FINANCEIROS DO SISTEMA
+  Como cada título é gerado, quais tipos existem e como as movimentações
+  financeiras funcionam na plataforma.
+================================================================================
+
+Este documento descreve TODOS os títulos e movimentações financeiras que o
+sistema gera ou permite registrar, indicando a origem de cada um (automático
+pelo sistema ou manual pelo operador), as condições para geração e os campos
+envolvidos.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PARTE 1 — TÍTULOS A RECEBER
+  (Dinheiro que o aeroclube vai ou já recebeu de alunos, sócios e clientes)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Campos comuns a todos os tipos:
+  - Devedor: participante (usuário do sistema) ou cliente externo
+  - valor_original: valor bruto cobrado
+  - multa: juros/multa aplicada na hora da baixa (0 no momento da criação)
+  - valor_pago: quanto já foi recebido (0 no momento da criação, exceto horas pré-pagas)
+  - valor_via_carteira: parcela do pagamento vinda do saldo da carteira do participante
+  - saldo_devedor = valor_original + multa - valor_pago  (calculado)
+  - data_emissao, data_vencimento, data_pagamento
+  - status: Em Aberto | Baixado
+  - num_parcela / total_parcelas (para parcelamentos)
+
+────────────────────────────────────────────────────────────────────────────────
+1.1 TIPO: "voo" — Cobrança de Voo
+────────────────────────────────────────────────────────────────────────────────
+
+ORIGEM: AUTOMÁTICO — gerado pelo frontend ao concluir o registro de um voo.
+
+QUANDO É GERADO:
+  - O operador preenche o formulário de voo (tela Voos → Novo Voo).
+  - Ao salvar, o frontend envia o voo ao backend e, logo depois, cria o título.
+  - O título SÓ é criado se o valor que sobra para cobrar for maior que zero.
+    Ou seja: se o participante pagar 100% do voo via carteira, nenhum título
+    a receber é gerado.
+
+CONDIÇÕES ESPECIAIS — USO DA CARTEIRA:
+  - Se o participante tem saldo na carteira, o operador pode marcar "Usar
+    saldo da carteira" e informar um valor parcial ou total.
+  - Se carteira cobriu PARTE do voo:
+      → O título a receber é criado pelo valor restante.
+      → A descrição menciona o quanto foi via carteira: ex.
+         "Instrução Solo – 1.2h – Cessna (R$ 50,00 via carteira)"
+      → O campo valor_via_carteira do título registra esse valor.
+      → A carteira do participante é debitada separadamente.
+  - Se carteira cobriu TODO o voo:
+      → Nenhum título a receber é criado.
+      → Apenas a movimentação de débito da carteira é registrada.
+
+VALOR DO TÍTULO:
+  - valor_original = valor_total_do_voo − valor_pago_via_carteira
+
+COMO O VALOR DO VOO É CALCULADO (pelo backend, no save do Voo):
+  Para AVIÃO:
+    → tarifa_hora × tempo_decimal
+    → tarifa varia conforme tipo de voo: solo (tarifa_solo) ou duplo
+      comando (tarifa_duplo_comando)
+    → tempo_decimal é calculado pela regra dos 6 minutos com tolerância
+      de -2/+3 minutos por décimo de hora
+
+  Para PLANADOR:
+    → valor_fixo_inicial (franquia): cobre até N minutos (campo minutos_franquia)
+    → se exceder a franquia: valor_fixo_inicial + excedente × valor_minuto_adicional
+    → o valor_total e o detalhamento ficam salvos no campo detalhe_cobranca do voo
+
+STATUS INICIAL: Em Aberto
+DEVEDOR: participante do voo (aluno, sócio ou cliente externo)
+VENCIMENTO: definido pelo operador no formulário (padrão: 1 mês após a data do voo)
+VÍNCULO: campo "voo" aponta para o registro do voo de origem (OneToOne)
+
+────────────────────────────────────────────────────────────────────────────────
+1.2 TIPO: "horas_pre_pagas" — Compra de Horas Pré-pagas
+    (Exibido no frontend como tipo "Carteira")
+────────────────────────────────────────────────────────────────────────────────
+
+ORIGEM: AUTOMÁTICO — gerado pelo backend ao creditar saldo na carteira.
+
+QUANDO É GERADO:
+  - O operador acessa o perfil de um participante (tela Usuários → perfil).
+  - Clica em "Adicionar saldo à carteira".
+  - Há duas modalidades:
+      a) Por valor direto: informa um valor em reais.
+      b) Por pacote de horas: seleciona aeronave, tipo de voo (solo/duplo) e
+         quantidade de horas; o sistema calcula o valor.
+  - Ao confirmar, o backend cria SIMULTANEAMENTE:
+      1. Uma movimentação de CRÉDITO na carteira do participante.
+      2. Um TituloReceber tipo "horas_pre_pagas" já BAIXADO.
+
+POR QUE JÁ VEM BAIXADO:
+  - O participante está comprando créditos antecipados — ele paga na hora da
+    compra. Por isso o título já nasce com status=Baixado e valor_pago=valor_original.
+  - Ele serve para registro histórico no módulo financeiro, não para cobrança futura.
+
+PRICE FREEZE (Congelamento de Tarifa):
+  - Se a compra for pelo modo "por horas", o backend salva nos metadados da
+    movimentação a tarifa vigente no momento da compra.
+  - Isso garante que o participante use aquelas horas com a tarifa que pagou,
+    mesmo que a tarifa da aeronave mude depois.
+
+STATUS INICIAL: Baixado (pago imediatamente)
+DEVEDOR: participante que comprou as horas
+CAMPO data_vencimento: data limite de validade dos créditos (definida pelo operador)
+
+────────────────────────────────────────────────────────────────────────────────
+1.3 TIPO: "mensalidade" — Mensalidade
+────────────────────────────────────────────────────────────────────────────────
+
+ORIGEM: MANUAL — criado pelo operador na tela "Títulos a Receber".
+
+QUANDO É GERADO:
+  - O operador clica em "Novo" na tela de Títulos a Receber.
+  - Seleciona o tipo "Mensalidade".
+  - Informa participante (ou cliente externo), valor, data de emissão e
+    vencimento, e descrição.
+  - Pode parcelar: se total_parcelas > 1, o sistema cria um TituloReceber
+    separado para cada parcela, cada um com seu próprio vencimento e valor.
+    (As datas e valores de cada parcela são definidos no formulário.)
+
+USOS TÍPICOS: cobrança de mensalidade de sócios e alunos regulares.
+
+STATUS INICIAL: Em Aberto
+
+────────────────────────────────────────────────────────────────────────────────
+1.4 TIPO: "servico" — Serviço
+────────────────────────────────────────────────────────────────────────────────
+
+ORIGEM: MANUAL — criado pelo operador na tela "Títulos a Receber".
+
+QUANDO É GERADO:
+  - Idêntico ao fluxo da mensalidade (mesma tela, tipo diferente).
+  - Usado para cobranças de serviços avulsos prestados pelo aeroclube que
+    não se enquadram como voo ou mensalidade.
+
+USOS TÍPICOS: cursos, eventos, aluguel de espaço, etc.
+
+STATUS INICIAL: Em Aberto
+
+────────────────────────────────────────────────────────────────────────────────
+1.5 TIPO: "outros" — Outros
+────────────────────────────────────────────────────────────────────────────────
+
+ORIGEM: MANUAL — criado pelo operador na tela "Títulos a Receber".
+
+QUANDO É GERADO:
+  - Qualquer cobrança que não se encaixa nos tipos anteriores.
+  - Mesmo fluxo de criação manual com parcelamento opcional.
+
+STATUS INICIAL: Em Aberto
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PARTE 2 — TÍTULOS A PAGAR
+  (Dinheiro que o aeroclube deve pagar a funcionários, fornecedores e outros)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Campos comuns a todos os tipos:
+  - favorecido: pessoa ou empresa que vai receber o pagamento
+      → pode ser um usuário do sistema (funcionário/instrutor)
+      → ou uma entidade externa (fornecedor, conta fixa, etc.)
+  - tipo, descricao, valor
+  - num_parcela / total_parcelas
+  - data_emissao, data_vencimento
+  - status: Em Aberto | Baixado
+  - multa, valor_pago, data_pagamento (preenchidos na baixa)
+  - is_recorrente / periodicidade_dias (para títulos repetitivos)
+
+────────────────────────────────────────────────────────────────────────────────
+2.1 TIPO: "folha_pagamento" — Repasse ao Instrutor de Planador
+────────────────────────────────────────────────────────────────────────────────
+
+ORIGEM: AUTOMÁTICO — gerado pelo backend ao registrar um voo de planador
+com instrutor.
+
+QUANDO É GERADO:
+  - Um voo de PLANADOR é registrado com um instrutor vinculado.
+  - O tipo de voo é um dos que exigem instrutor: Instrução Duplo Comando,
+    Sócio Duplo Comando ou Externo.
+  - O backend calcula automaticamente valor_repasse_instrutor = 10% do
+    valor_total do voo.
+  - Se esse valor for maior que zero, cria automaticamente um TituloPagar
+    do tipo "folha_pagamento" para o instrutor.
+
+VALOR: 10% do valor total do voo de planador
+FAVORECIDO: usuário que atuou como instrutor no voo
+STATUS INICIAL: Em Aberto
+DESCRIÇÃO GERADA: "Repasse instrução planador – [data] – [aeronave]"
+
+⚠ ATENÇÃO — POSSÍVEL DUPLICAÇÃO:
+  O frontend TAMBÉM cria um TituloPagar de instrutor para qualquer voo com
+  instrutor (inclusive avião). Para voos de PLANADOR com instrutor, tanto o
+  backend quanto o frontend criam um TituloPagar. Isso pode gerar títulos
+  duplicados para voos de planador. É um ponto a revisar.
+
+────────────────────────────────────────────────────────────────────────────────
+2.2 TIPO: "outros" — Remoção de Saldo de Carteira
+────────────────────────────────────────────────────────────────────────────────
+
+ORIGEM: AUTOMÁTICO — gerado pelo backend ao remover saldo da carteira.
+
+QUANDO É GERADO:
+  - O operador acessa o perfil de um participante e clica em "Remover saldo".
+  - Informa o valor a remover.
+  - O backend debita a carteira e, ao mesmo tempo, cria um TituloPagar do
+    tipo "outros" já BAIXADO, com favorecido "Remoção de Saldo".
+
+POR QUE GERA TÍTULO A PAGAR:
+  - A remoção de saldo representa um valor que o aeroclube "devolveu" ou
+    estornou ao participante — deve aparecer no fluxo de saídas.
+
+STATUS INICIAL: Baixado
+FAVORECIDO: entidade interna "Remoção de Saldo" (criada automaticamente se
+não existir)
+
+────────────────────────────────────────────────────────────────────────────────
+2.3 TIPO: "fornecedor" — Fornecedor
+────────────────────────────────────────────────────────────────────────────────
+
+ORIGEM: MANUAL — criado pelo operador na tela "Títulos a Pagar".
+
+QUANDO É GERADO:
+  - O operador cria um novo título a pagar e seleciona tipo "Fornecedor".
+  - Vincula a uma entidade externa cadastrada como fornecedor.
+  - Pode parcelar (gera múltiplos títulos, um por parcela).
+
+USOS TÍPICOS: pagamento de peças, manutenção, combustível, serviços contratados.
+
+────────────────────────────────────────────────────────────────────────────────
+2.4 TIPO: "folha_pagamento" — Folha de Pagamento (MANUAL)
+────────────────────────────────────────────────────────────────────────────────
+
+ORIGEM: MANUAL — criado pelo operador na tela "Títulos a Pagar".
+
+QUANDO É GERADO:
+  - O operador seleciona tipo "Folha de Pagamento" e vincula a um usuário
+    cadastrado no sistema (funcionário, instrutor).
+  - Pode parcelar e marcar como recorrente (campo is_recorrente + periodicidade_dias).
+
+USOS TÍPICOS: salários, remunerações mensais de colaboradores.
+
+────────────────────────────────────────────────────────────────────────────────
+2.5 TIPO: "conta_fixa" — Conta Fixa
+────────────────────────────────────────────────────────────────────────────────
+
+ORIGEM: MANUAL — criado pelo operador na tela "Títulos a Pagar", vinculando
+a uma conta fixa já cadastrada.
+
+COMO FUNCIONA:
+  - "Contas Fixas" é um cadastro separado: nome, favorecido, valor mensal e
+    dia de vencimento. Funciona como uma lista de referência.
+  - Contas Fixas NÃO geram títulos automaticamente. O operador precisa
+    manualmente criar um TituloPagar selecionando tipo "Conta Fixa" e
+    escolhendo a conta.
+  - O sistema usa o campo "favorecido" da ContaFixa para resolver o favorecido
+    do título.
+
+USOS TÍPICOS: aluguel do hangar, energia elétrica, internet, seguros.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PARTE 3 — CARTEIRA E MOVIMENTAÇÕES
+  (Saldo pré-pago do participante — créditos antecipados de horas de voo)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+A carteira é um saldo pré-pago individual de cada participante. Cada
+participante tem exatamente uma carteira. Toda operação na carteira gera uma
+linha no extrato (MovimentacaoCarteira).
+
+────────────────────────────────────────────────────────────────────────────────
+3.1 CRÉDITO — Compra de Horas / Recarga de Saldo
+────────────────────────────────────────────────────────────────────────────────
+
+DISPARADO POR: Operador, via perfil do participante → "Adicionar saldo"
+
+FLUXO:
+  1. Operador informa valor ou pacote de horas (com aeronave e tipo de voo).
+  2. Sistema calcula o valor monetário (se por horas).
+  3. Backend soma o valor ao saldo da carteira.
+  4. Cria MovimentacaoCarteira tipo CRÉDITO.
+  5. Cria TituloReceber tipo "horas_pre_pagas" já BAIXADO (ver seção 1.2).
+
+MODALIDADE "POR HORAS":
+  - O operador seleciona aeronave + tipo de voo (solo ou duplo) + quantidade
+    de horas.
+  - O valor é calculado como: horas × tarifa_vigente_da_aeronave.
+  - A tarifa é congelada nos metadados da movimentação (price freeze).
+
+────────────────────────────────────────────────────────────────────────────────
+3.2 DÉBITO AUTOMÁTICO — Pagamento de Voo via Carteira
+────────────────────────────────────────────────────────────────────────────────
+
+DISPARADO POR: Frontend, ao registrar um voo com opção "Usar saldo da carteira"
+
+FLUXO:
+  1. No formulário de voo, o operador marca a opção de usar carteira e informa
+     quanto usar (até o mínimo entre o saldo disponível e o valor do voo).
+  2. Após criar o voo no backend, o frontend chama o endpoint de débito da
+     carteira com o valor selecionado.
+  3. Backend subtrai o valor do saldo.
+  4. Cria MovimentacaoCarteira tipo DÉBITO, vinculada ao voo.
+  5. O TituloReceber do voo (se gerado) já reflete que parte foi via carteira.
+
+────────────────────────────────────────────────────────────────────────────────
+3.3 DÉBITO MANUAL — Remoção de Saldo
+────────────────────────────────────────────────────────────────────────────────
+
+DISPARADO POR: Operador, via perfil do participante → "Remover saldo"
+
+FLUXO:
+  1. Operador informa o valor a remover (limitado ao saldo atual).
+  2. Backend subtrai o valor do saldo.
+  3. Cria MovimentacaoCarteira tipo DÉBITO.
+  4. Cria TituloPagar tipo "outros" já BAIXADO (ver seção 2.2).
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PARTE 4 — OPERAÇÕES DE BAIXA (RECEBIMENTO / PAGAMENTO)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+────────────────────────────────────────────────────────────────────────────────
+4.1 BAIXA PARCIAL — Título a Receber
+────────────────────────────────────────────────────────────────────────────────
+
+ONDE: Tela "Títulos a Receber" → ícone de baixa no título desejado.
+
+CAMPOS INFORMADOS NA BAIXA:
+  - valor: quanto está sendo pago agora
+  - multa (opcional): juros/multa a aplicar sobre o saldo devedor
+  - data_pagamento (opcional): padrão é hoje
+  - valor_via_carteira (opcional): se parte vem do saldo da carteira do
+    participante (não aplicável para clientes externos)
+
+REGRA:
+  - A multa é SOMADA ao valor_original acumulado.
+  - O valor pago é SOMADO ao campo valor_pago acumulado.
+  - Se valor_pago >= (valor_original + multa_total) → título muda para BAIXADO.
+  - Caso contrário → permanece Em Aberto com saldo_devedor reduzido.
+  - Suporta múltiplas baixas parciais ao longo do tempo.
+
+────────────────────────────────────────────────────────────────────────────────
+4.2 QUITAÇÃO MÚLTIPLA — Títulos a Receber
+────────────────────────────────────────────────────────────────────────────────
+
+ONDE: Tela "Títulos a Receber" → botão de quitação múltipla (seleciona vários
+títulos do mesmo participante).
+
+CAMPOS INFORMADOS:
+  - titulo_ids: lista de IDs dos títulos a quitar (em ordem de vencimento)
+  - valor_total: valor único a distribuir
+  - data_pagamento (opcional): padrão é hoje
+
+REGRA:
+  - O valor é distribuído pelos títulos na ordem de vencimento (mais antigos
+    primeiro).
+  - Cada título recebe o mínimo entre seu saldo devedor e o valor restante.
+  - Se o valor total não cobre todos os títulos, os primeiros são baixados e
+    os seguintes ficam em aberto (ou parcialmente pagos).
+
+────────────────────────────────────────────────────────────────────────────────
+4.3 BAIXA TOTAL — Título a Pagar
+────────────────────────────────────────────────────────────────────────────────
+
+ONDE: Tela "Títulos a Pagar" → ícone de baixa no título desejado.
+
+CAMPOS INFORMADOS NA BAIXA:
+  - valor_pago: quanto foi efetivamente pago
+  - data_pagamento (opcional): padrão é hoje
+  - multa (opcional): multa/juros cobrados pelo fornecedor
+
+REGRA:
+  - A baixa de TituloPagar é TOTAL — não há baixa parcial.
+  - O título vai direto para status BAIXADO.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PARTE 5 — TABELA RESUMO GERAL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+╔══════════════════════════╦════════════╦════════════╦══════════════════════════╗
+║ TÍTULO                   ║ MÓDULO     ║ ORIGEM     ║ STATUS INICIAL           ║
+╠══════════════════════════╬════════════╬════════════╬══════════════════════════╣
+║ Cobrança de Voo          ║ A Receber  ║ Automático ║ Em Aberto (se não 100%   ║
+║                          ║           ║ (frontend) ║ via carteira)            ║
+╠══════════════════════════╬════════════╬════════════╬══════════════════════════╣
+║ Horas Pré-pagas/Carteira ║ A Receber  ║ Automático ║ Baixado (pago na hora)   ║
+║                          ║           ║ (backend)  ║                          ║
+╠══════════════════════════╬════════════╬════════════╬══════════════════════════╣
+║ Mensalidade              ║ A Receber  ║ Manual     ║ Em Aberto                ║
+╠══════════════════════════╬════════════╬════════════╬══════════════════════════╣
+║ Serviço                  ║ A Receber  ║ Manual     ║ Em Aberto                ║
+╠══════════════════════════╬════════════╬════════════╬══════════════════════════╣
+║ Outros (receber)         ║ A Receber  ║ Manual     ║ Em Aberto                ║
+╠══════════════════════════╬════════════╬════════════╬══════════════════════════╣
+║ Repasse Instrutor Plandr ║ A Pagar    ║ Automático ║ Em Aberto                ║
+║                          ║           ║ (backend)  ║                          ║
+╠══════════════════════════╬════════════╬════════════╬══════════════════════════╣
+║ Remoção de Saldo         ║ A Pagar    ║ Automático ║ Baixado                  ║
+║                          ║           ║ (backend)  ║                          ║
+╠══════════════════════════╬════════════╬════════════╬══════════════════════════╣
+║ Fornecedor               ║ A Pagar    ║ Manual     ║ Em Aberto                ║
+╠══════════════════════════╬════════════╬════════════╬══════════════════════════╣
+║ Folha de Pagamento       ║ A Pagar    ║ Manual     ║ Em Aberto                ║
+╠══════════════════════════╬════════════╬════════════╬══════════════════════════╣
+║ Conta Fixa               ║ A Pagar    ║ Manual     ║ Em Aberto                ║
+╚══════════════════════════╩════════════╩════════════╩══════════════════════════╝
+
+================================================================================
+  OBSERVAÇÃO IMPORTANTE — PONTO DE ATENÇÃO NO CÓDIGO
+================================================================================
+
+Ao registrar um voo com instrutor, o código atual apresenta uma possível
+DUPLICAÇÃO no TituloPagar do instrutor:
+
+  - Para AVIÃO com instrutor → apenas o FRONTEND cria TituloPagar.
+  - Para PLANADOR com instrutor → o BACKEND cria TituloPagar (repasse 10%)
+    E o FRONTEND também tenta criar TituloPagar.
+
+Isso pode resultar em dois títulos a pagar para o mesmo instrutor pelo mesmo
+voo de planador. Vale revisar e decidir qual caminho manter (backend ou
+frontend) e remover o outro.
+
+================================================================================
