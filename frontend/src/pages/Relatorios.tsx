@@ -161,6 +161,7 @@ function PreviewTable({
     onSort,
     ordenarPor,
     ordenarDir,
+    camposInteiros,
 }: {
     resultado: RelatorioResultado | null
     loading: boolean
@@ -169,6 +170,7 @@ function PreviewTable({
     onSort: (campo: string) => void
     ordenarPor: string
     ordenarDir: 'asc' | 'desc'
+    camposInteiros: Set<string>
 }) {
     if (loading) {
         return (
@@ -234,8 +236,9 @@ function PreviewTable({
                             >
                                 {keys.map(k => {
                                     const val = row[k]
-                                    const isValor = typeof val === 'number'
                                     const isStatus = k === 'status'
+                                    const isInteiro = camposInteiros.has(k)
+                                    const isMonetario = typeof val === 'number' && !isInteiro
                                     return (
                                         <td key={k} className="px-3 py-2.5 whitespace-nowrap">
                                             {isStatus ? (
@@ -247,7 +250,7 @@ function PreviewTable({
                                                 )}>
                                                     {String(val)}
                                                 </span>
-                                            ) : isValor ? (
+                                            ) : isMonetario ? (
                                                 <span className="font-medium tabular-nums">
                                                     {Number(val).toLocaleString('pt-BR', {
                                                         style: 'currency',
@@ -425,6 +428,7 @@ export default function Relatorios() {
     const tiposDisponiveis = meta?.tipos[fonte] ?? []
     const statusDisponiveis = meta?.status[fonte] ?? []
     const dataFieldsDisponiveis = meta?.data_fields[fonte] ?? []
+    const camposInteiros = new Set<string>(meta?.campos_inteiros ?? [])
 
     const temFiltrosAtivos =
         statusFiltro || tipoFiltro || busca ||
@@ -680,6 +684,7 @@ export default function Relatorios() {
                                         onSort={handleSort}
                                         ordenarPor={ordenarPor}
                                         ordenarDir={ordenarDir}
+                                        camposInteiros={camposInteiros}
                                     />
                                 )}
                             </CardContent>

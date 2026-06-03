@@ -7,6 +7,7 @@ export interface RelatorioMetadados {
     receber: Record<string, string>
     pagar: Record<string, string>
   }
+  campos_inteiros: string[]
   tipos: {
     receber: { value: string; label: string }[]
     pagar: { value: string; label: string }[]

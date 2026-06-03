@@ -320,6 +320,9 @@ class RelatorioMetadadosView(APIView):
     """
     permission_classes = [IsAuthenticated]
 
+    # Campos com tipo inteiro (não monetários) — usados pelo frontend para evitar formatação de moeda
+    _CAMPOS_INTEIROS = {'num_parcela', 'total_parcelas'}
+
     def get(self, request):
         return Response({
             'campos': {
@@ -352,6 +355,7 @@ class RelatorioMetadadosView(APIView):
                     'total_parcelas': 'Total Parcelas',
                 },
             },
+            'campos_inteiros': list(self._CAMPOS_INTEIROS),
             'tipos': {
                 'receber': [
                     {'value': k, 'label': v}
