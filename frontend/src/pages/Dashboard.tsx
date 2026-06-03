@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import {
     Plane,
     FileText,
@@ -13,18 +13,40 @@ import {
     Clock,
     History,
     ChartSpline,
+    BarChart2,
+    PieChart as PieChartIcon,
+    BarChartHorizontal,
+    RefreshCw,
 } from 'lucide-react'
+import {
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip,
+    ResponsiveContainer,
+    PieChart,
+    Pie,
+    Cell,
+    Legend,
+    AreaChart,
+    Area,
+} from 'recharts'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { FilterSelect } from '@/components/ui/filter-controls'
 import {
-    getResumoFinanceiro,
-    getPeriodoData,
-    getDespesas,
+    getDashboardResumo,
+    getVencidosPorMes,
+    getEntradasPorGrupo,
+    getHistoricoAnual,
     getMovimentacoes,
     getTitulosVencer,
     type ResumoFinanceiro,
-    type PeriodoData,
-    type DespesaCategoria,
+    type VencidoMes,
+    type EntradaGrupo,
+    type MesHistorico,
     type Movimentacao,
     type TituloVencer,
 } from '@/services/dashboardService'
@@ -44,6 +66,12 @@ import { TituloReceberFormModal, type TituloReceberFormData } from '@/components
 const fmt = (v: number) =>
     v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
+const fmtShort = (v: number) => {
+    if (Math.abs(v) >= 1_000_000) return `R$${(v / 1_000_000).toFixed(1)}M`
+    if (Math.abs(v) >= 1_000) return `R$${(v / 1_000).toFixed(1)}K`
+    return fmt(v)
+}
+
 const fmtDate = (d: string) =>
     new Date(d + 'T00:00:00').toLocaleDateString('pt-BR', {
         day: '2-digit',
@@ -57,115 +85,39 @@ const fmtDateLong = (d: string) =>
         month: 'long',
     })
 
-// ─── SVG helpers ─────────────────────────────────────────────────────────────
+// ─── Chart helpers ────────────────────────────────────────────────────────────
 
-function makeSmoothPath(pts: [number, number][]): string {
-    if (pts.length === 0) return ''
-    let d = `M ${pts[0][0]},${pts[0][1]}`
-    for (let i = 1; i < pts.length; i++) {
-        const cpX = (pts[i - 1][0] + pts[i][0]) / 2
-        d += ` C ${cpX},${pts[i - 1][1]} ${cpX},${pts[i][1]} ${pts[i][0]},${pts[i][1]}`
-    }
-    return d
-}
+const PIE_COLORS = ['#6366F1', '#10B981', '#F59E0B', '#F43F5E', '#8B5CF6', '#06B6D4']
 
-function makeAreaPath(pts: [number, number][], baseY: number): string {
-    const line = makeSmoothPath(pts)
-    if (!line) return ''
-    return `${line} L ${pts[pts.length - 1][0]},${baseY} L ${pts[0][0]},${baseY} Z`
-}
-
-// ─── Charts ──────────────────────────────────────────────────────────────────
-
-function AreaChart({ data }: { data: PeriodoData[] }) {
-    const W = 380
-    const H = 148
-    const P = { t: 10, r: 10, b: 36, l: 10 }
-    const cw = W - P.l - P.r
-    const ch = H - P.t - P.b
-    const maxV = Math.max(...data.map(d => Math.max(d.entradas, d.saidas)), 1)
-    const px = (i: number) => P.l + (i / (data.length - 1)) * cw
-    const py = (v: number) => P.t + ch - (v / maxV) * ch
-    const entPts = data.map<[number, number]>((d, i) => [px(i), py(d.entradas)])
-    const saiPts = data.map<[number, number]>((d, i) => [px(i), py(d.saidas)])
-    const baseY = P.t + ch
-
+function TooltipMoeda({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) {
+    if (!active || !payload?.length) return null
     return (
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="xMidYMid meet">
-            <defs>
-                <linearGradient id="ag-ent" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#6366F1" stopOpacity="0.25" />
-                    <stop offset="100%" stopColor="#6366F1" stopOpacity="0.02" />
-                </linearGradient>
-                <linearGradient id="ag-sai" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#F43F5E" stopOpacity="0.15" />
-                    <stop offset="100%" stopColor="#F43F5E" stopOpacity="0.01" />
-                </linearGradient>
-            </defs>
-            {[0.25, 0.5, 0.75, 1].map(f => (
-                <line key={f} x1={P.l} x2={W - P.r} y1={P.t + ch * (1 - f)} y2={P.t + ch * (1 - f)}
-                    stroke="#E5E7EB" strokeWidth="0.5" strokeDasharray="4 3" />
+        <div className="rounded-lg border border-border bg-popover px-3 py-2 shadow-md text-sm">
+            {label && <p className="font-semibold mb-1">{label}</p>}
+            {payload.map((p, i) => (
+                <p key={i} style={{ color: p.color }}>
+                    {p.name}: <span className="font-medium">{fmt(p.value)}</span>
+                </p>
             ))}
-            <path d={makeAreaPath(saiPts, baseY)} fill="url(#ag-sai)" />
-            <path d={makeAreaPath(entPts, baseY)} fill="url(#ag-ent)" />
-            <path d={makeSmoothPath(saiPts)} fill="none" stroke="#F43F5E" strokeWidth="1.5" strokeOpacity="0.7" />
-            <path d={makeSmoothPath(entPts)} fill="none" stroke="#6366F1" strokeWidth="2" />
-            <circle cx={entPts[entPts.length - 1][0]} cy={entPts[entPts.length - 1][1]} r={3.5} fill="#6366F1" />
-            <circle cx={saiPts[saiPts.length - 1][0]} cy={saiPts[saiPts.length - 1][1]} r={3} fill="#F43F5E" fillOpacity="0.7" />
-            {data.map((item, i) => (
-                <text key={item.periodo} x={px(i)} y={H - 18} textAnchor="middle" fontSize={8} fill="#9CA3AF">
-                    {item.periodo}
-                </text>
-            ))}
-            <circle cx={P.l} cy={H - 5} r={3} fill="#6366F1" />
-            <text x={P.l + 7} y={H - 1} fontSize={8} fill="#6B7280">Entradas</text>
-            <circle cx={P.l + 56} cy={H - 5} r={3} fill="#F43F5E" fillOpacity="0.8" />
-            <text x={P.l + 63} y={H - 1} fontSize={8} fill="#6B7280">Saídas</text>
-        </svg>
+        </div>
     )
 }
 
-function BarChart({ data }: { data: DespesaCategoria[] }) {
-    const W = 380
-    const H = 148
-    const P = { t: 10, r: 10, b: 36, l: 10 }
-    const cw = W - P.l - P.r
-    const ch = H - P.t - P.b
-    const maxV = Math.max(...data.map(d => d.valor), 1)
-    const slotW = cw / data.length
-    const gap = 6
+function TooltipQtd({ active, payload, label }: { active?: boolean; payload?: { name: string; value: number; color: string }[]; label?: string }) {
+    if (!active || !payload?.length) return null
     return (
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full" preserveAspectRatio="xMidYMid meet">
-            <defs>
-                <linearGradient id="bg-bar" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#A5B4FC" />
-                    <stop offset="100%" stopColor="#4F46E5" />
-                </linearGradient>
-            </defs>
-            {[0.25, 0.5, 0.75, 1].map(f => (
-                <line key={f} x1={P.l} x2={W - P.r} y1={P.t + ch * (1 - f)} y2={P.t + ch * (1 - f)}
-                    stroke="#E5E7EB" strokeWidth="0.5" strokeDasharray="4 3" />
+        <div className="rounded-lg border border-border bg-popover px-3 py-2 shadow-md text-sm">
+            {label && <p className="font-semibold mb-1">{label}</p>}
+            {payload.map((p, i) => (
+                <p key={i} style={{ color: p.color }}>
+                    {p.name}: <span className="font-medium">{p.value} título(s)</span>
+                </p>
             ))}
-            {data.map((item, i) => {
-                const barH = (item.valor / maxV) * ch
-                const x = P.l + i * slotW + gap / 2
-                const y = P.t + ch - barH
-                const labelX = x + (slotW - gap) / 2
-                return (
-                    <g key={item.categoria}>
-                        <rect x={x} y={y} width={slotW - gap} height={barH} rx={3} fill="url(#bg-bar)" />
-                        <text x={labelX} y={H - 18} textAnchor="middle" fontSize={8} fill="#9CA3AF">
-                            {item.categoria}
-                        </text>
-                    </g>
-                )
-            })}
-            <text x={W - P.r} y={H - 5} textAnchor="end" fontSize={7.5} fill="#9CA3AF">Mês</text>
-        </svg>
+        </div>
     )
 }
 
-// ─── Shared sub-components ────────────────────────────────────────────────────
+// ─── Quick links ──────────────────────────────────────────────────────────────
 
 interface QuickLinkItem {
     label: string
@@ -236,6 +188,8 @@ function QuickCard({ label, to, onClick, icon: Icon, iconBg, iconColor }: QuickL
     )
 }
 
+// ─── FinCard ──────────────────────────────────────────────────────────────────
+
 interface FinCardProps {
     label: string
     value: number
@@ -245,9 +199,10 @@ interface FinCardProps {
     iconColor: string
     trend?: { value: number; up: boolean }
     subtitle?: string
+    valueColor?: string
 }
 
-function FinCard({ label, value, loading, icon: Icon, iconBg, iconColor, trend, subtitle }: FinCardProps) {
+function FinCard({ label, value, loading, icon: Icon, iconBg, iconColor, trend, subtitle, valueColor }: FinCardProps) {
     return (
         <Card>
             <CardContent className="px-3 py-3 sm:px-5 sm:py-4">
@@ -265,7 +220,7 @@ function FinCard({ label, value, loading, icon: Icon, iconBg, iconColor, trend, 
                                 <Icon className={cn('h-3.5 w-3.5 sm:h-4 sm:w-4', iconColor)} />
                             </div>
                         </div>
-                        <p className="text-xl sm:text-2xl font-bold tracking-tight">{fmt(value)}</p>
+                        <p className={cn('text-xl sm:text-2xl font-bold tracking-tight', valueColor)}>{fmt(value)}</p>
                         {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
                         {trend && (
                             <p className={cn('flex items-center gap-1 text-xs mt-1.5', trend.up ? 'text-emerald-600' : 'text-rose-500')}>
@@ -279,6 +234,8 @@ function FinCard({ label, value, loading, icon: Icon, iconBg, iconColor, trend, 
         </Card>
     )
 }
+
+// ─── MovRow ───────────────────────────────────────────────────────────────────
 
 function MovRow({ mov }: { mov: Movimentacao }) {
     const isEntrada = mov.tipo === 'entrada'
@@ -313,6 +270,8 @@ function MovRow({ mov }: { mov: Movimentacao }) {
     )
 }
 
+// ─── TituloCard ───────────────────────────────────────────────────────────────
+
 function TituloCard({ titulo }: { titulo: TituloVencer }) {
     const isPagar = titulo.tipo === 'pagar'
     return (
@@ -331,14 +290,14 @@ function TituloCard({ titulo }: { titulo: TituloVencer }) {
     )
 }
 
-// ─── Alert Banner ─────────────────────────────────────────────────────────────
+// ─── AlertBanner ─────────────────────────────────────────────────────────────
 
 interface AlertItem {
     id: string
     descricao: string
     valor: number
     data: string
-    urgente: boolean // vencido ou vence em <= 3 dias
+    urgente: boolean
 }
 
 function AlertBanner({ alerts }: { alerts: AlertItem[] }) {
@@ -387,7 +346,7 @@ function AlertBanner({ alerts }: { alerts: AlertItem[] }) {
     )
 }
 
-// ─── Voos recentes table (used in user dashboard) ─────────────────────────────
+// ─── VooRow ───────────────────────────────────────────────────────────────────
 
 function VooRow({ voo, asInstrutor }: { voo: Voo; asInstrutor?: boolean }) {
     return (
@@ -406,7 +365,7 @@ function VooRow({ voo, asInstrutor }: { voo: Voo; asInstrutor?: boolean }) {
     )
 }
 
-// ─── Painel de títulos a vencer (reutilizado) ─────────────────────────────────
+// ─── TitulosVencerPanel ───────────────────────────────────────────────────────
 
 function TitulosVencerPanel({
     loading,
@@ -470,12 +429,538 @@ function TitulosVencerPanel({
     )
 }
 
+// ─── ChartCard wrapper ────────────────────────────────────────────────────────
+
+function ChartCard({
+    title,
+    loading,
+    onRefresh,
+    filters,
+    children,
+    empty,
+}: {
+    title: string
+    loading: boolean
+    onRefresh?: () => void
+    filters?: React.ReactNode
+    children: React.ReactNode
+    empty?: boolean
+}) {
+    return (
+        <Card>
+            <CardContent className="p-4 sm:p-5">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                    <p className="font-semibold text-sm">{title}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                        {filters}
+                        {onRefresh && (
+                            <button
+                                onClick={onRefresh}
+                                disabled={loading}
+                                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors disabled:opacity-40"
+                                title="Atualizar"
+                            >
+                                <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
+                            </button>
+                        )}
+                    </div>
+                </div>
+                {loading ? (
+                    <div className="h-48 flex items-end gap-3 px-2">
+                        {Array.from({ length: 8 }).map((_, i) => (
+                            <Skeleton key={i} className="flex-1 rounded" style={{ height: `${30 + Math.random() * 70}%` }} />
+                        ))}
+                    </div>
+                ) : empty ? (
+                    <div className="h-48 flex flex-col items-center justify-center text-muted-foreground gap-2">
+                        <BarChart2 className="h-8 w-8 opacity-30" />
+                        <p className="text-sm">Nenhum dado para o período selecionado.</p>
+                    </div>
+                ) : (
+                    children
+                )}
+            </CardContent>
+        </Card>
+    )
+}
+
+// ─── ToggleGroup helper ───────────────────────────────────────────────────────
+
+function ToggleGroup<T extends string>({
+    options,
+    value,
+    onChange,
+}: {
+    options: { value: T; label: string; icon?: React.ReactNode }[]
+    value: T
+    onChange: (v: T) => void
+}) {
+    return (
+        <div className="flex items-center rounded-lg border border-border overflow-hidden">
+            {options.map((opt, i) => (
+                <button
+                    key={opt.value}
+                    onClick={() => onChange(opt.value)}
+                    className={cn(
+                        'px-2.5 py-1.5 text-xs font-medium flex items-center gap-1.5 transition-colors',
+                        i > 0 && 'border-l border-border',
+                        value === opt.value
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',
+                    )}
+                >
+                    {opt.icon}
+                    {opt.label}
+                </button>
+            ))}
+        </div>
+    )
+}
+
+// ─── Gráfico 1: Vencidos por Mês ─────────────────────────────────────────────
+
+const MESES_OPCOES = [
+    { value: '3', label: '3 meses' },
+    { value: '6', label: '6 meses' },
+    { value: '12', label: '12 meses' },
+    { value: '24', label: '24 meses' },
+]
+
+const CATEGORIA_RECEBER_OPCOES = [
+    { value: '', label: 'Todas as categorias' },
+    { value: 'mensalidade', label: 'Mensalidade' },
+    { value: 'voo', label: 'Cobrança de Voo' },
+    { value: 'servico', label: 'Serviço' },
+    { value: 'outros', label: 'Outros' },
+]
+
+const CATEGORIA_PAGAR_OPCOES = [
+    { value: '', label: 'Todas as categorias' },
+    { value: 'fornecedor', label: 'Fornecedor' },
+    { value: 'folha_pagamento', label: 'Folha de Pagamento' },
+    { value: 'conta_fixa', label: 'Conta Fixa' },
+    { value: 'outros', label: 'Outros' },
+]
+
+function buildPeriodo(meses: string): { data_inicio: string; data_fim: string } {
+    const hoje = new Date()
+    const fim = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}`
+    const n = parseInt(meses)
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - (n - 1), 1)
+    const inicio = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+    return { data_inicio: inicio, data_fim: fim }
+}
+
+function GraficoVencidosPorMes() {
+    const [tipo, setTipo] = useState<'receber' | 'pagar'>('receber')
+    const [metrica, setMetrica] = useState<'valor' | 'quantidade'>('valor')
+    const [meses, setMeses] = useState('12')
+    const [categoria, setCategoria] = useState('')
+    const [data, setData] = useState<VencidoMes[]>([])
+    const [loading, setLoading] = useState(true)
+
+    const fetch = useCallback(() => {
+        setLoading(true)
+        const periodo = buildPeriodo(meses)
+        getVencidosPorMes({ tipo, metrica, categoria: categoria || undefined, ...periodo })
+            .then(setData)
+            .finally(() => setLoading(false))
+    }, [tipo, metrica, meses, categoria])
+
+    useEffect(() => { fetch() }, [fetch])
+
+    const barColor = tipo === 'receber' ? '#10B981' : '#F43F5E'
+    const catOpcoes = tipo === 'receber' ? CATEGORIA_RECEBER_OPCOES : CATEGORIA_PAGAR_OPCOES
+
+    return (
+        <ChartCard
+            title="Títulos Vencidos por Mês"
+            loading={loading}
+            onRefresh={fetch}
+            empty={!loading && data.length === 0}
+            filters={
+                <>
+                    <ToggleGroup
+                        options={[
+                            { value: 'receber', label: 'A Receber' },
+                            { value: 'pagar', label: 'A Pagar' },
+                        ]}
+                        value={tipo}
+                        onChange={v => { setTipo(v); setCategoria('') }}
+                    />
+                    <ToggleGroup
+                        options={[
+                            { value: 'valor', label: 'Valor' },
+                            { value: 'quantidade', label: 'Qtd' },
+                        ]}
+                        value={metrica}
+                        onChange={setMetrica}
+                    />
+                    <FilterSelect value={meses} onChange={setMeses} defaultValue="12">
+                        {MESES_OPCOES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </FilterSelect>
+                    <FilterSelect value={categoria} onChange={setCategoria} defaultValue="">
+                        {catOpcoes.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </FilterSelect>
+                </>
+            }
+        >
+            <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="4 3" vertical={false} stroke="var(--border)" />
+                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
+                    <YAxis
+                        tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={metrica === 'valor' ? 72 : 40}
+                        tickFormatter={metrica === 'valor' ? fmtShort : undefined}
+                    />
+                    <Tooltip content={metrica === 'valor' ? <TooltipMoeda /> : <TooltipQtd />} />
+                    <Bar
+                        dataKey={metrica}
+                        name={metrica === 'valor' ? 'Valor vencido' : 'Quantidade'}
+                        fill={barColor}
+                        radius={[4, 4, 0, 0]}
+                        maxBarSize={48}
+                    />
+                </BarChart>
+            </ResponsiveContainer>
+        </ChartCard>
+    )
+}
+
+// ─── Gráfico 2: Entradas por Grupo ───────────────────────────────────────────
+
+type GrupoVisualizacao = 'pizza' | 'barras' | 'colunas'
+
+const PERIODO_OPCOES = [
+    { value: 'mes', label: 'Mês atual' },
+    { value: 'trimestre', label: 'Trimestre' },
+    { value: 'semestre', label: 'Semestre' },
+    { value: 'ano', label: 'Ano atual' },
+]
+
+function buildPeriodoDatas(periodo: string): { data_inicio: string; data_fim: string } {
+    const hoje = new Date()
+    const fim = hoje.toISOString().split('T')[0]
+    let inicio: Date
+    if (periodo === 'mes') {
+        inicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1)
+    } else if (periodo === 'trimestre') {
+        inicio = new Date(hoje.getFullYear(), hoje.getMonth() - 2, 1)
+    } else if (periodo === 'semestre') {
+        inicio = new Date(hoje.getFullYear(), hoje.getMonth() - 5, 1)
+    } else {
+        inicio = new Date(hoje.getFullYear(), 0, 1)
+    }
+    return { data_inicio: inicio.toISOString().split('T')[0], data_fim: fim }
+}
+
+const LABEL_PIZZA = { value: 'pizza' as GrupoVisualizacao, label: 'Pizza', icon: <PieChartIcon className="h-3 w-3" /> }
+const LABEL_BARRAS = { value: 'barras' as GrupoVisualizacao, label: 'Barras', icon: <BarChartHorizontal className="h-3 w-3" /> }
+const LABEL_COLUNAS = { value: 'colunas' as GrupoVisualizacao, label: 'Colunas', icon: <BarChart2 className="h-3 w-3" /> }
+
+function GraficoEntradasPorGrupo() {
+    const [periodo, setPeriodo] = useState('mes')
+    const [vis, setVis] = useState<GrupoVisualizacao>('pizza')
+    const [data, setData] = useState<EntradaGrupo[]>([])
+    const [loading, setLoading] = useState(true)
+
+    const fetch = useCallback(() => {
+        setLoading(true)
+        getEntradasPorGrupo(buildPeriodoDatas(periodo))
+            .then(setData)
+            .finally(() => setLoading(false))
+    }, [periodo])
+
+    useEffect(() => { fetch() }, [fetch])
+
+    const total = data.reduce((s, d) => s + d.valor, 0)
+
+    return (
+        <ChartCard
+            title="Entradas Financeiras por Grupo"
+            loading={loading}
+            onRefresh={fetch}
+            empty={!loading && data.length === 0}
+            filters={
+                <>
+                    <FilterSelect value={periodo} onChange={setPeriodo} defaultValue="mes">
+                        {PERIODO_OPCOES.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </FilterSelect>
+                    <ToggleGroup
+                        options={[LABEL_PIZZA, LABEL_BARRAS, LABEL_COLUNAS]}
+                        value={vis}
+                        onChange={setVis}
+                    />
+                </>
+            }
+        >
+            {vis === 'pizza' && (
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <ResponsiveContainer width="100%" height={220}>
+                        <PieChart>
+                            <Pie
+                                data={data}
+                                dataKey="valor"
+                                nameKey="grupo"
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={55}
+                                outerRadius={85}
+                                paddingAngle={2}
+                                label={({ percentual }) => `${percentual}%`}
+                                labelLine={false}
+                            >
+                                {data.map((_, i) => (
+                                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                                ))}
+                            </Pie>
+                            <Tooltip formatter={(v: number) => fmt(v)} />
+                            <Legend
+                                iconType="circle"
+                                iconSize={8}
+                                formatter={(value) => <span className="text-xs text-foreground">{value}</span>}
+                            />
+                        </PieChart>
+                    </ResponsiveContainer>
+                </div>
+            )}
+
+            {vis === 'barras' && (
+                <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={data} layout="vertical" margin={{ top: 4, right: 40, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="4 3" horizontal={false} stroke="var(--border)" />
+                        <XAxis type="number" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} tickFormatter={fmtShort} />
+                        <YAxis type="category" dataKey="grupo" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} width={96} />
+                        <Tooltip content={<TooltipMoeda />} />
+                        <Bar dataKey="valor" name="Valor recebido" radius={[0, 4, 4, 0]} maxBarSize={28}>
+                            {data.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+            )}
+
+            {vis === 'colunas' && (
+                <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="4 3" vertical={false} stroke="var(--border)" />
+                        <XAxis dataKey="grupo" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} width={72} tickFormatter={fmtShort} />
+                        <Tooltip content={<TooltipMoeda />} />
+                        <Bar dataKey="valor" name="Valor recebido" radius={[4, 4, 0, 0]} maxBarSize={56}>
+                            {data.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+            )}
+
+            {total > 0 && (
+                <p className="text-xs text-muted-foreground mt-2 text-right">
+                    Total do período: <span className="font-medium text-foreground">{fmt(total)}</span>
+                </p>
+            )}
+        </ChartCard>
+    )
+}
+
+// ─── Gráfico 3: Histórico Anual ───────────────────────────────────────────────
+
+const TIPO_RECEBER_OPCOES = [
+    { value: 'mensalidade', label: 'Mensalidade' },
+    { value: 'voo', label: 'Cobrança de Voo' },
+    { value: 'servico', label: 'Serviço' },
+    { value: 'outros', label: 'Outros' },
+]
+
+const TIPO_PAGAR_OPCOES = [
+    { value: 'fornecedor', label: 'Fornecedor' },
+    { value: 'folha_pagamento', label: 'Folha de Pagamento' },
+    { value: 'conta_fixa', label: 'Conta Fixa' },
+    { value: 'outros', label: 'Outros' },
+]
+
+function MultiCheckbox({
+    label,
+    options,
+    selected,
+    onChange,
+}: {
+    label: string
+    options: { value: string; label: string }[]
+    selected: string[]
+    onChange: (v: string[]) => void
+}) {
+    function toggle(val: string) {
+        onChange(selected.includes(val) ? selected.filter(s => s !== val) : [...selected, val])
+    }
+    return (
+        <div className="space-y-1">
+            <p className="text-xs text-muted-foreground font-medium">{label}</p>
+            <div className="flex flex-wrap gap-1.5">
+                {options.map(opt => (
+                    <button
+                        key={opt.value}
+                        onClick={() => toggle(opt.value)}
+                        className={cn(
+                            'px-2 py-0.5 rounded-full text-xs border transition-colors',
+                            selected.includes(opt.value)
+                                ? 'bg-primary text-primary-foreground border-primary'
+                                : 'border-border text-muted-foreground hover:border-primary/50',
+                        )}
+                    >
+                        {opt.label}
+                    </button>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+type SerieSaldo = 'entradas' | 'saidas' | 'saldo'
+
+function GraficoHistoricoAnual() {
+    const anoAtual = new Date().getFullYear()
+    const [ano, setAno] = useState(anoAtual)
+    const [series, setSeries] = useState<SerieSaldo[]>(['entradas', 'saidas', 'saldo'])
+    const [tiposReceber, setTiposReceber] = useState<string[]>([])
+    const [tiposPagar, setTiposPagar] = useState<string[]>([])
+    const [data, setData] = useState<MesHistorico[]>([])
+    const [loading, setLoading] = useState(true)
+    const [showFiltros, setShowFiltros] = useState(false)
+
+    const anosOpcoes = Array.from({ length: 5 }, (_, i) => anoAtual - i)
+
+    const fetch = useCallback(() => {
+        setLoading(true)
+        getHistoricoAnual({
+            ano,
+            tipo_receber: tiposReceber.join(',') || undefined,
+            tipo_pagar: tiposPagar.join(',') || undefined,
+        })
+            .then(setData)
+            .finally(() => setLoading(false))
+    }, [ano, tiposReceber, tiposPagar])
+
+    useEffect(() => { fetch() }, [fetch])
+
+    function toggleSerie(s: SerieSaldo) {
+        setSeries(prev =>
+            prev.includes(s)
+                ? prev.length > 1 ? prev.filter(x => x !== s) : prev
+                : [...prev, s]
+        )
+    }
+
+    const SERIES_CONFIG: { key: SerieSaldo; label: string; color: string }[] = [
+        { key: 'entradas', label: 'Entradas', color: '#10B981' },
+        { key: 'saidas', label: 'Saídas', color: '#F43F5E' },
+        { key: 'saldo', label: 'Saldo', color: '#6366F1' },
+    ]
+
+    return (
+        <ChartCard
+            title="Histórico de Entradas e Saídas"
+            loading={loading}
+            onRefresh={fetch}
+            empty={!loading && data.every(m => m.entradas === 0 && m.saidas === 0)}
+            filters={
+                <>
+                    <FilterSelect
+                        value={String(ano)}
+                        onChange={v => setAno(Number(v))}
+                        defaultValue={String(anoAtual)}
+                    >
+                        {anosOpcoes.map(a => <option key={a} value={a}>{a}</option>)}
+                    </FilterSelect>
+                    <div className="flex items-center rounded-lg border border-border overflow-hidden">
+                        {SERIES_CONFIG.map((s, i) => (
+                            <button
+                                key={s.key}
+                                onClick={() => toggleSerie(s.key)}
+                                className={cn(
+                                    'px-2.5 py-1.5 text-xs font-medium flex items-center gap-1 transition-colors',
+                                    i > 0 && 'border-l border-border',
+                                    series.includes(s.key)
+                                        ? 'text-foreground'
+                                        : 'text-muted-foreground/40',
+                                )}
+                                style={series.includes(s.key) ? { backgroundColor: `${s.color}18`, color: s.color } : {}}
+                            >
+                                <span className="w-2 h-2 rounded-full inline-block" style={{ background: s.color }} />
+                                {s.label}
+                            </button>
+                        ))}
+                    </div>
+                    <button
+                        onClick={() => setShowFiltros(f => !f)}
+                        className={cn(
+                            'px-2.5 py-1.5 text-xs rounded-lg border border-border transition-colors',
+                            showFiltros ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted-foreground hover:bg-muted/50',
+                        )}
+                    >
+                        Filtros
+                    </button>
+                </>
+            }
+        >
+            {showFiltros && (
+                <div className="flex flex-col sm:flex-row gap-4 mb-4 p-3 rounded-lg bg-muted/30 border border-border">
+                    <MultiCheckbox
+                        label="Tipo Entradas (A Receber)"
+                        options={TIPO_RECEBER_OPCOES}
+                        selected={tiposReceber}
+                        onChange={setTiposReceber}
+                    />
+                    <MultiCheckbox
+                        label="Tipo Saídas (A Pagar)"
+                        options={TIPO_PAGAR_OPCOES}
+                        selected={tiposPagar}
+                        onChange={setTiposPagar}
+                    />
+                </div>
+            )}
+
+            <ResponsiveContainer width="100%" height={240}>
+                <AreaChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+                    <defs>
+                        <linearGradient id="gradEntradas" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10B981" stopOpacity={0.2} />
+                            <stop offset="95%" stopColor="#10B981" stopOpacity={0.02} />
+                        </linearGradient>
+                        <linearGradient id="gradSaidas" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.15} />
+                            <stop offset="95%" stopColor="#F43F5E" stopOpacity={0.01} />
+                        </linearGradient>
+                        <linearGradient id="gradSaldo" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#6366F1" stopOpacity={0.15} />
+                            <stop offset="95%" stopColor="#6366F1" stopOpacity={0.01} />
+                        </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="4 3" vertical={false} stroke="var(--border)" />
+                    <XAxis dataKey="label" tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }} axisLine={false} tickLine={false} width={72} tickFormatter={fmtShort} />
+                    <Tooltip content={<TooltipMoeda />} />
+                    {series.includes('entradas') && (
+                        <Area type="monotone" dataKey="entradas" name="Entradas" stroke="#10B981" strokeWidth={2} fill="url(#gradEntradas)" dot={false} activeDot={{ r: 4 }} />
+                    )}
+                    {series.includes('saidas') && (
+                        <Area type="monotone" dataKey="saidas" name="Saídas" stroke="#F43F5E" strokeWidth={2} fill="url(#gradSaidas)" dot={false} activeDot={{ r: 4 }} />
+                    )}
+                    {series.includes('saldo') && (
+                        <Area type="monotone" dataKey="saldo" name="Saldo" stroke="#6366F1" strokeWidth={2} fill="url(#gradSaldo)" dot={false} activeDot={{ r: 4 }} />
+                    )}
+                </AreaChart>
+            </ResponsiveContainer>
+        </ChartCard>
+    )
+}
+
 // ─── Dashboard Admin ──────────────────────────────────────────────────────────
 
 function DashboardAdmin() {
     const [resumo, setResumo] = useState<ResumoFinanceiro | null>(null)
-    const [periodos, setPeriodos] = useState<PeriodoData[]>([])
-    const [despesas, setDespesas] = useState<DespesaCategoria[]>([])
     const [movs, setMovs] = useState<Movimentacao[]>([])
     const [titulos, setTitulos] = useState<TituloVencer[]>([])
     const [loading, setLoading] = useState(true)
@@ -484,11 +969,12 @@ function DashboardAdmin() {
     const [receberModalOpen, setReceberModalOpen] = useState(false)
 
     useEffect(() => {
-        Promise.all([getResumoFinanceiro(), getPeriodoData(), getDespesas(), getMovimentacoes(), getTitulosVencer()])
-            .then(([r, p, d, m, t]) => {
-                setResumo(r); setPeriodos(p); setDespesas(d); setMovs(m); setTitulos(t)
+        Promise.all([getDashboardResumo(), getMovimentacoes(), getTitulosVencer()])
+            .then(([r, m, t]) => {
+                setResumo(r); setMovs(m); setTitulos(t)
                 setLoading(false)
             })
+            .catch(() => setLoading(false))
     }, [])
 
     async function handleSaveUser(data: UserFormData) {
@@ -562,11 +1048,14 @@ function DashboardAdmin() {
         <div className="pt-2 space-y-6">
             <div>
                 <h1 className="text-2xl font-bold">Dashboard</h1>
-                <p className="text-sm text-muted-foreground mt-0.5">Acompanhe as operações e finanças do aeroclube em um só lugar.</p>
+                <p className="text-sm text-muted-foreground mt-0.5">Visão financeira e operacional do aeroclube.</p>
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-10">
+                {/* ── Coluna principal ── */}
                 <div className="space-y-6 min-w-0 h-fit">
+
+                    {/* Acessos rápidos */}
                     <section>
                         <p className="text-sm font-medium text-muted-foreground mb-3">Acessos rápidos</p>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -574,16 +1063,85 @@ function DashboardAdmin() {
                         </div>
                     </section>
 
+                    {/* Cards de resumo financeiro (6 cards) */}
                     <section>
                         <p className="text-sm font-medium text-muted-foreground mb-3">Resumo Financeiro</p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <FinCard label="Títulos a Pagar em Aberto" value={resumo?.titulosPagar ?? 0}
-                                loading={loading} icon={TrendingDown} iconBg="bg-chart-5/10 dark:bg-chart-5/20" iconColor="text-chart-5" />
-                            <FinCard label="Títulos a Receber em Aberto" value={resumo?.titulosReceber ?? 0}
-                                loading={loading} icon={TrendingUp} iconBg="bg-chart-2/10 dark:bg-chart-2/20" iconColor="text-chart-2" />
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                            <FinCard
+                                label="Total a Receber"
+                                value={resumo?.total_receber ?? 0}
+                                loading={loading}
+                                icon={TrendingUp}
+                                iconBg="bg-emerald-100 dark:bg-emerald-900/30"
+                                iconColor="text-emerald-600 dark:text-emerald-400"
+                                subtitle="Saldo em aberto"
+                            />
+                            <FinCard
+                                label="Total a Pagar"
+                                value={resumo?.total_pagar ?? 0}
+                                loading={loading}
+                                icon={TrendingDown}
+                                iconBg="bg-rose-100 dark:bg-rose-900/30"
+                                iconColor="text-rose-600 dark:text-rose-400"
+                                subtitle="Saldo em aberto"
+                            />
+                            <FinCard
+                                label="Vencidos a Receber"
+                                value={resumo?.vencidos_receber ?? 0}
+                                loading={loading}
+                                icon={AlertTriangle}
+                                iconBg="bg-amber-100 dark:bg-amber-900/30"
+                                iconColor="text-amber-600 dark:text-amber-400"
+                                valueColor={(resumo?.vencidos_receber ?? 0) > 0 ? 'text-amber-600 dark:text-amber-400' : undefined}
+                                subtitle="Títulos vencidos"
+                            />
+                            <FinCard
+                                label="Recebidos no Mês"
+                                value={resumo?.recebidos_mes ?? 0}
+                                loading={loading}
+                                icon={CheckCircle2}
+                                iconBg="bg-emerald-100 dark:bg-emerald-900/30"
+                                iconColor="text-emerald-600 dark:text-emerald-400"
+                                subtitle="Baixas no mês atual"
+                            />
+                            <FinCard
+                                label="Pagos no Mês"
+                                value={resumo?.pagos_mes ?? 0}
+                                loading={loading}
+                                icon={Wallet}
+                                iconBg="bg-blue-100 dark:bg-blue-900/30"
+                                iconColor="text-blue-600 dark:text-blue-400"
+                                subtitle="Saídas no mês atual"
+                            />
+                            <FinCard
+                                label="Saldo do Mês"
+                                value={resumo?.saldo_mes ?? 0}
+                                loading={loading}
+                                icon={ChartSpline}
+                                iconBg={(resumo?.saldo_mes ?? 0) >= 0 ? 'bg-indigo-100 dark:bg-indigo-900/30' : 'bg-rose-100 dark:bg-rose-900/30'}
+                                iconColor={(resumo?.saldo_mes ?? 0) >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-rose-600 dark:text-rose-400'}
+                                valueColor={(resumo?.saldo_mes ?? 0) >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-rose-600 dark:text-rose-400'}
+                                subtitle="Entradas − Saídas"
+                            />
                         </div>
                     </section>
 
+                    {/* Gráfico 1 */}
+                    <section>
+                        <GraficoVencidosPorMes />
+                    </section>
+
+                    {/* Gráfico 2 */}
+                    <section>
+                        <GraficoEntradasPorGrupo />
+                    </section>
+
+                    {/* Gráfico 3 */}
+                    <section>
+                        <GraficoHistoricoAnual />
+                    </section>
+
+                    {/* Últimas movimentações */}
                     <section>
                         <p className="text-sm font-medium text-muted-foreground mb-3">Últimas movimentações</p>
                         <Card>
@@ -608,6 +1166,7 @@ function DashboardAdmin() {
                     </section>
                 </div>
 
+                {/* ── Coluna lateral: títulos a vencer ── */}
                 <div className="h-full">
                     <div className="mt-8 rounded-xl border border-border bg-card h-full flex flex-col overflow-hidden max-h-[810px]">
                         <div className="px-4 pt-4 pb-3 border-b border-border shrink-0">
@@ -732,7 +1291,6 @@ function DashboardAluno({ perfil }: { perfil: string }) {
 
             <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-10">
                 <div className="space-y-6 min-w-0">
-
                     <section>
                         <p className="text-sm font-medium text-muted-foreground mb-3">Acessos rápidos</p>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -836,10 +1394,8 @@ function DashboardInstrutor({ perfil }: { perfil: string }) {
     useEffect(() => {
         Promise.all([getTitulosPagar(), getVoos()])
             .then(([tp, vs]) => {
-                // títulos a pagar onde o favorecido é este usuário
                 setMeusPagamentos(tp.filter(t =>
                     t.tipo === 'folha' &&
-                    // match pelo nome já que a FK é resolvida para nome no frontend
                     t.favorecido === (currentUser?.nome ?? '')
                 ))
                 setMeusVoos(
@@ -876,7 +1432,6 @@ function DashboardInstrutor({ perfil }: { perfil: string }) {
             .sort((a, b) => a.data.localeCompare(b.data)),
         [meusPagamentos, hoje, em7dias])
 
-    // Para o painel de vencimentos, o instrutor vê "o que vai receber" como tipo 'receber'
     const titulosVencer: TituloVencer[] = useMemo(() =>
         meusPagamentos
             .filter(t => t.status === 'em_aberto')
@@ -898,7 +1453,6 @@ function DashboardInstrutor({ perfil }: { perfil: string }) {
 
             <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-10">
                 <div className="space-y-6 min-w-0">
-
                     <section>
                         <p className="text-sm font-medium text-muted-foreground mb-3">Acessos rápidos</p>
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

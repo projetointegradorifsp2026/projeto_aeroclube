@@ -20,6 +20,7 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.14.2",
+    "recharts": "^2.15.4",
     "sass": "^1.99.0",
     "shadcn": "^4.6.0",
     "tailwind-merge": "^3.5.0",
