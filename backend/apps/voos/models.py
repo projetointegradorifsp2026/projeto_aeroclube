@@ -118,6 +118,15 @@ class Voo(models.Model):
         default=0,
     )
 
+    # Repasse ao instrutor (10% do valor do voo para planador com instrutor)
+    valor_repasse_instrutor = models.DecimalField(
+        "Repasse ao instrutor (R$)",
+        max_digits=8,
+        decimal_places=2,
+        editable=False,
+        default=0,
+    )
+
     # Detalhamento para planador (RF23 — exibição transparente)
     detalhe_cobranca = models.JSONField(
         "Detalhamento da cobrança",
@@ -187,6 +196,11 @@ class Voo(models.Model):
             excedente = max(0, duracao_minutos - planador.minutos_franquia)
             self.valor_tarifa_snapshot = planador.valor_fixo_inicial
             self.valor_total = round(valor, 2)
+            # Instrutor recebe 10% adicionais sobre o valor do voo (planador com instrutor)
+            if self.tipo_voo in self.TIPOS_COM_INSTRUTOR and self.instrutor_id:
+                self.valor_repasse_instrutor = round(self.valor_total * Decimal("0.10"), 2)
+            else:
+                self.valor_repasse_instrutor = Decimal("0.00")
             self.detalhe_cobranca = {
                 "tipo_aeronave": "planador",
                 "duracao_minutos": duracao_minutos,
@@ -195,6 +209,7 @@ class Voo(models.Model):
                 "valor_fixo_inicial": str(planador.valor_fixo_inicial),
                 "valor_minuto_adicional": str(planador.valor_minuto_adicional),
                 "valor_total": str(self.valor_total),
+                "valor_repasse_instrutor": str(self.valor_repasse_instrutor),
             }
         except Exception:
             pass

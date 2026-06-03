@@ -29,6 +29,7 @@ class VooSerializer(serializers.ModelSerializer):
             "destino",
             "valor_tarifa_snapshot",
             "valor_total",
+            "valor_repasse_instrutor",
             "detalhe_cobranca",
             "created_at",
         ]
@@ -37,6 +38,7 @@ class VooSerializer(serializers.ModelSerializer):
             "tempo_decimal",
             "valor_tarifa_snapshot",
             "valor_total",
+            "valor_repasse_instrutor",
             "detalhe_cobranca",
             "created_at",
         ]

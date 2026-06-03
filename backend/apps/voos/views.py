@@ -1,7 +1,9 @@
+from decimal import Decimal
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from django.db import transaction
 
 from .models import Voo, calcular_tempo_decimal
 from .serializers import VooSerializer, SimulacaoTempoDecimalSerializer
@@ -11,10 +13,35 @@ class VooViewSet(viewsets.ModelViewSet):
     """
     CRUD /api/v1/voos/
     POST cria o voo, calcula tempo decimal e valor automaticamente.
+    Ao criar voo de planador com instrutor, gera TituloPagar de repasse.
     """
     queryset = Voo.objects.select_related("participante", "instrutor", "aeronave").order_by("-data_voo")
     serializer_class = VooSerializer
     permission_classes = [IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        with transaction.atomic():
+            voo = serializer.save()
+            if voo.instrutor and voo.valor_repasse_instrutor > Decimal("0.00"):
+                self._gerar_titulo_pagar_instrutor(voo)
+        return Response(VooSerializer(voo).data, status=status.HTTP_201_CREATED)
+
+    def _gerar_titulo_pagar_instrutor(self, voo: Voo):
+        from apps.financeiro.titulos_pagar.models import TituloPagar
+        from apps.pessoas.models import Favorecido
+        fav, _ = Favorecido.objects.get_or_create(usuario=voo.instrutor)
+        TituloPagar.objects.create(
+            tipo=TituloPagar.TIPO_FOLHA,
+            favorecido=fav,
+            descricao=f"Repasse instrução planador – {voo.data_voo} – {voo.aeronave.nome}",
+            num_parcela=1,
+            total_parcelas=1,
+            valor=voo.valor_repasse_instrutor,
+            data_emissao=voo.data_voo,
+            data_vencimento=voo.data_voo,
+        )
 
     def get_queryset(self):
         qs = super().get_queryset()
