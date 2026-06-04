@@ -11,6 +11,12 @@ interface BackendUser {
   nome: string
   cpf_cnpj: string | null
   email: string
+  cep: string | null
+  logradouro: string | null
+  numero: string | null
+  bairro: string | null
+  cidade: string | null
+  uf: string | null
   perfil_ativo: string
   perfis: BackendPerfil[]
   is_active: boolean
@@ -29,6 +35,12 @@ function adaptUser(u: BackendUser, saldo = 0): User {
     nome: u.nome,
     email: u.email,
     cpf: u.cpf_cnpj ?? '',
+    cep: u.cep ?? '',
+    logradouro: u.logradouro ?? '',
+    numero: u.numero ?? '',
+    bairro: u.bairro ?? '',
+    cidade: u.cidade ?? '',
+    uf: u.uf ?? '',
     is_active: u.is_active,
     created_at: u.date_joined?.split('T')[0] ?? '',
     perfis: u.perfis.map(p => p.perfil as UserProfile),
@@ -57,13 +69,22 @@ export async function getUsers(): Promise<User[]> {
 }
 
 export async function createUser(
-  data: { nome: string; email: string; cpf: string; perfis: UserProfile[]; is_active: boolean },
+  data: {
+    nome: string; email: string; cpf: string; perfis: UserProfile[]; is_active: boolean
+    cep?: string; logradouro?: string; numero?: string; bairro?: string; cidade?: string; uf?: string
+  },
 ): Promise<User> {
   const payload = {
     nome: data.nome,
     email: data.email,
     cpf_cnpj: data.cpf || null,
     perfil_ativo: data.perfis[0] ?? 'aluno',
+    cep: data.cep || '',
+    logradouro: data.logradouro || '',
+    numero: data.numero || '',
+    bairro: data.bairro || '',
+    cidade: data.cidade || '',
+    uf: data.uf || '',
   }
   const created = await apiPost<BackendUser>('/api/v1/usuarios/', payload)
 
@@ -89,6 +110,12 @@ export async function updateUser(
   if (data.nome !== undefined) payload.nome = data.nome
   if (data.email !== undefined) payload.email = data.email
   if (data.cpf !== undefined) payload.cpf_cnpj = data.cpf || null
+  if (data.cep !== undefined) payload.cep = data.cep || ''
+  if (data.logradouro !== undefined) payload.logradouro = data.logradouro || ''
+  if (data.numero !== undefined) payload.numero = data.numero || ''
+  if (data.bairro !== undefined) payload.bairro = data.bairro || ''
+  if (data.cidade !== undefined) payload.cidade = data.cidade || ''
+  if (data.uf !== undefined) payload.uf = data.uf || ''
   if (data.is_active !== undefined) payload.is_active = data.is_active
 
   if (Object.keys(payload).length > 0) {

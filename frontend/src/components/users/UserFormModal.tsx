@@ -16,6 +16,12 @@ export interface UserFormData {
   nome: string
   email: string
   cpf: string
+  cep: string
+  logradouro: string
+  numero: string
+  bairro: string
+  cidade: string
+  uf: string
   perfis: UserProfile[]
   is_active: boolean
 }
@@ -41,6 +47,12 @@ const emptyForm: UserFormData = {
   nome: '',
   email: '',
   cpf: '',
+  cep: '',
+  logradouro: '',
+  numero: '',
+  bairro: '',
+  cidade: '',
+  uf: '',
   perfis: [],
   is_active: true,
 }
@@ -63,6 +75,12 @@ export function UserFormModal({ user, open, onClose, onSave, restrictedFields = 
               nome: user.nome,
               email: user.email,
               cpf: user.cpf,
+              cep: user.cep ?? '',
+              logradouro: user.logradouro ?? '',
+              numero: user.numero ?? '',
+              bairro: user.bairro ?? '',
+              cidade: user.cidade ?? '',
+              uf: user.uf ?? '',
               perfis: user.perfis,
               is_active: user.is_active,
             }
@@ -164,6 +182,44 @@ export function UserFormModal({ user, open, onClose, onSave, restrictedFields = 
               helper={errors.cpf}
               autoComplete="off"
             />
+          </div>
+
+          <div className="pt-1">
+            <p className="text-xs text-muted-foreground">Endereço (exigido para gerar a remessa CNAB)</p>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1.5 col-span-2">
+              <label className="text-sm font-medium">Logradouro</label>
+              <Input placeholder="Rua / Avenida" value={form.logradouro}
+                onChange={e => setForm(p => ({ ...p, logradouro: e.target.value }))} autoComplete="off" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Número</label>
+              <Input placeholder="123" value={form.numero}
+                onChange={e => setForm(p => ({ ...p, numero: e.target.value }))} autoComplete="off" />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">CEP</label>
+              <Input placeholder="00000-000" value={form.cep}
+                onChange={e => setForm(p => ({ ...p, cep: e.target.value }))} autoComplete="off" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Bairro</label>
+              <Input placeholder="Bairro" value={form.bairro}
+                onChange={e => setForm(p => ({ ...p, bairro: e.target.value }))} autoComplete="off" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">UF</label>
+              <Input placeholder="SP" maxLength={2} value={form.uf}
+                onChange={e => setForm(p => ({ ...p, uf: e.target.value.toUpperCase() }))} autoComplete="off" />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Cidade</label>
+            <Input placeholder="Cidade" value={form.cidade}
+              onChange={e => setForm(p => ({ ...p, cidade: e.target.value }))} autoComplete="off" />
           </div>
 
           {!restrictedFields && (

@@ -39,6 +39,12 @@ function ClienteFormModal({ cliente, open, onClose, onSave, onDeleteRequest }: C
   const [cpfCnpj, setCpfCnpj] = useState('')
   const [email, setEmail] = useState('')
   const [contato, setContato] = useState('')
+  const [cep, setCep] = useState('')
+  const [logradouro, setLogradouro] = useState('')
+  const [numero, setNumero] = useState('')
+  const [bairro, setBairro] = useState('')
+  const [cidade, setCidade] = useState('')
+  const [uf, setUf] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -48,6 +54,12 @@ function ClienteFormModal({ cliente, open, onClose, onSave, onDeleteRequest }: C
       setCpfCnpj(cliente?.cpf_cnpj ?? '')
       setEmail(cliente?.email ?? '')
       setContato(cliente?.contato ?? '')
+      setCep(cliente?.cep ?? '')
+      setLogradouro(cliente?.logradouro ?? '')
+      setNumero(cliente?.numero ?? '')
+      setBairro(cliente?.bairro ?? '')
+      setCidade(cliente?.cidade ?? '')
+      setUf(cliente?.uf ?? '')
       setError('')
     }
   }, [open, cliente])
@@ -57,7 +69,11 @@ function ClienteFormModal({ cliente, open, onClose, onSave, onDeleteRequest }: C
     if (!nome.trim()) { setError('Nome é obrigatório'); return }
     setSaving(true)
     try {
-      await onSave({ nome: nome.trim(), cpf_cnpj: cpfCnpj, email, contato, is_active: true })
+      await onSave({
+        nome: nome.trim(), cpf_cnpj: cpfCnpj, email, contato,
+        cep, logradouro, numero, bairro, cidade, uf: uf.toUpperCase(),
+        is_active: true,
+      })
       onClose()
     } finally {
       setSaving(false)
@@ -98,6 +114,39 @@ function ClienteFormModal({ cliente, open, onClose, onSave, onDeleteRequest }: C
             <label className="text-sm font-medium">E-mail</label>
             <Input type="email" placeholder="contato@empresa.com" value={email} onChange={e => setEmail(e.target.value)} />
           </div>
+
+          <div className="pt-1">
+            <p className="text-xs text-muted-foreground">Endereço (exigido para gerar a remessa CNAB)</p>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1.5 col-span-2">
+              <label className="text-sm font-medium">Logradouro</label>
+              <Input placeholder="Rua / Avenida" value={logradouro} onChange={e => setLogradouro(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Número</label>
+              <Input placeholder="123" value={numero} onChange={e => setNumero(e.target.value)} />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">CEP</label>
+              <Input placeholder="00000-000" value={cep} onChange={e => setCep(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Bairro</label>
+              <Input placeholder="Bairro" value={bairro} onChange={e => setBairro(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">UF</label>
+              <Input placeholder="SP" maxLength={2} value={uf} onChange={e => setUf(e.target.value.toUpperCase())} />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Cidade</label>
+            <Input placeholder="Cidade" value={cidade} onChange={e => setCidade(e.target.value)} />
+          </div>
+
           <DialogFooter>
             <div className="flex w-full items-center gap-2">
               {cliente && onDeleteRequest && (

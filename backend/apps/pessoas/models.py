@@ -21,6 +21,15 @@ class Cliente(models.Model):
     cpf_cnpj = models.CharField("CPF/CNPJ", max_length=18, blank=True, null=True)
     email = models.EmailField("E-mail", blank=True, null=True)
     contato = models.CharField("Contato (telefone)", max_length=20, blank=True, null=True)
+
+    # Endereço — obrigatório para o sacado na remessa CNAB (segmento Q)
+    cep = models.CharField("CEP", max_length=9, blank=True, default="")
+    logradouro = models.CharField("Logradouro", max_length=100, blank=True, default="")
+    numero = models.CharField("Número", max_length=10, blank=True, default="")
+    bairro = models.CharField("Bairro", max_length=50, blank=True, default="")
+    cidade = models.CharField("Cidade", max_length=60, blank=True, default="")
+    uf = models.CharField("UF", max_length=2, blank=True, default="")
+
     is_active = models.BooleanField("Ativo", default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

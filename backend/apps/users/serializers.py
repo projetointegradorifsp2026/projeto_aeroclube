@@ -1,5 +1,14 @@
 from rest_framework import serializers
+from apps.pessoas.validators import validar_cpf_cnpj
 from .models import Usuario, UsuarioPerfil
+
+
+def _validar_cpf_cnpj_drf(value):
+    from django.core.exceptions import ValidationError as DjangoValidationError
+    try:
+        return validar_cpf_cnpj(value)
+    except DjangoValidationError as e:
+        raise serializers.ValidationError(e.messages[0])
 
 
 class UsuarioPerfilSerializer(serializers.ModelSerializer):
@@ -21,6 +30,12 @@ class UsuarioSerializer(serializers.ModelSerializer):
             "nome",
             "cpf_cnpj",
             "email",
+            "cep",
+            "logradouro",
+            "numero",
+            "bairro",
+            "cidade",
+            "uf",
             "perfil_ativo",
             "perfil_ativo_display",
             "perfis",
@@ -28,6 +43,9 @@ class UsuarioSerializer(serializers.ModelSerializer):
             "date_joined",
         ]
         read_only_fields = ["id", "date_joined"]
+
+    def validate_cpf_cnpj(self, value):
+        return _validar_cpf_cnpj_drf(value)
 
 
 class UsuarioCreateSerializer(serializers.ModelSerializer):
@@ -38,7 +56,10 @@ class UsuarioCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Usuario
-        fields = ["nome", "cpf_cnpj", "email", "perfil_ativo"]
+        fields = [
+            "nome", "cpf_cnpj", "email", "perfil_ativo",
+            "cep", "logradouro", "numero", "bairro", "cidade", "uf",
+        ]
         extra_kwargs = {
             "perfil_ativo": {"required": False, "default": "aluno"},
             "cpf_cnpj": {"required": True, "allow_null": False, "allow_blank": False},
@@ -50,7 +71,7 @@ class UsuarioCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "CPF deve ter ao menos 5 dígitos para gerar a senha inicial."
             )
-        return value
+        return _validar_cpf_cnpj_drf(value)
 
     def create(self, validated_data):
         cpf = validated_data.get("cpf_cnpj", "")

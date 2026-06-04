@@ -23,6 +23,12 @@ export interface User {
   email: string
   nome: string
   cpf: string
+  cep?: string
+  logradouro?: string
+  numero?: string
+  bairro?: string
+  cidade?: string
+  uf?: string
   is_active: boolean
   created_at: string
   perfis: UserProfile[]
