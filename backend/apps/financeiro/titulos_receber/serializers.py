@@ -15,7 +15,7 @@ class TituloReceberSerializer(serializers.ModelSerializer):
         fields = [
             "id", "participante", "cliente_externo", "participante_nome",
             "tipo", "tipo_display", "descricao",
-            "voo",
+            "voo", "receita",
             "num_parcela", "total_parcelas",
             "valor_original", "multa", "valor_pago", "valor_via_carteira",
             "valor_total_com_juros", "saldo_devedor",

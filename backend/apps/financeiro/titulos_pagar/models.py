@@ -42,6 +42,16 @@ class TituloPagar(models.Model):
         verbose_name="Favorecido",
     )
 
+    # Vínculo com o Custo de origem (camada de origem; opcional p/ compatibilidade)
+    custo = models.ForeignKey(
+        "custos.Custo",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="titulos",
+        verbose_name="Custo de origem",
+    )
+
     descricao = models.CharField("Descrição", max_length=300)
 
     # Parcelamento

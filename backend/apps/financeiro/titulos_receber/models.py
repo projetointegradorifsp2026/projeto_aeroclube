@@ -27,10 +27,12 @@ class TituloReceber(models.Model):
     ]
 
     STATUS_ABERTO = "aberto"
+    STATUS_REMESSA_CRIADA = "remessa_criada"
     STATUS_BAIXADO = "baixado"
 
     STATUS_CHOICES = [
         (STATUS_ABERTO, "Em Aberto"),
+        (STATUS_REMESSA_CRIADA, "Remessa Criada"),
         (STATUS_BAIXADO, "Baixado"),
     ]
 
@@ -64,6 +66,16 @@ class TituloReceber(models.Model):
         verbose_name="Voo de origem",
     )
 
+    # Vínculo com a Receita de origem (camada de origem; opcional p/ compatibilidade)
+    receita = models.ForeignKey(
+        "receitas.Receita",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="titulos",
+        verbose_name="Receita de origem",
+    )
+
     # Parcelamento
     num_parcela = models.PositiveSmallIntegerField("Nº da parcela", default=1)
     total_parcelas = models.PositiveSmallIntegerField("Total de parcelas", default=1)
@@ -78,7 +90,7 @@ class TituloReceber(models.Model):
     data_vencimento = models.DateField("Data de vencimento")
     data_pagamento = models.DateField("Data do último pagamento", null=True, blank=True)
 
-    status = models.CharField("Status", max_length=10, choices=STATUS_CHOICES, default=STATUS_ABERTO)
+    status = models.CharField("Status", max_length=20, choices=STATUS_CHOICES, default=STATUS_ABERTO)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

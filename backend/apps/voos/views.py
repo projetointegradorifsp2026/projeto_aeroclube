@@ -30,17 +30,34 @@ class VooViewSet(viewsets.ModelViewSet):
 
     def _gerar_titulo_pagar_instrutor(self, voo: Voo):
         from apps.financeiro.titulos_pagar.models import TituloPagar
+        from apps.financeiro.custos.models import Custo
         from apps.pessoas.models import Favorecido
         fav, _ = Favorecido.objects.get_or_create(usuario=voo.instrutor)
-        TituloPagar.objects.create(
-            tipo=TituloPagar.TIPO_FOLHA,
+        descricao = f"Repasse instrução planador – {voo.data_voo} – {voo.aeronave.nome}"
+
+        # Camada de origem: Custo do repasse, já faturado no título a pagar.
+        custo = Custo.objects.create(
+            tipo=Custo.TIPO_FOLHA,
             favorecido=fav,
-            descricao=f"Repasse instrução planador – {voo.data_voo} – {voo.aeronave.nome}",
+            descricao=descricao,
             num_parcela=1,
             total_parcelas=1,
             valor=voo.valor_repasse_instrutor,
             data_emissao=voo.data_voo,
             data_vencimento=voo.data_voo,
+            status=Custo.STATUS_FATURADO,
+        )
+
+        TituloPagar.objects.create(
+            tipo=TituloPagar.TIPO_FOLHA,
+            favorecido=fav,
+            descricao=descricao,
+            num_parcela=1,
+            total_parcelas=1,
+            valor=voo.valor_repasse_instrutor,
+            data_emissao=voo.data_voo,
+            data_vencimento=voo.data_voo,
+            custo=custo,
         )
 
     def get_queryset(self):

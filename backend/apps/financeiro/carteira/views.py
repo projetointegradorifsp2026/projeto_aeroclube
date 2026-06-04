@@ -111,7 +111,19 @@ class CarteiraViewSet(mixins.CreateModelMixin,
                 metadados=metadados,
             )
 
-            # Gera título a receber já baixado (não duplicar no frontend)
+            # Camada de origem: registra a Receita da compra de horas.
+            # Como o valor já entrou, a receita nasce quitada e já faturada em título.
+            from apps.financeiro.receitas.models import Receita
+            receita = Receita.objects.create(
+                participante=carteira.participante,
+                tipo=Receita.TIPO_HORAS_PRE_PAGAS,
+                descricao=descricao,
+                valor=valor,
+                data_vencimento=data_vencimento,
+                status=Receita.STATUS_QUITADA,
+            )
+
+            # Gera título a receber já baixado (não duplicar no frontend), vinculado à receita
             titulo = TituloReceber.objects.create(
                 participante=carteira.participante,
                 tipo=TituloReceber.TIPO_HORAS_PRE_PAGAS,
@@ -121,6 +133,7 @@ class CarteiraViewSet(mixins.CreateModelMixin,
                 status=TituloReceber.STATUS_BAIXADO,
                 data_pagamento=hoje,
                 data_vencimento=data_vencimento,
+                receita=receita,
             )
 
         return Response({
@@ -161,6 +174,19 @@ class CarteiraViewSet(mixins.CreateModelMixin,
                     defaults={"tipo": EntidadePagar.TIPO_FORNECEDOR},
                 )
                 fav, _ = Favorecido.objects.get_or_create(entidade=entidade)
+
+                # Camada de origem: Custo da remoção de saldo (valor já saiu → quitado)
+                from apps.financeiro.custos.models import Custo
+                custo = Custo.objects.create(
+                    tipo=Custo.TIPO_OUTROS,
+                    favorecido=fav,
+                    descricao=descricao or f"Remoção de saldo – {carteira.participante.nome}",
+                    valor=valor,
+                    data_emissao=hoje,
+                    data_vencimento=hoje,
+                    status=Custo.STATUS_QUITADO,
+                )
+
                 TituloPagar.objects.create(
                     tipo=TituloPagar.TIPO_OUTROS,
                     favorecido=fav,
@@ -171,6 +197,7 @@ class CarteiraViewSet(mixins.CreateModelMixin,
                     data_vencimento=hoje,
                     data_pagamento=hoje,
                     status=TituloPagar.STATUS_BAIXADO,
+                    custo=custo,
                 )
 
         return Response(CarteiraSerializer(carteira).data)

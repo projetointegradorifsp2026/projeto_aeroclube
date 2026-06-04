@@ -1,33 +1,33 @@
 from rest_framework import serializers
-from .models import TituloPagar
+from .models import Custo
 
+# Mesmos apelidos de tipo usados em TituloPagar (frontend → backend)
 TIPO_FRONTEND_TO_BACKEND = {
-    "folha": TituloPagar.TIPO_FOLHA,
-    "instrutor": TituloPagar.TIPO_FOLHA,
+    "folha": Custo.TIPO_FOLHA,
+    "instrutor": Custo.TIPO_FOLHA,
 }
 
 
-class TituloPagarSerializer(serializers.ModelSerializer):
+class CustoSerializer(serializers.ModelSerializer):
     tipo_display = serializers.CharField(source="get_tipo_display", read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
-    esta_atrasado = serializers.BooleanField(read_only=True)
     favorecido_nome = serializers.SerializerMethodField()
+    esta_faturado = serializers.BooleanField(read_only=True)
 
     class Meta:
-        model = TituloPagar
+        model = Custo
         fields = [
             "id", "tipo", "tipo_display",
-            "favorecido", "favorecido_nome", "custo",
+            "favorecido", "favorecido_nome",
             "descricao",
             "num_parcela", "total_parcelas",
             "valor",
             "data_emissao", "data_vencimento",
-            "status", "status_display", "esta_atrasado",
-            "multa", "valor_pago", "data_pagamento",
+            "status", "status_display", "esta_faturado",
             "is_recorrente", "periodicidade_dias",
-            "created_at",
+            "created_at", "updated_at",
         ]
-        read_only_fields = ["id", "created_at"]
+        read_only_fields = ["id", "created_at", "updated_at"]
 
     def get_favorecido_nome(self, obj):
         f = obj.favorecido
@@ -38,25 +38,23 @@ class TituloPagarSerializer(serializers.ModelSerializer):
         return None
 
 
-class TituloPagarWriteSerializer(serializers.ModelSerializer):
+class CustoWriteSerializer(serializers.ModelSerializer):
     """
-    Serializer para criação de títulos.
-
-    - fornecedor / folha_pagamento / conta_fixa: recebe favorecido_id (PK do registro
-      correspondente) e resolve para o Favorecido correto.
-    - outros: recebe favorecido_nome (texto livre) e cria/encontra EntidadePagar por nome.
+    Criação de Custo resolvendo o favorecido da mesma forma que TituloPagar:
+    - fornecedor / folha_pagamento / conta_fixa: recebe favorecido_id e resolve o Favorecido.
+    - outros: recebe favorecido_nome (texto livre) e cria/encontra a EntidadePagar.
     """
     favorecido_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
     favorecido_nome = serializers.CharField(write_only=True, required=False, allow_blank=True, default="")
     favorecido_tipo = serializers.CharField(write_only=True, required=False, default="outros")
 
     class Meta:
-        model = TituloPagar
+        model = Custo
         fields = [
             "tipo", "favorecido_id", "favorecido_nome", "favorecido_tipo",
-            "custo",
             "descricao", "num_parcela", "total_parcelas", "valor",
-            "data_emissao", "data_vencimento", "is_recorrente", "periodicidade_dias",
+            "data_emissao", "data_vencimento",
+            "is_recorrente", "periodicidade_dias",
         ]
 
     def validate_tipo(self, value):
@@ -66,22 +64,20 @@ class TituloPagarWriteSerializer(serializers.ModelSerializer):
         tipo = validated_data.get("tipo")
         favorecido_id = validated_data.pop("favorecido_id", None)
         nome = validated_data.pop("favorecido_nome", "")
-        favorecido_tipo = validated_data.pop("favorecido_tipo", "outros")
+        validated_data.pop("favorecido_tipo", "outros")
 
         from apps.users.models import Usuario
         from apps.pessoas.models import EntidadePagar, Favorecido
         from apps.financeiro.conta_fixa.models import ContaFixa
 
-        if tipo == TituloPagar.TIPO_FOLHA and favorecido_id:
+        if tipo == Custo.TIPO_FOLHA and favorecido_id:
             try:
                 user = Usuario.objects.get(pk=favorecido_id)
             except Usuario.DoesNotExist:
                 raise serializers.ValidationError({"favorecido_id": "Usuário não encontrado."})
-            fav = Favorecido.objects.filter(usuario=user).first()
-            if not fav:
-                fav = Favorecido.objects.create(usuario=user)
+            fav = Favorecido.objects.filter(usuario=user).first() or Favorecido.objects.create(usuario=user)
 
-        elif tipo == TituloPagar.TIPO_CONTA_FIXA and favorecido_id:
+        elif tipo == Custo.TIPO_CONTA_FIXA and favorecido_id:
             try:
                 conta_fixa = ContaFixa.objects.get(pk=favorecido_id)
             except ContaFixa.DoesNotExist:
@@ -91,18 +87,14 @@ class TituloPagarWriteSerializer(serializers.ModelSerializer):
                 entidade = EntidadePagar.objects.create(
                     nome=conta_fixa.favorecido, tipo=EntidadePagar.TIPO_FORNECEDOR
                 )
-            fav = Favorecido.objects.filter(entidade=entidade).first()
-            if not fav:
-                fav = Favorecido.objects.create(entidade=entidade)
+            fav = Favorecido.objects.filter(entidade=entidade).first() or Favorecido.objects.create(entidade=entidade)
 
-        elif tipo == TituloPagar.TIPO_FORNECEDOR and favorecido_id:
+        elif tipo == Custo.TIPO_FORNECEDOR and favorecido_id:
             try:
                 entidade = EntidadePagar.objects.get(pk=favorecido_id)
             except EntidadePagar.DoesNotExist:
                 raise serializers.ValidationError({"favorecido_id": "Fornecedor não encontrado."})
-            fav = Favorecido.objects.filter(entidade=entidade).first()
-            if not fav:
-                fav = Favorecido.objects.create(entidade=entidade)
+            fav = Favorecido.objects.filter(entidade=entidade).first() or Favorecido.objects.create(entidade=entidade)
 
         else:
             if not nome:
@@ -110,15 +102,7 @@ class TituloPagarWriteSerializer(serializers.ModelSerializer):
             entidade = EntidadePagar.objects.filter(nome=nome).first()
             if not entidade:
                 entidade = EntidadePagar.objects.create(nome=nome, tipo=EntidadePagar.TIPO_FORNECEDOR)
-            fav = Favorecido.objects.filter(entidade=entidade).first()
-            if not fav:
-                fav = Favorecido.objects.create(entidade=entidade)
+            fav = Favorecido.objects.filter(entidade=entidade).first() or Favorecido.objects.create(entidade=entidade)
 
         validated_data["favorecido"] = fav
         return super().create(validated_data)
-
-
-class BaixaTituloPagarSerializer(serializers.Serializer):
-    valor_pago = serializers.DecimalField(max_digits=10, decimal_places=2)
-    data_pagamento = serializers.DateField(required=False, allow_null=True)
-    multa = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, default=0)
