@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { FileText, FileUp, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react'
+import { FileText, FileUp, ChevronDown, ChevronRight, AlertCircle, Download } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -10,6 +10,7 @@ import {
   getRemessas,
   getRetornos,
   gerarRemessa,
+  baixarRemessa,
   type ConfiguracaoBancaria,
   type TituloAberto,
   type RemessaCNAB,
@@ -201,14 +202,20 @@ export default function RemessasCNAB() {
                 <div className="divide-y">
                   {remessas.map(r => (
                     <div key={r.id}>
-                      <button onClick={() => toggleExpand(r.id)} className="flex w-full items-center gap-3 px-4 py-3 hover:bg-muted/20 text-left">
-                        {expanded.has(r.id) ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
-                        <span className="font-medium">Remessa #{r.numero_sequencial}</span>
-                        <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', STATUS_COLORS[r.status] ?? 'bg-muted')}>{r.status_display}</span>
-                        <span className="text-sm text-muted-foreground">{fmtDate(r.data_geracao)}</span>
-                        <span className="ml-auto text-sm text-muted-foreground">{r.quantidade_titulos} título(s)</span>
-                        <span className="font-medium">{fmt(parseFloat(r.valor_total))}</span>
-                      </button>
+                      <div className="flex w-full items-center gap-3 px-4 py-3 hover:bg-muted/20">
+                        <button onClick={() => toggleExpand(r.id)} className="flex flex-1 items-center gap-3 text-left">
+                          {expanded.has(r.id) ? <ChevronDown className="h-4 w-4 shrink-0" /> : <ChevronRight className="h-4 w-4 shrink-0" />}
+                          <span className="font-medium">Remessa #{r.numero_sequencial}</span>
+                          <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', STATUS_COLORS[r.status] ?? 'bg-muted')}>{r.status_display}</span>
+                          <span className="text-sm text-muted-foreground">{fmtDate(r.data_geracao)}</span>
+                          <span className="ml-auto text-sm text-muted-foreground">{r.quantidade_titulos} título(s)</span>
+                          <span className="font-medium">{fmt(parseFloat(r.valor_total))}</span>
+                        </button>
+                        <Button size="sm" variant="outline" onClick={() => baixarRemessa(r.id, r.nome_arquivo)} title="Baixar arquivo .REM">
+                          <Download className="h-3.5 w-3.5" />
+                          .REM
+                        </Button>
+                      </div>
                       {expanded.has(r.id) && (
                         <div className="bg-muted/20 px-12 py-2">
                           <p className="text-xs text-muted-foreground mb-1">Arquivo: {r.nome_arquivo || '—'}</p>

@@ -1,4 +1,4 @@
-import { apiList, apiGet, apiPost, apiPatch } from '@/services/api/client'
+import { apiList, apiGet, apiPost, apiPatch, apiFetch } from '@/services/api/client'
 
 // ─── Configuração Bancária (cedente / aeroclube) ──────────────────────────────
 
@@ -116,6 +116,21 @@ export async function gerarRemessa(configuracaoId: number, tituloIds: number[]):
     configuracao: configuracaoId,
     titulo_ids: tituloIds,
   })
+}
+
+/** Baixa o arquivo de remessa .REM (CNAB240) gerado. */
+export async function baixarRemessa(id: number, nomeArquivo: string): Promise<void> {
+  const res = await apiFetch(`/api/v1/remessas-cnab/${id}/arquivo/`)
+  if (!res.ok) throw new Error('Erro ao baixar o arquivo de remessa.')
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = nomeArquivo || `remessa-${id}.REM`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
 }
 
 export interface RetornoCNAB {

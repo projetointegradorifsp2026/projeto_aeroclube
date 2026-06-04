@@ -4,6 +4,9 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.db import transaction
+from django.http import HttpResponse
+
+from .cnab240 import gerar_arquivo_remessa
 
 from .models import (
     ConfiguracaoBancaria,
@@ -117,12 +120,34 @@ class RemessaCNABViewSet(viewsets.ModelViewSet):
 
             remessa.quantidade_titulos = len(titulos)
             remessa.valor_total = total
-            remessa.save(update_fields=["quantidade_titulos", "valor_total", "updated_at"])
+            # Gera o conteúdo posicional do arquivo .REM (CNAB240) e armazena.
+            remessa.conteudo_arquivo = gerar_arquivo_remessa(remessa)
+            remessa.save(update_fields=[
+                "quantidade_titulos", "valor_total", "conteudo_arquivo", "updated_at",
+            ])
 
             config.proximo_nsa = nsa + 1
             config.save(update_fields=["proximo_nsa", "updated_at"])
 
         return Response(RemessaCNABSerializer(remessa).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["get"], url_path="arquivo")
+    def arquivo(self, request, pk=None):
+        """
+        GET /api/v1/remessas-cnab/{id}/arquivo/
+        Retorna o arquivo de remessa .REM (CNAB240) para download.
+        Regenera o conteúdo caso ainda não tenha sido gravado.
+        """
+        remessa = self.get_object()
+        conteudo = remessa.conteudo_arquivo or gerar_arquivo_remessa(remessa)
+        if not remessa.conteudo_arquivo:
+            remessa.conteudo_arquivo = conteudo
+            remessa.save(update_fields=["conteudo_arquivo", "updated_at"])
+        nome = remessa.nome_arquivo or f"COB{remessa.numero_sequencial:07d}.REM"
+        # ANSI (latin-1) e CRLF, conforme exigência do layout Sicoob.
+        resp = HttpResponse(conteudo.encode("latin-1", "ignore"), content_type="text/plain")
+        resp["Content-Disposition"] = f'attachment; filename="{nome}"'
+        return resp
 
 
 class RetornoCNABViewSet(viewsets.ModelViewSet):
