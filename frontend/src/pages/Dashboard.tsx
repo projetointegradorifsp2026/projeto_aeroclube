@@ -1168,7 +1168,7 @@ function DashboardAluno({ perfil }: { perfil: string }) {
                                 loading={loading}
                                 icon={TrendingDown}
                                 iconBg="bg-rose-100 dark:bg-rose-900/30"
-                                iconColor="text-rose-600 dark:text-rose-400"
+                                iconColor="text-gray-200"
                                 subtitle={`${meusTitulos.filter(t => t.status !== 'baixado').length} título(s) em aberto`}
                             />
                             <FinCard
@@ -1177,7 +1177,7 @@ function DashboardAluno({ perfil }: { perfil: string }) {
                                 loading={loading}
                                 icon={CheckCircle2}
                                 iconBg="bg-emerald-100 dark:bg-emerald-900/30"
-                                iconColor="text-emerald-600 dark:text-emerald-400"
+                                iconColor="text-gray-200"
                                 subtitle={`${meusTitulos.filter(t => t.status === 'baixado').length} título(s) quitado(s)`}
                             />
                             <FinCard
@@ -1186,7 +1186,7 @@ function DashboardAluno({ perfil }: { perfil: string }) {
                                 loading={loading}
                                 icon={Wallet}
                                 iconBg="bg-teal-100 dark:bg-teal-900/30"
-                                iconColor="text-teal-600 dark:text-teal-400"
+                                iconColor="text-gray-200"
                                 subtitle={saldoCarteira > 0 ? 'Disponível para voos' : 'Sem saldo disponível'}
                             />
                         </div>
@@ -1330,7 +1330,7 @@ function DashboardInstrutor({ perfil }: { perfil: string }) {
                                 loading={loading}
                                 icon={TrendingUp}
                                 iconBg="bg-emerald-100 dark:bg-emerald-900/30"
-                                iconColor="text-emerald-600 dark:text-emerald-400"
+                                iconColor="text-gray-200"
                                 subtitle={`${meusPagamentos.filter(t => t.status === 'em_aberto').length} pagamento(s) pendente(s)`}
                             />
                             <FinCard
@@ -1339,7 +1339,7 @@ function DashboardInstrutor({ perfil }: { perfil: string }) {
                                 loading={loading}
                                 icon={CheckCircle2}
                                 iconBg="bg-blue-100 dark:bg-blue-900/30"
-                                iconColor="text-blue-600 dark:text-blue-400"
+                                iconColor="text-gray-200"
                                 subtitle={`${meusPagamentos.filter(t => t.status === 'baixado').length} pagamento(s)`}
                             />
                             <Card>

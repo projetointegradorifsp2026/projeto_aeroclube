@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Plus, FileUp, Pencil, Trash2, TrendingUp } from 'lucide-react'
+import { Plus, FileUp, Pencil, Trash2, TrendingUp, AlertCircle, Layers } from 'lucide-react'
 import { TablePagination } from '@/components/ui/pagination'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -11,9 +12,9 @@ import {
 } from '@/components/ui/dialog'
 import { ReceitaFormModal } from '@/components/financeiro/ReceitaFormModal'
 import {
-  getReceitas, createReceita, updateReceita, deleteReceita, faturarReceita,
+  getReceitas, createReceita, updateReceita, deleteReceita, faturarReceita, faturarReceitasAgrupadas,
+  type ReceitaInput, type Parcela,
 } from '@/services/receitasService'
-import { type ReceitaInput } from '@/services/receitasService'
 import {
   type Receita, type ReceitaTipo, type ReceitaStatus,
   RECEITA_TIPO_LABELS, RECEITA_STATUS_LABELS, ALL_RECEITA_TIPOS,
@@ -22,6 +23,17 @@ import { cn } from '@/lib/utils'
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR')
+const todayStr = () => new Date().toISOString().split('T')[0]
+function addMonths(dateStr: string, n: number) {
+  const d = new Date(dateStr + 'T00:00:00')
+  d.setMonth(d.getMonth() + n)
+  return d.toISOString().split('T')[0]
+}
+
+const hoje = new Date().toISOString().split('T')[0]
+function isAtrasada(r: Receita) {
+  return r.status === 'pendente' && r.data_vencimento < hoje
+}
 
 type TipoFilter = 'all' | ReceitaTipo
 
@@ -35,12 +47,14 @@ const TIPO_COLORS: Record<ReceitaTipo, string> = {
 
 interface TableProps {
   items: Receita[]
+  selected: Set<string>
+  onToggle: (id: string) => void
   onView: (r: Receita) => void
   onFaturar: (r: Receita) => void
   emptyMessage: string
 }
 
-function ReceitasTable({ items, onView, onFaturar, emptyMessage }: TableProps) {
+function ReceitasTable({ items, selected, onToggle, onView, onFaturar, emptyMessage }: TableProps) {
   const [page, setPage] = useState(1)
   useEffect(() => { setPage(1) }, [items])
   const PAGE_SIZE = 10
@@ -62,19 +76,33 @@ function ReceitasTable({ items, onView, onFaturar, emptyMessage }: TableProps) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/30">
+              <th className="px-4 py-3 w-10">
+                <span className="sr-only">Selecionar</span>
+              </th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Devedor</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Descrição</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Tipo</th>
               <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Valor</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Vencimento</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Status</th>
               <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Ações</th>
             </tr>
           </thead>
           <tbody>
             {paginated.map(r => (
-              <tr key={r.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+              <tr key={r.id} className={cn('border-b last:border-0 hover:bg-muted/20 transition-colors', selected.has(r.id) && 'bg-primary/5')}>
+                <td className="px-4 py-3">
+                  {r.status === 'pendente' && (
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
+                      checked={selected.has(r.id)}
+                      onChange={() => onToggle(r.id)}
+                    />
+                  )}
+                </td>
                 <td className="px-4 py-3 whitespace-nowrap font-medium">{r.devedor_nome}</td>
-                <td className="px-4 py-3 max-w-[280px] truncate">{r.descricao}</td>
+                <td className="px-4 py-3 max-w-[240px] truncate">{r.descricao}</td>
                 <td className="px-4 py-3 whitespace-nowrap">
                   <span className={cn('inline-flex rounded-full px-2 py-0.5 text-xs font-medium', TIPO_COLORS[r.tipo])}>
                     {RECEITA_TIPO_LABELS[r.tipo]}
@@ -82,6 +110,14 @@ function ReceitasTable({ items, onView, onFaturar, emptyMessage }: TableProps) {
                 </td>
                 <td className="px-4 py-3 text-right whitespace-nowrap font-medium">{fmt(r.valor)}</td>
                 <td className="px-4 py-3 whitespace-nowrap">{fmtDate(r.data_vencimento)}</td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  {isAtrasada(r) && (
+                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                      <AlertCircle className="h-3 w-3" />
+                      Atrasado
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-right whitespace-nowrap">
                   <div className="flex justify-end gap-1">
                     {r.status === 'pendente' && (
@@ -105,6 +141,204 @@ function ReceitasTable({ items, onView, onFaturar, emptyMessage }: TableProps) {
   )
 }
 
+// ── Modal de faturamento (simples ou parcelado) ────────────────────────────────
+
+interface FaturarModalProps {
+  receita: Receita | null
+  open: boolean
+  onClose: () => void
+  onConfirm: (parcelas?: Parcela[]) => Promise<void>
+}
+
+function FaturarModal({ receita, open, onClose, onConfirm }: FaturarModalProps) {
+  const [modo, setModo] = useState<'simples' | 'parcelado'>('simples')
+  const [numParcelas, setNumParcelas] = useState(2)
+  const [parcelas, setParcelas] = useState<Parcela[]>([])
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!open || !receita) return
+    setModo('simples')
+    setNumParcelas(2)
+    gerarParcelasIguais(2, receita.valor, receita.data_vencimento)
+  }, [open, receita])
+
+  function gerarParcelasIguais(n: number, total: number, dataBase: string) {
+    const valorParcela = parseFloat((total / n).toFixed(2))
+    const diff = parseFloat((total - valorParcela * n).toFixed(2))
+    const novas: Parcela[] = Array.from({ length: n }, (_, i) => ({
+      valor: i === 0 ? valorParcela + diff : valorParcela,
+      data_vencimento: addMonths(dataBase, i),
+    }))
+    setParcelas(novas)
+  }
+
+  function handleNumParcelasChange(n: number) {
+    setNumParcelas(n)
+    if (receita) gerarParcelasIguais(n, receita.valor, receita.data_vencimento)
+  }
+
+  function updateParcela(i: number, field: keyof Parcela, value: string) {
+    setParcelas(prev => prev.map((p, idx) =>
+      idx === i ? { ...p, [field]: field === 'valor' ? parseFloat(value) || 0 : value } : p,
+    ))
+  }
+
+  const totalParcelas = parcelas.reduce((s, p) => s + p.valor, 0)
+  const diff = receita ? Math.abs(totalParcelas - receita.valor) > 0.01 : false
+
+  async function handleConfirm() {
+    setSaving(true)
+    try {
+      await onConfirm(modo === 'parcelado' ? parcelas : undefined)
+      onClose()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!receita) return null
+  const selectCls = 'h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
+
+  return (
+    <Dialog open={open} onOpenChange={o => !o && onClose()}>
+      <DialogContent className="sm:max-w-md" onOpenAutoFocus={e => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle>Faturar Receita</DialogTitle>
+          <DialogDescription>{receita.descricao} — {fmt(receita.valor)}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-1">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Modo</label>
+            <select className={selectCls} value={modo} onChange={e => setModo(e.target.value as 'simples' | 'parcelado')}>
+              <option value="simples">Título único</option>
+              <option value="parcelado">Parcelado</option>
+            </select>
+          </div>
+          {modo === 'parcelado' && (
+            <>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Número de parcelas</label>
+                <select className={selectCls} value={numParcelas} onChange={e => handleNumParcelasChange(parseInt(e.target.value))}>
+                  {[2,3,4,5,6,8,10,12].map(n => <option key={n} value={n}>{n}x</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Parcelas</label>
+                {parcelas.map((p, i) => (
+                  <div key={i} className="grid grid-cols-[1fr_1fr] gap-2 items-end">
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">Parcela {i + 1}</label>
+                      <Input
+                        type="number" step={0.01} min={0}
+                        value={p.valor || ''}
+                        onChange={e => updateParcela(i, 'valor', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">Vencimento</label>
+                      <input
+                        type="date"
+                        className={selectCls}
+                        value={p.data_vencimento}
+                        onChange={e => updateParcela(i, 'data_vencimento', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                ))}
+                {diff && (
+                  <p className="text-xs text-destructive">
+                    Soma ({fmt(totalParcelas)}) ≠ valor da receita ({fmt(receita.valor)})
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
+          <Button onClick={handleConfirm} disabled={saving || (modo === 'parcelado' && diff)}>
+            {saving ? 'Faturando...' : 'Confirmar'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ── Modal de agrupamento ──────────────────────────────────────────────────────
+
+interface AgrupamentoModalProps {
+  receitas: Receita[]
+  open: boolean
+  onClose: () => void
+  onConfirm: (data_vencimento?: string) => Promise<void>
+}
+
+function AgrupamentoModal({ receitas, open, onClose, onConfirm }: AgrupamentoModalProps) {
+  const [dataVenc, setDataVenc] = useState(todayStr())
+  const [saving, setSaving] = useState(false)
+  const total = receitas.reduce((s, r) => s + r.valor, 0)
+
+  useEffect(() => {
+    if (open && receitas.length > 0) {
+      const maxDate = receitas.map(r => r.data_vencimento).sort().at(-1) ?? todayStr()
+      setDataVenc(maxDate)
+    }
+  }, [open, receitas])
+
+  async function handleConfirm() {
+    setSaving(true)
+    try {
+      await onConfirm(dataVenc)
+      onClose()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const selectCls = 'h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
+
+  return (
+    <Dialog open={open} onOpenChange={o => !o && onClose()}>
+      <DialogContent className="sm:max-w-md" onOpenAutoFocus={e => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle>Faturar em Conjunto</DialogTitle>
+          <DialogDescription>
+            {receitas.length} receitas do mesmo devedor serão agrupadas num único título a receber.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 py-1">
+          <div className="rounded-lg border border-border divide-y divide-border max-h-44 overflow-y-auto">
+            {receitas.map(r => (
+              <div key={r.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                <span className="text-muted-foreground truncate pr-4">{r.descricao}</span>
+                <span className="font-medium whitespace-nowrap">{fmt(r.valor)}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-between text-sm font-semibold border-t border-border pt-2">
+            <span>Total</span>
+            <span>{fmt(total)}</span>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Data de vencimento</label>
+            <input type="date" className={selectCls} value={dataVenc} onChange={e => setDataVenc(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
+          <Button onClick={handleConfirm} disabled={saving || !dataVenc}>
+            {saving ? 'Faturando...' : 'Confirmar'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 export default function Receitas() {
   const [receitas, setReceitas] = useState<Receita[]>([])
   const [loading, setLoading] = useState(true)
@@ -114,6 +348,9 @@ export default function Receitas() {
   const [editReceita, setEditReceita] = useState<Receita | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Receita | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [faturarTarget, setFaturarTarget] = useState<Receita | null>(null)
+  const [agrupamentoOpen, setAgrupamentoOpen] = useState(false)
 
   useEffect(() => {
     getReceitas().then(setReceitas).catch(() => {}).finally(() => setLoading(false))
@@ -129,13 +366,18 @@ export default function Receitas() {
   }, [receitas, search, tipoFilter])
 
   const byStatus = (s: ReceitaStatus) => filtered.filter(r => r.status === s)
-  const pendentes = byStatus('pendente')
-  const faturadas = byStatus('faturada')
-  const quitadas = byStatus('quitada')
-  const canceladas = byStatus('cancelada')
 
   function openCreate() { setEditReceita(null); setModalOpen(true) }
   function openEdit(r: Receita) { setEditReceita(r); setModalOpen(true) }
+
+  function toggleSelect(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   async function handleSave(data: ReceitaInput) {
     if (editReceita) {
@@ -144,13 +386,21 @@ export default function Receitas() {
     } else {
       const created = await createReceita(data)
       setReceitas(prev => [created, ...prev])
-      // Se gerou título, a receita criada já volta como faturada
     }
   }
 
-  async function handleFaturar(r: Receita) {
-    const updated = await faturarReceita(r.id)
-    setReceitas(prev => prev.map(x => (x.id === r.id ? updated : x)))
+  async function handleFaturarConfirm(parcelas?: Parcela[]) {
+    if (!faturarTarget) return
+    const updated = await faturarReceita(faturarTarget.id, parcelas)
+    setReceitas(prev => prev.map(x => (x.id === faturarTarget.id ? updated : x)))
+  }
+
+  async function handleAgrupamentoConfirm(data_vencimento?: string) {
+    const ids = [...selected]
+    await faturarReceitasAgrupadas(ids, data_vencimento)
+    const refreshed = await getReceitas()
+    setReceitas(refreshed)
+    setSelected(new Set())
   }
 
   async function handleDelete() {
@@ -165,11 +415,12 @@ export default function Receitas() {
     }
   }
 
+  const selectedReceitas = receitas.filter(r => selected.has(r.id))
+
   const tabConfig: { value: ReceitaStatus; label: string; items: Receita[]; badge: string }[] = [
-    { value: 'pendente', label: 'Pendentes', items: pendentes, badge: 'bg-amber-100 text-amber-700' },
-    { value: 'faturada', label: 'Faturadas', items: faturadas, badge: 'bg-blue-100 text-blue-700' },
-    { value: 'quitada', label: 'Quitadas', items: quitadas, badge: 'bg-emerald-100 text-emerald-700' },
-    { value: 'cancelada', label: 'Canceladas', items: canceladas, badge: 'bg-muted text-muted-foreground' },
+    { value: 'pendente', label: 'Pendentes', items: byStatus('pendente'), badge: 'bg-amber-100 text-amber-700' },
+    { value: 'faturada', label: 'Faturadas', items: byStatus('faturada'), badge: 'bg-blue-100 text-blue-700' },
+    { value: 'quitada', label: 'Quitadas', items: byStatus('quitada'), badge: 'bg-emerald-100 text-emerald-700' },
   ]
 
   return (
@@ -189,6 +440,12 @@ export default function Receitas() {
             <option key={t} value={t}>{RECEITA_TIPO_LABELS[t]}</option>
           ))}
         </FilterSelect>
+        {selected.size >= 2 && (
+          <Button variant="outline" onClick={() => setAgrupamentoOpen(true)} className="shrink-0">
+            <Layers className="h-4 w-4" />
+            Faturar em conjunto ({selected.size})
+          </Button>
+        )}
         <Button onClick={openCreate} className="ml-auto shrink-0">
           <Plus className="h-4 w-4" />
           Nova Receita
@@ -222,8 +479,10 @@ export default function Receitas() {
                 <CardContent className="p-0">
                   <ReceitasTable
                     items={t.items}
+                    selected={selected}
+                    onToggle={toggleSelect}
                     onView={openEdit}
-                    onFaturar={handleFaturar}
+                    onFaturar={r => setFaturarTarget(r)}
                     emptyMessage={`Nenhuma receita ${RECEITA_STATUS_LABELS[t.value].toLowerCase()}`}
                   />
                 </CardContent>
@@ -241,6 +500,20 @@ export default function Receitas() {
         onDeleteRequest={editReceita ? () => { setModalOpen(false); setDeleteTarget(editReceita) } : undefined}
       />
 
+      <FaturarModal
+        receita={faturarTarget}
+        open={!!faturarTarget}
+        onClose={() => setFaturarTarget(null)}
+        onConfirm={handleFaturarConfirm}
+      />
+
+      <AgrupamentoModal
+        receitas={selectedReceitas}
+        open={agrupamentoOpen}
+        onClose={() => setAgrupamentoOpen(false)}
+        onConfirm={handleAgrupamentoConfirm}
+      />
+
       <Dialog open={!!deleteTarget} onOpenChange={o => !o && setDeleteTarget(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -251,11 +524,7 @@ export default function Receitas() {
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>Cancelar</Button>
-            <Button
-              className="bg-destructive text-white hover:bg-destructive/90"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
+            <Button className="bg-destructive text-white hover:bg-destructive/90" onClick={handleDelete} disabled={deleting}>
               <Trash2 className="h-3.5 w-3.5" />
               {deleting ? 'Excluindo...' : 'Excluir'}
             </Button>

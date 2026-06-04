@@ -65,8 +65,6 @@ export default function Movimentacoes() {
       const entradas: MovRow[] = receber
         .filter(t =>
           t.status === 'baixado' &&
-          t.tipo !== 'carteira' &&
-          !(t.valor_carteira && t.valor_carteira >= t.valor) &&
           (isAdmin || t.usuario_nome === nomeUsuario)
         )
         .map(t => ({
@@ -80,27 +78,8 @@ export default function Movimentacoes() {
           status: t.status as MovStatus,
         }))
 
-      // Títulos tipo 'carteira' (recargas de carteira = créditos)
-      const carteiraCreditos: MovRow[] = receber
-        .filter(t =>
-          t.tipo === 'carteira' &&
-          (isAdmin || t.usuario_nome === nomeUsuario)
-        )
-        .map(t => ({
-          id: `c-${t.id}`,
-          tipo: 'carteira' as MovTipo,
-          data: t.data_emissao,
-          descricao: t.descricao,
-          pessoa: t.usuario_nome,
-          valor: t.valor,
-          valor_pago: t.valor_pago,
-          status: 'baixado' as MovStatus,
-          carteira_debito: false,
-        }))
-
-      // MovimentacaoCarteira débitos (uso de carteira em voos e baixas)
-      const carteiraDebitos: MovRow[] = movCarteira
-        .filter(m => m.tipo === 'debito')
+      // Todas as movimentações da carteira (créditos e débitos)
+      const carteiraMovs: MovRow[] = movCarteira
         .map(m => ({
           id: `mv-${m.id}`,
           tipo: 'carteira' as MovTipo,
@@ -108,9 +87,8 @@ export default function Movimentacoes() {
           descricao: m.descricao,
           pessoa: m.usuario_nome,
           valor: m.valor,
-          valor_pago: m.valor,
+          valor_pago: 0,
           status: 'baixado' as MovStatus,
-          carteira_debito: true,
         }))
 
       const saidas: MovRow[] = pagar
@@ -130,7 +108,7 @@ export default function Movimentacoes() {
         }))
 
       setRows(
-        [...entradas, ...carteiraCreditos, ...carteiraDebitos, ...saidas]
+        [...entradas, ...carteiraMovs, ...saidas]
           .sort((a, b) => b.data.localeCompare(a.data))
       )
       setLoading(false)
@@ -263,21 +241,16 @@ export default function Movimentacoes() {
                         {r.pessoa}
                       </td>
                       <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
-                        <span
-                          className={
-                            r.tipo === 'entrada'
-                              ? 'text-emerald-600 dark:text-emerald-400'
-                              : r.tipo === 'carteira'
-                              ? 'text-teal-600 dark:text-teal-400'
-                              : 'text-rose-600 dark:text-rose-400'
-                          }
-                        >
-                          {r.tipo === 'entrada' ? '+' : r.tipo === 'carteira' ? (r.carteira_debito ? '' : '+') : '−'}
-                          {fmt(r.valor)}
-                        </span>
+                        {r.tipo === 'carteira' ? (
+                          <span className="text-teal-600 dark:text-teal-400">{fmt(r.valor)}</span>
+                        ) : (
+                          <span className={r.tipo === 'entrada' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                            {r.tipo === 'entrada' ? '+' : '−'}{fmt(r.valor)}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell whitespace-nowrap">
-                        {(r.tipo === 'carteira' && r.carteira_debito) ? '—' : r.valor_pago > 0 ? fmt(r.valor_pago) : '—'}
+                        {r.tipo === 'carteira' ? '—' : r.valor_pago > 0 ? fmt(r.valor_pago) : '—'}
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={r.status} />

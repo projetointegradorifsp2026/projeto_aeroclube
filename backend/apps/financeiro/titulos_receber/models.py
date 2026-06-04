@@ -66,14 +66,12 @@ class TituloReceber(models.Model):
         verbose_name="Voo de origem",
     )
 
-    # Vínculo com a Receita de origem (camada de origem; opcional p/ compatibilidade)
-    receita = models.ForeignKey(
+    # Vínculos com Receitas de origem (M2M: suporta split 1→N e agrupamento N→1)
+    receitas = models.ManyToManyField(
         "receitas.Receita",
-        on_delete=models.SET_NULL,
-        null=True,
         blank=True,
         related_name="titulos",
-        verbose_name="Receita de origem",
+        verbose_name="Receitas de origem",
     )
 
     # Parcelamento
@@ -123,11 +121,41 @@ class TituloReceber(models.Model):
     def aplicar_baixa_parcial(self, valor: Decimal, juros: Decimal = Decimal("0"), data=None, valor_via_carteira: Decimal = Decimal("0")):
         """
         RF06: Aplica uma baixa parcial. Se o valor cobre o saldo total, baixa o título.
+        Ao baixar, credita a carteira do participante se a receita for do tipo horas_pre_pagas.
         """
         self.multa += juros
         self.valor_pago += valor
         self.valor_via_carteira += valor_via_carteira
         self.data_pagamento = data or timezone.now().date()
+        ja_estava_baixado = self.status == self.STATUS_BAIXADO
         if self.valor_pago >= self.valor_total_com_juros:
             self.status = self.STATUS_BAIXADO
         self.save()
+        if self.status == self.STATUS_BAIXADO and not ja_estava_baixado:
+            self._creditar_carteira_se_necessario()
+
+    def _creditar_carteira_se_necessario(self):
+        """Credita a carteira quando o título é de compra de horas pré-pagas."""
+        from apps.financeiro.receitas.models import Receita as ReceitaModel
+        from apps.financeiro.carteira.models import Carteira
+
+        if not self.participante_id:
+            return
+        receitas_horas = self.receitas.filter(tipo=ReceitaModel.TIPO_HORAS_PRE_PAGAS)
+        if not receitas_horas.exists():
+            return
+
+        carteira, _ = Carteira.objects.get_or_create(
+            participante=self.participante,
+            defaults={"saldo": Decimal("0.00")},
+        )
+        receita = receitas_horas.first()
+        carteira.creditar(
+            valor=self.valor_pago,
+            descricao=self.descricao,
+            data_vencimento=self.data_vencimento,
+            metadados=receita.metadados or {},
+        )
+        # Marca a receita como quitada
+        receita.status = ReceitaModel.STATUS_QUITADA
+        receita.save(update_fields=["status", "updated_at"])

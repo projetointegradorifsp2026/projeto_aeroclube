@@ -183,7 +183,7 @@ export function ReceitaFormModal({ receita, open, onClose, onSave, onDeleteReque
 
   return (
     <Dialog open={open} onOpenChange={o => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto" onOpenAutoFocus={e => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Editar Receita' : 'Nova Receita'}</DialogTitle>
           <DialogDescription>

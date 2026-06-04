@@ -89,10 +89,29 @@ export async function deleteCusto(id: string): Promise<void> {
   await apiDelete(`/api/v1/custos/${id}/`)
 }
 
-/** Gera o TituloPagar a partir do custo (status → faturado). */
-export async function faturarCusto(id: string): Promise<Custo> {
-  const res = await apiPost<{ custo: BackendCusto }>(`/api/v1/custos/${id}/faturar/`, {})
+export interface Parcela {
+  valor: number
+  data_vencimento: string
+}
+
+/** Fatura o custo, opcionalmente com parcelamento. */
+export async function faturarCusto(id: string, parcelas?: Parcela[]): Promise<Custo> {
+  const body = parcelas
+    ? { parcelas: parcelas.map(p => ({ valor: p.valor.toFixed(2), data_vencimento: p.data_vencimento })) }
+    : {}
+  const res = await apiPost<{ custo: BackendCusto }>(`/api/v1/custos/${id}/faturar/`, body)
   return adapt(res.custo)
+}
+
+/** Agrupa N custos do mesmo favorecido em 1 TituloPagar. */
+export async function faturarCustosAgrupados(
+  custo_ids: string[],
+  data_vencimento?: string,
+): Promise<{ custos_faturados: number }> {
+  return apiPost('/api/v1/custos/faturar-agrupado/', {
+    custo_ids: custo_ids.map(id => parseInt(id, 10)),
+    data_vencimento,
+  })
 }
 
 export type { Custo, CustoTipo, CustoStatus }

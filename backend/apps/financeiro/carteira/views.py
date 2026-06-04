@@ -12,7 +12,6 @@ from .serializers import (
     MovimentacaoCarteiraSerializer,
     CreditarCarteiraSerializer,
 )
-from apps.financeiro.titulos_receber.models import TituloReceber
 from django.utils import timezone
 
 
@@ -21,12 +20,11 @@ class CarteiraViewSet(mixins.CreateModelMixin,
                       mixins.RetrieveModelMixin,
                       viewsets.GenericViewSet):
     """
-    GET /api/v1/carteiras/              — lista carteiras (resumido)
-    GET /api/v1/carteiras/?participante=ID — carteira de um participante
-    GET /api/v1/carteiras/{id}/         — detalhe com extrato completo
-    POST /api/v1/carteiras/             — cria carteira (get-or-create por participante)
-    POST /api/v1/carteiras/{id}/creditar/ — RF12: compra antecipada de horas
-    POST /api/v1/carteiras/{id}/debitar/  — débito manual (ex: voo pago via carteira)
+    GET  /api/v1/carteiras/               — lista carteiras
+    GET  /api/v1/carteiras/{id}/          — detalhe com extrato
+    POST /api/v1/carteiras/               — get-or-create por participante
+    POST /api/v1/carteiras/{id}/creditar/ — cria Receita pendente (saldo só altera no baixa)
+    POST /api/v1/carteiras/{id}/debitar/  — débito manual ou remoção de saldo (cria Custo pendente)
     """
     queryset = Carteira.objects.select_related("participante").order_by("participante__nome")
     permission_classes = [IsAuthenticated]
@@ -44,7 +42,6 @@ class CarteiraViewSet(mixins.CreateModelMixin,
         return qs
 
     def create(self, request, *args, **kwargs):
-        """POST /api/v1/carteiras/ — cria ou retorna carteira existente do participante."""
         participante_id = request.data.get("participante")
         if not participante_id:
             return Response({"detail": "Campo 'participante' é obrigatório."}, status=status.HTTP_400_BAD_REQUEST)
@@ -61,8 +58,8 @@ class CarteiraViewSet(mixins.CreateModelMixin,
     def creditar(self, request, pk=None):
         """
         POST /api/v1/carteiras/{id}/creditar/
-        RF12: Registra compra antecipada de horas.
-        Cria movimentação de crédito + título a receber já baixado.
+        Cria uma Receita pendente de tipo horas_pre_pagas.
+        O saldo da carteira SÓ é alterado quando o TituloReceber vinculado for baixado.
         """
         carteira = self.get_object()
         ser = CreditarCarteiraSerializer(data=request.data)
@@ -75,8 +72,8 @@ class CarteiraViewSet(mixins.CreateModelMixin,
         tipo_voo = ser.validated_data.get("tipo_voo")
         horas = ser.validated_data.get("horas")
 
-        # Monta metadados de price freeze se compra for por horas
-        metadados = None
+        # Monta metadados de price freeze
+        metadados = {}
         if aeronave_id and horas:
             from apps.aeronaves.models import Aeronave
             try:
@@ -100,19 +97,7 @@ class CarteiraViewSet(mixins.CreateModelMixin,
             except Aeronave.DoesNotExist:
                 pass
 
-        hoje = timezone.now().date()
-
         with transaction.atomic():
-            # Credita na carteira com metadados de price freeze
-            carteira.creditar(
-                valor=valor,
-                descricao=descricao,
-                data_vencimento=data_vencimento,
-                metadados=metadados,
-            )
-
-            # Camada de origem: registra a Receita da compra de horas.
-            # Como o valor já entrou, a receita nasce quitada e já faturada em título.
             from apps.financeiro.receitas.models import Receita
             receita = Receita.objects.create(
                 participante=carteira.participante,
@@ -120,91 +105,68 @@ class CarteiraViewSet(mixins.CreateModelMixin,
                 descricao=descricao,
                 valor=valor,
                 data_vencimento=data_vencimento,
-                status=Receita.STATUS_QUITADA,
-            )
-
-            # Gera título a receber já baixado (não duplicar no frontend), vinculado à receita
-            titulo = TituloReceber.objects.create(
-                participante=carteira.participante,
-                tipo=TituloReceber.TIPO_HORAS_PRE_PAGAS,
-                descricao=descricao,
-                valor_original=valor,
-                valor_pago=valor,
-                status=TituloReceber.STATUS_BAIXADO,
-                data_pagamento=hoje,
-                data_vencimento=data_vencimento,
-                receita=receita,
+                status=Receita.STATUS_PENDENTE,
+                metadados=metadados,
             )
 
         return Response({
-            "carteira": CarteiraSerializer(carteira).data,
-            "titulo_receber_id": titulo.id,
+            "receita_id": receita.id,
+            "detail": "Receita pendente criada. Fature e baixe o título para creditar o saldo.",
         }, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"], url_path="debitar")
     def debitar(self, request, pk=None):
         """
         POST /api/v1/carteiras/{id}/debitar/
-        Débito manual (usado quando voo é pago via carteira no frontend).
-        Quando a descrição indica remoção manual de saldo, cria TituloPagar baixado.
+        Débito de voo (imediato) ou remoção manual de saldo (cria Custo pendente).
+        Remoção manual: saldo SÓ é alterado quando o TituloPagar vinculado for baixado.
         """
         carteira = self.get_object()
         valor_raw = request.data.get("valor")
         descricao = request.data.get("descricao", "Débito via carteira")
         is_remocao = request.data.get("remocao_saldo", False)
+
         if not valor_raw:
             return Response({"detail": "Campo 'valor' é obrigatório."}, status=status.HTTP_400_BAD_REQUEST)
         try:
             valor = Decimal(str(valor_raw))
         except Exception:
             return Response({"detail": "Valor inválido."}, status=status.HTTP_400_BAD_REQUEST)
-        if not carteira.tem_saldo_suficiente(valor):
-            return Response({"detail": "Saldo insuficiente."}, status=status.HTTP_400_BAD_REQUEST)
 
         hoje = timezone.now().date()
-        with transaction.atomic():
-            carteira.debitar(valor=valor, descricao=descricao)
 
-            if is_remocao:
-                from apps.financeiro.titulos_pagar.models import TituloPagar
-                from apps.pessoas.models import Favorecido, EntidadePagar
-
-                entidade, _ = EntidadePagar.objects.get_or_create(
-                    nome="Remoção de Saldo",
-                    defaults={"tipo": EntidadePagar.TIPO_FORNECEDOR},
-                )
-                fav, _ = Favorecido.objects.get_or_create(entidade=entidade)
-
-                # Camada de origem: Custo da remoção de saldo (valor já saiu → quitado)
+        if is_remocao:
+            # Remoção de saldo: só cria Custo pendente; saldo altera ao baixar o título
+            with transaction.atomic():
                 from apps.financeiro.custos.models import Custo
+                from apps.pessoas.models import Favorecido
+
+                fav, _ = Favorecido.objects.get_or_create(usuario=carteira.participante)
                 custo = Custo.objects.create(
-                    tipo=Custo.TIPO_OUTROS,
+                    tipo=Custo.TIPO_REMOCAO_SALDO,
                     favorecido=fav,
                     descricao=descricao or f"Remoção de saldo – {carteira.participante.nome}",
                     valor=valor,
                     data_emissao=hoje,
                     data_vencimento=hoje,
-                    status=Custo.STATUS_QUITADO,
+                    status=Custo.STATUS_PENDENTE,
+                    metadados={"participante_id": carteira.participante_id},
                 )
-
-                TituloPagar.objects.create(
-                    tipo=TituloPagar.TIPO_OUTROS,
-                    favorecido=fav,
-                    descricao=descricao or f"Remoção de saldo – {carteira.participante.nome}",
-                    valor=valor,
-                    valor_pago=valor,
-                    data_emissao=hoje,
-                    data_vencimento=hoje,
-                    data_pagamento=hoje,
-                    status=TituloPagar.STATUS_BAIXADO,
-                    custo=custo,
-                )
-
-        return Response(CarteiraSerializer(carteira).data)
+            return Response({
+                "custo_id": custo.id,
+                "detail": "Custo pendente criado. Fature e baixe o título para debitar o saldo.",
+            }, status=status.HTTP_201_CREATED)
+        else:
+            # Débito imediato (uso em voo já registrado, correção de saldo, etc.)
+            if not carteira.tem_saldo_suficiente(valor):
+                return Response({"detail": "Saldo insuficiente."}, status=status.HTTP_400_BAD_REQUEST)
+            with transaction.atomic():
+                carteira.debitar(valor=valor, descricao=descricao)
+            return Response(CarteiraSerializer(carteira).data)
 
 
 class MovimentacaoCarteiraViewSet(viewsets.ReadOnlyModelViewSet):
-    """GET /api/v1/movimentacoes-carteira/?carteira=ID"""
+    """GET /api/v1/movimentacoes-carteira/?participante=ID"""
     queryset = MovimentacaoCarteira.objects.select_related("carteira__participante").order_by("-data_transacao")
     serializer_class = MovimentacaoCarteiraSerializer
     permission_classes = [IsAuthenticated]

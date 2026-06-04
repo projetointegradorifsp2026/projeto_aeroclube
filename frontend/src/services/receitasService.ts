@@ -86,10 +86,29 @@ export async function deleteReceita(id: string): Promise<void> {
   await apiDelete(`/api/v1/receitas/${id}/`)
 }
 
-/** Gera o TituloReceber a partir da receita (status → faturada). */
-export async function faturarReceita(id: string): Promise<Receita> {
-  const res = await apiPost<{ receita: BackendReceita }>(`/api/v1/receitas/${id}/faturar/`, {})
+export interface Parcela {
+  valor: number
+  data_vencimento: string
+}
+
+/** Fatura a receita, opcionalmente com parcelamento. */
+export async function faturarReceita(id: string, parcelas?: Parcela[]): Promise<Receita> {
+  const body = parcelas
+    ? { parcelas: parcelas.map(p => ({ valor: p.valor.toFixed(2), data_vencimento: p.data_vencimento })) }
+    : {}
+  const res = await apiPost<{ receita: BackendReceita }>(`/api/v1/receitas/${id}/faturar/`, body)
   return adapt(res.receita)
+}
+
+/** Agrupa N receitas do mesmo devedor em 1 TituloReceber. */
+export async function faturarReceitasAgrupadas(
+  receita_ids: string[],
+  data_vencimento?: string,
+): Promise<{ receitas_faturadas: number }> {
+  return apiPost('/api/v1/receitas/faturar-agrupado/', {
+    receita_ids: receita_ids.map(id => parseInt(id, 10)),
+    data_vencimento,
+  })
 }
 
 export type { Receita, ReceitaTipo, ReceitaStatus }

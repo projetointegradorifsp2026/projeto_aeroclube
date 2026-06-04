@@ -135,6 +135,11 @@ export interface CreditoHorasMetadados {
   horas: number
 }
 
+/**
+ * Adicionar saldo: cria uma Receita pendente de horas pré-pagas.
+ * O saldo NA CARTEIRA só é creditado quando o TituloReceber vinculado for baixado.
+ * Retorna o usuário com o saldo INALTERADO (pois ainda não foi efetivado).
+ */
 export async function addSaldoCarteira(
   id: string,
   valor: number,
@@ -155,11 +160,29 @@ export async function addSaldoCarteira(
         }
       : {}),
   })
+  // Saldo não mudou ainda — retorna usuário com saldo atual
   const [user, saldoMap] = await Promise.all([
     apiGet<BackendUser>(`/api/v1/usuarios/${id}/`),
     getSaldoMap(),
   ])
   return adaptUser(user, saldoMap.get(user.id) ?? 0)
+}
+
+/**
+ * Remover saldo: cria um Custo pendente de remoção de saldo.
+ * O débito NA CARTEIRA só ocorre quando o TituloPagar vinculado for baixado.
+ */
+export async function removerSaldoCarteira(
+  id: string,
+  valor: number,
+  descricao?: string,
+): Promise<{ custo_id: number }> {
+  const carteira = await getOrCreateCarteira(id)
+  return apiPost<{ custo_id: number }>(`/api/v1/carteiras/${carteira.id}/debitar/`, {
+    valor: valor.toFixed(2),
+    descricao: descricao || 'Remoção de saldo da carteira',
+    remocao_saldo: true,
+  })
 }
 
 export interface MovimentacaoCarteira {

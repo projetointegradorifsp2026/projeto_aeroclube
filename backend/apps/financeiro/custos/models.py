@@ -20,24 +20,24 @@ class Custo(models.Model):
     TIPO_FOLHA = "folha_pagamento"
     TIPO_CONTA_FIXA = "conta_fixa"
     TIPO_OUTROS = "outros"
+    TIPO_REMOCAO_SALDO = "remocao_saldo"
 
     TIPO_CHOICES = [
         (TIPO_FORNECEDOR, "Fornecedor"),
         (TIPO_FOLHA, "Folha de Pagamento"),
         (TIPO_CONTA_FIXA, "Conta Fixa"),
         (TIPO_OUTROS, "Outros"),
+        (TIPO_REMOCAO_SALDO, "Remoção de Saldo de Carteira"),
     ]
 
     STATUS_PENDENTE = "pendente"
     STATUS_FATURADO = "faturado"
     STATUS_QUITADO = "quitado"
-    STATUS_CANCELADO = "cancelado"
 
     STATUS_CHOICES = [
         (STATUS_PENDENTE, "Pendente"),
         (STATUS_FATURADO, "Faturado"),
         (STATUS_QUITADO, "Quitado"),
-        (STATUS_CANCELADO, "Cancelado"),
     ]
 
     tipo = models.CharField("Tipo", max_length=20, choices=TIPO_CHOICES)
@@ -64,6 +64,9 @@ class Custo(models.Model):
     status = models.CharField(
         "Status", max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDENTE
     )
+
+    # Metadados livres (ex: price freeze da carteira)
+    metadados = models.JSONField("Metadados", null=True, blank=True, default=dict)
 
     # Recorrência (espelhado de TituloPagar)
     is_recorrente = models.BooleanField("É recorrente?", default=False)

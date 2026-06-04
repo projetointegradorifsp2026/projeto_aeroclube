@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Plus, FileUp, Pencil, Trash2, TrendingDown } from 'lucide-react'
+import { Plus, FileUp, Pencil, Trash2, TrendingDown, AlertCircle, Layers } from 'lucide-react'
 import { TablePagination } from '@/components/ui/pagination'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -11,7 +12,8 @@ import {
 } from '@/components/ui/dialog'
 import { CustoFormModal } from '@/components/financeiro/CustoFormModal'
 import {
-  getCustos, createCusto, updateCusto, deleteCusto, faturarCusto, type CustoInput,
+  getCustos, createCusto, updateCusto, deleteCusto, faturarCusto, faturarCustosAgrupados,
+  type CustoInput, type Parcela,
 } from '@/services/custosService'
 import {
   type Custo, type CustoTipo, type CustoStatus,
@@ -21,6 +23,17 @@ import { cn } from '@/lib/utils'
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR')
+const todayStr = () => new Date().toISOString().split('T')[0]
+function addMonths(dateStr: string, n: number) {
+  const d = new Date(dateStr + 'T00:00:00')
+  d.setMonth(d.getMonth() + n)
+  return d.toISOString().split('T')[0]
+}
+
+const hoje = new Date().toISOString().split('T')[0]
+function isAtrasado(c: Custo) {
+  return c.status === 'pendente' && c.data_vencimento < hoje
+}
 
 type TipoFilter = 'all' | CustoTipo
 
@@ -33,12 +46,14 @@ const TIPO_COLORS: Record<CustoTipo, string> = {
 
 interface TableProps {
   items: Custo[]
+  selected: Set<string>
+  onToggle: (id: string) => void
   onView: (c: Custo) => void
   onFaturar: (c: Custo) => void
   emptyMessage: string
 }
 
-function CustosTable({ items, onView, onFaturar, emptyMessage }: TableProps) {
+function CustosTable({ items, selected, onToggle, onView, onFaturar, emptyMessage }: TableProps) {
   const [page, setPage] = useState(1)
   useEffect(() => { setPage(1) }, [items])
   const PAGE_SIZE = 10
@@ -60,26 +75,48 @@ function CustosTable({ items, onView, onFaturar, emptyMessage }: TableProps) {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/30">
+              <th className="px-4 py-3 w-10">
+                <span className="sr-only">Selecionar</span>
+              </th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Favorecido</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">Descrição</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Tipo</th>
               <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Valor</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Vencimento</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Status</th>
               <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Ações</th>
             </tr>
           </thead>
           <tbody>
             {paginated.map(c => (
-              <tr key={c.id} className="border-b last:border-0 hover:bg-muted/20 transition-colors">
+              <tr key={c.id} className={cn('border-b last:border-0 hover:bg-muted/20 transition-colors', selected.has(c.id) && 'bg-primary/5')}>
+                <td className="px-4 py-3">
+                  {c.status === 'pendente' && (
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
+                      checked={selected.has(c.id)}
+                      onChange={() => onToggle(c.id)}
+                    />
+                  )}
+                </td>
                 <td className="px-4 py-3 whitespace-nowrap font-medium">{c.favorecido_nome}</td>
-                <td className="px-4 py-3 max-w-[280px] truncate">{c.descricao}</td>
+                <td className="px-4 py-3 max-w-[240px] truncate">{c.descricao}</td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <span className={cn('inline-flex rounded-full px-2 py-0.5 text-xs font-medium', TIPO_COLORS[c.tipo])}>
-                    {CUSTO_TIPO_LABELS[c.tipo]}
+                  <span className={cn('inline-flex rounded-full px-2 py-0.5 text-xs font-medium', TIPO_COLORS[c.tipo] ?? 'bg-slate-100 text-slate-700')}>
+                    {CUSTO_TIPO_LABELS[c.tipo] ?? c.tipo}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-right whitespace-nowrap font-medium">{fmt(c.valor)}</td>
                 <td className="px-4 py-3 whitespace-nowrap">{fmtDate(c.data_vencimento)}</td>
+                <td className="px-4 py-3 whitespace-nowrap">
+                  {isAtrasado(c) && (
+                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                      <AlertCircle className="h-3 w-3" />
+                      Atrasado
+                    </span>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-right whitespace-nowrap">
                   <div className="flex justify-end gap-1">
                     {c.status === 'pendente' && (
@@ -103,6 +140,204 @@ function CustosTable({ items, onView, onFaturar, emptyMessage }: TableProps) {
   )
 }
 
+// ── Modal de faturamento (simples ou parcelado) ────────────────────────────────
+
+interface FaturarModalProps {
+  custo: Custo | null
+  open: boolean
+  onClose: () => void
+  onConfirm: (parcelas?: Parcela[]) => Promise<void>
+}
+
+function FaturarModal({ custo, open, onClose, onConfirm }: FaturarModalProps) {
+  const [modo, setModo] = useState<'simples' | 'parcelado'>('simples')
+  const [numParcelas, setNumParcelas] = useState(2)
+  const [parcelas, setParcelas] = useState<Parcela[]>([])
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (!open || !custo) return
+    setModo('simples')
+    setNumParcelas(2)
+    gerarParcelasIguais(2, custo.valor, custo.data_vencimento)
+  }, [open, custo])
+
+  function gerarParcelasIguais(n: number, total: number, dataBase: string) {
+    const valorParcela = parseFloat((total / n).toFixed(2))
+    const diff = parseFloat((total - valorParcela * n).toFixed(2))
+    const novas: Parcela[] = Array.from({ length: n }, (_, i) => ({
+      valor: i === 0 ? valorParcela + diff : valorParcela,
+      data_vencimento: addMonths(dataBase, i),
+    }))
+    setParcelas(novas)
+  }
+
+  function handleNumParcelasChange(n: number) {
+    setNumParcelas(n)
+    if (custo) gerarParcelasIguais(n, custo.valor, custo.data_vencimento)
+  }
+
+  function updateParcela(i: number, field: keyof Parcela, value: string) {
+    setParcelas(prev => prev.map((p, idx) =>
+      idx === i ? { ...p, [field]: field === 'valor' ? parseFloat(value) || 0 : value } : p,
+    ))
+  }
+
+  const totalParcelas = parcelas.reduce((s, p) => s + p.valor, 0)
+  const diff = custo ? Math.abs(totalParcelas - custo.valor) > 0.01 : false
+
+  async function handleConfirm() {
+    setSaving(true)
+    try {
+      await onConfirm(modo === 'parcelado' ? parcelas : undefined)
+      onClose()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!custo) return null
+  const selectCls = 'h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
+
+  return (
+    <Dialog open={open} onOpenChange={o => !o && onClose()}>
+      <DialogContent className="sm:max-w-md" onOpenAutoFocus={e => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle>Faturar Custo</DialogTitle>
+          <DialogDescription>{custo.descricao} — {fmt(custo.valor)}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-1">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Modo</label>
+            <select className={selectCls} value={modo} onChange={e => setModo(e.target.value as 'simples' | 'parcelado')}>
+              <option value="simples">Título único</option>
+              <option value="parcelado">Parcelado</option>
+            </select>
+          </div>
+          {modo === 'parcelado' && (
+            <>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Número de parcelas</label>
+                <select className={selectCls} value={numParcelas} onChange={e => handleNumParcelasChange(parseInt(e.target.value))}>
+                  {[2,3,4,5,6,8,10,12].map(n => <option key={n} value={n}>{n}x</option>)}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Parcelas</label>
+                {parcelas.map((p, i) => (
+                  <div key={i} className="grid grid-cols-[1fr_1fr] gap-2 items-end">
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">Parcela {i + 1}</label>
+                      <Input
+                        type="number" step={0.01} min={0}
+                        value={p.valor || ''}
+                        onChange={e => updateParcela(i, 'valor', e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs text-muted-foreground">Vencimento</label>
+                      <input
+                        type="date"
+                        className={selectCls}
+                        value={p.data_vencimento}
+                        onChange={e => updateParcela(i, 'data_vencimento', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                ))}
+                {diff && (
+                  <p className="text-xs text-destructive">
+                    Soma ({fmt(totalParcelas)}) ≠ valor do custo ({fmt(custo.valor)})
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
+          <Button onClick={handleConfirm} disabled={saving || (modo === 'parcelado' && diff)}>
+            {saving ? 'Faturando...' : 'Confirmar'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ── Modal de agrupamento ──────────────────────────────────────────────────────
+
+interface AgrupamentoModalProps {
+  custos: Custo[]
+  open: boolean
+  onClose: () => void
+  onConfirm: (data_vencimento?: string) => Promise<void>
+}
+
+function AgrupamentoModal({ custos, open, onClose, onConfirm }: AgrupamentoModalProps) {
+  const [dataVenc, setDataVenc] = useState(todayStr())
+  const [saving, setSaving] = useState(false)
+  const total = custos.reduce((s, c) => s + c.valor, 0)
+
+  useEffect(() => {
+    if (open && custos.length > 0) {
+      const maxDate = custos.map(c => c.data_vencimento).sort().at(-1) ?? todayStr()
+      setDataVenc(maxDate)
+    }
+  }, [open, custos])
+
+  async function handleConfirm() {
+    setSaving(true)
+    try {
+      await onConfirm(dataVenc)
+      onClose()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const selectCls = 'h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
+
+  return (
+    <Dialog open={open} onOpenChange={o => !o && onClose()}>
+      <DialogContent className="sm:max-w-md" onOpenAutoFocus={e => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle>Faturar em Conjunto</DialogTitle>
+          <DialogDescription>
+            {custos.length} custos do mesmo favorecido serão agrupados num único título a pagar.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 py-1">
+          <div className="rounded-lg border border-border divide-y divide-border max-h-44 overflow-y-auto">
+            {custos.map(c => (
+              <div key={c.id} className="flex items-center justify-between px-3 py-2 text-sm">
+                <span className="text-muted-foreground truncate pr-4">{c.descricao}</span>
+                <span className="font-medium whitespace-nowrap">{fmt(c.valor)}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex items-center justify-between text-sm font-semibold border-t border-border pt-2">
+            <span>Total</span>
+            <span>{fmt(total)}</span>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Data de vencimento</label>
+            <input type="date" className={selectCls} value={dataVenc} onChange={e => setDataVenc(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
+          <Button onClick={handleConfirm} disabled={saving || !dataVenc}>
+            {saving ? 'Faturando...' : 'Confirmar'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 export default function Custos() {
   const [custos, setCustos] = useState<Custo[]>([])
   const [loading, setLoading] = useState(true)
@@ -112,6 +347,9 @@ export default function Custos() {
   const [editCusto, setEditCusto] = useState<Custo | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Custo | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [faturarTarget, setFaturarTarget] = useState<Custo | null>(null)
+  const [agrupamentoOpen, setAgrupamentoOpen] = useState(false)
 
   useEffect(() => {
     getCustos().then(setCustos).catch(() => {}).finally(() => setLoading(false))
@@ -131,6 +369,15 @@ export default function Custos() {
   function openCreate() { setEditCusto(null); setModalOpen(true) }
   function openEdit(c: Custo) { setEditCusto(c); setModalOpen(true) }
 
+  function toggleSelect(id: string) {
+    setSelected(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
   async function handleSave(data: CustoInput) {
     if (editCusto) {
       const updated = await updateCusto(editCusto.id, data)
@@ -141,9 +388,18 @@ export default function Custos() {
     }
   }
 
-  async function handleFaturar(c: Custo) {
-    const updated = await faturarCusto(c.id)
-    setCustos(prev => prev.map(x => (x.id === c.id ? updated : x)))
+  async function handleFaturarConfirm(parcelas?: Parcela[]) {
+    if (!faturarTarget) return
+    const updated = await faturarCusto(faturarTarget.id, parcelas)
+    setCustos(prev => prev.map(x => (x.id === faturarTarget.id ? updated : x)))
+  }
+
+  async function handleAgrupamentoConfirm(data_vencimento?: string) {
+    const ids = [...selected]
+    await faturarCustosAgrupados(ids, data_vencimento)
+    const refreshed = await getCustos()
+    setCustos(refreshed)
+    setSelected(new Set())
   }
 
   async function handleDelete() {
@@ -158,11 +414,12 @@ export default function Custos() {
     }
   }
 
+  const selectedCustos = custos.filter(c => selected.has(c.id))
+
   const tabConfig: { value: CustoStatus; label: string; items: Custo[]; badge: string }[] = [
     { value: 'pendente', label: 'Pendentes', items: byStatus('pendente'), badge: 'bg-amber-100 text-amber-700' },
     { value: 'faturado', label: 'Faturados', items: byStatus('faturado'), badge: 'bg-blue-100 text-blue-700' },
     { value: 'quitado', label: 'Quitados', items: byStatus('quitado'), badge: 'bg-emerald-100 text-emerald-700' },
-    { value: 'cancelado', label: 'Cancelados', items: byStatus('cancelado'), badge: 'bg-muted text-muted-foreground' },
   ]
 
   return (
@@ -182,6 +439,12 @@ export default function Custos() {
             <option key={t} value={t}>{CUSTO_TIPO_LABELS[t]}</option>
           ))}
         </FilterSelect>
+        {selected.size >= 2 && (
+          <Button variant="outline" onClick={() => setAgrupamentoOpen(true)} className="shrink-0">
+            <Layers className="h-4 w-4" />
+            Faturar em conjunto ({selected.size})
+          </Button>
+        )}
         <Button onClick={openCreate} className="ml-auto shrink-0">
           <Plus className="h-4 w-4" />
           Novo Custo
@@ -215,8 +478,10 @@ export default function Custos() {
                 <CardContent className="p-0">
                   <CustosTable
                     items={t.items}
+                    selected={selected}
+                    onToggle={toggleSelect}
                     onView={openEdit}
-                    onFaturar={handleFaturar}
+                    onFaturar={c => setFaturarTarget(c)}
                     emptyMessage={`Nenhum custo ${CUSTO_STATUS_LABELS[t.value].toLowerCase()}`}
                   />
                 </CardContent>
@@ -234,6 +499,20 @@ export default function Custos() {
         onDeleteRequest={editCusto ? () => { setModalOpen(false); setDeleteTarget(editCusto) } : undefined}
       />
 
+      <FaturarModal
+        custo={faturarTarget}
+        open={!!faturarTarget}
+        onClose={() => setFaturarTarget(null)}
+        onConfirm={handleFaturarConfirm}
+      />
+
+      <AgrupamentoModal
+        custos={selectedCustos}
+        open={agrupamentoOpen}
+        onClose={() => setAgrupamentoOpen(false)}
+        onConfirm={handleAgrupamentoConfirm}
+      />
+
       <Dialog open={!!deleteTarget} onOpenChange={o => !o && setDeleteTarget(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -244,11 +523,7 @@ export default function Custos() {
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteTarget(null)} disabled={deleting}>Cancelar</Button>
-            <Button
-              className="bg-destructive text-white hover:bg-destructive/90"
-              onClick={handleDelete}
-              disabled={deleting}
-            >
+            <Button className="bg-destructive text-white hover:bg-destructive/90" onClick={handleDelete} disabled={deleting}>
               <Trash2 className="h-3.5 w-3.5" />
               {deleting ? 'Excluindo...' : 'Excluir'}
             </Button>

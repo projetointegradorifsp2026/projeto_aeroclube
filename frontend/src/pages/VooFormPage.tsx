@@ -153,6 +153,7 @@ export default function VooFormPage() {
 
   const [usarCarteira, setUsarCarteira] = useState(false)
   const [carteiraValor, setCarteiraValor] = useState('')
+  const [gerarTitulo, setGerarTitulo] = useState(false)
 
   const autoVencimento = useRef<string>('')
 
@@ -381,6 +382,7 @@ export default function VooFormPage() {
             valor: valorTitulo,
             data_emissao: voo.data,
             data_vencimento: voo.data_vencimento,
+            gerar_titulo: gerarTitulo,
           })
         }
         // Se valorTitulo <= 0, pagamento coberto pela carteira — nenhuma receita necessária.
@@ -847,6 +849,28 @@ export default function VooFormPage() {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── Título a Receber ─────────────────────────────────────────────── */}
+        {!isEdit && valorTitulo > 0 && (
+          <Card>
+            <CardContent className="px-6 py-4">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={gerarTitulo}
+                  onChange={e => setGerarTitulo(e.target.checked)}
+                  className="h-4 w-4 rounded border-input accent-primary"
+                />
+                <div>
+                  <span className="text-sm font-medium">Gerar título a receber diretamente</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Se marcado, cria o título em aberto ({fmt(valorTitulo)}) agora. Caso contrário, cria uma receita pendente para faturar depois.
+                  </p>
+                </div>
+              </label>
             </CardContent>
           </Card>
         )}

@@ -33,13 +33,11 @@ class Receita(models.Model):
     STATUS_PENDENTE = "pendente"
     STATUS_FATURADA = "faturada"
     STATUS_QUITADA = "quitada"
-    STATUS_CANCELADA = "cancelada"
 
     STATUS_CHOICES = [
         (STATUS_PENDENTE, "Pendente"),
         (STATUS_FATURADA, "Faturada"),
         (STATUS_QUITADA, "Quitada"),
-        (STATUS_CANCELADA, "Cancelada"),
     ]
 
     # Devedor: usuário do sistema OU cliente externo (mesmo padrão de TituloReceber)
@@ -79,6 +77,9 @@ class Receita(models.Model):
 
     # Valor
     valor = models.DecimalField("Valor (R$)", max_digits=10, decimal_places=2)
+
+    # Metadados livres (ex: price freeze de compra de horas)
+    metadados = models.JSONField("Metadados", null=True, blank=True, default=dict)
 
     # Datas — vencimento atua como validade; criação é registrada em created_at
     data_emissao = models.DateField("Data de emissão", default=timezone.localdate)
