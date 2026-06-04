@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ALL_PROFILES, PROFILE_LABELS, type User, type UserProfile } from '@/mocks/users'
 import { cn } from '@/lib/utils'
+import { maskCEP } from '@/lib/masks'
 
 export interface UserFormData {
   nome: string
@@ -203,7 +204,7 @@ export function UserFormModal({ user, open, onClose, onSave, restrictedFields = 
             <div className="space-y-1.5">
               <label className="text-sm font-medium">CEP</label>
               <Input placeholder="00000-000" value={form.cep}
-                onChange={e => setForm(p => ({ ...p, cep: e.target.value }))} autoComplete="off" />
+                onChange={e => setForm(p => ({ ...p, cep: maskCEP(e.target.value) }))} autoComplete="off" />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Bairro</label>

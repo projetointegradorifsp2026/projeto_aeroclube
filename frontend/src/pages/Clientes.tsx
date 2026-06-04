@@ -23,6 +23,7 @@ import {
   deleteCliente,
   type Cliente,
 } from '@/services/clientesService'
+import { maskCpfCnpj, maskPhone, maskCEP } from '@/lib/masks'
 
 // ── Modal de criação/edição ────────────────────────────────────────────────────
 
@@ -103,11 +104,11 @@ function ClienteFormModal({ cliente, open, onClose, onSave, onDeleteRequest }: C
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-sm font-medium">CPF / CNPJ</label>
-              <Input placeholder="000.000.000-00" value={cpfCnpj} onChange={e => setCpfCnpj(e.target.value)} />
+              <Input placeholder="000.000.000-00" value={cpfCnpj} onChange={e => setCpfCnpj(maskCpfCnpj(e.target.value))} />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Contato</label>
-              <Input placeholder="(19) 99999-9999" value={contato} onChange={e => setContato(e.target.value)} />
+              <Input placeholder="(19) 99999-9999" value={contato} onChange={e => setContato(maskPhone(e.target.value))} />
             </div>
           </div>
           <div className="space-y-1.5">
@@ -131,7 +132,7 @@ function ClienteFormModal({ cliente, open, onClose, onSave, onDeleteRequest }: C
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <label className="text-sm font-medium">CEP</label>
-              <Input placeholder="00000-000" value={cep} onChange={e => setCep(e.target.value)} />
+              <Input placeholder="00000-000" value={cep} onChange={e => setCep(maskCEP(e.target.value))} />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Bairro</label>

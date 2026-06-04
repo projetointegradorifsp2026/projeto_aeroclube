@@ -54,7 +54,7 @@ function adapt(c: BackendCliente): Cliente {
 }
 
 export async function getClientes(incluirInativos = false): Promise<Cliente[]> {
-  const url = incluirInativos ? '/api/v1/clientes/?ativo=false' : '/api/v1/clientes/'
+  const url = incluirInativos ? '/api/v1/clientes/?ativo=all' : '/api/v1/clientes/'
   const items = await apiList<BackendCliente>(url)
   return items.map(adapt)
 }

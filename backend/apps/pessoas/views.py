@@ -26,6 +26,8 @@ class ClienteViewSet(viewsets.ModelViewSet):
                 qs = qs.filter(is_active=True)
             elif ativo.lower() == "false":
                 qs = qs.filter(is_active=False)
+            elif ativo.lower() == "all":
+                pass  # retorna ativos e inativos (a página filtra no cliente)
         return qs
 
     def destroy(self, request, *args, **kwargs):
