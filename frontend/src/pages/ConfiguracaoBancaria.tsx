@@ -12,6 +12,9 @@ import {
 } from '@/services/cnabService'
 
 // Valores padrão Sicoob — Aero Clube de Rio Claro (planilha do banco)
+// Obs.: o "Prefixo da Cooperativa" deve ser o número da cooperativa REAL da conta
+// (o validador exige que a agência seja igual a ela). O "1001-4" da planilha era o
+// template da SICOOB CENTRAL ES, não a cooperativa do aeroclube — confirmar com o banco.
 function defaults(): Config {
   return {
     descricao: 'Configuração Sicoob',
@@ -19,8 +22,8 @@ function defaults(): Config {
     nome_banco: 'SICOOB',
     nome_beneficiario: 'AERO CLUBE DE RIO CLARO',
     cpf_cnpj: '56.391.709/0001-10',
-    prefixo_cooperativa: '1001',
-    dv_prefixo: '4',
+    prefixo_cooperativa: '1',
+    dv_prefixo: '',
     codigo_beneficiario: '110980',
     dv_beneficiario: '4',
     conta_corrente: '23913',
