@@ -21,6 +21,51 @@ from .serializers import (
     RemessaCNABSerializer,
     RetornoCNABSerializer,
 )
+from apps.pessoas.validators import validar_cpf_cnpj
+
+
+def _validar_sacados(titulos):
+    """
+    Verifica se cada título tem um pagador com os dados exigidos pelo segmento Q
+    da remessa (CPF/CNPJ válido + endereço completo). Retorna uma lista de
+    pendências (uma por título com problema) para exibição no frontend.
+    """
+    from django.core.exceptions import ValidationError as DjangoValidationError
+
+    obrigatorios = [
+        ("logradouro", "endereço"),
+        ("bairro", "bairro"),
+        ("cep", "CEP"),
+        ("cidade", "cidade"),
+        ("uf", "UF"),
+    ]
+    pendencias = []
+    for titulo in titulos:
+        pessoa = titulo.participante or titulo.cliente
+        faltando = []
+        nome = getattr(pessoa, "nome", None) or "—"
+        if pessoa is None:
+            faltando.append("pagador (participante ou cliente)")
+        else:
+            cpf = pessoa.cpf_cnpj or ""
+            if not cpf.strip():
+                faltando.append("CPF/CNPJ")
+            else:
+                try:
+                    validar_cpf_cnpj(cpf)
+                except DjangoValidationError:
+                    faltando.append("CPF/CNPJ válido")
+            for campo, rotulo in obrigatorios:
+                if not (getattr(pessoa, campo, "") or "").strip():
+                    faltando.append(rotulo)
+        if faltando:
+            pendencias.append({
+                "titulo_id": titulo.id,
+                "descricao": titulo.descricao,
+                "pagador": nome,
+                "faltando": faltando,
+            })
+    return pendencias
 
 
 class ConfiguracaoBancariaViewSet(viewsets.ModelViewSet):
@@ -88,10 +133,22 @@ class RemessaCNABViewSet(viewsets.ModelViewSet):
         # Apenas títulos em aberto podem entrar numa remessa.
         titulos = list(
             TituloReceber.objects.filter(id__in=titulo_ids, status=TituloReceber.STATUS_ABERTO)
+            .select_related("participante", "cliente")
         )
         if not titulos:
             return Response(
                 {"detail": "Nenhum título em aberto encontrado entre os selecionados."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Valida os dados do sacado (segmento Q exige CPF/CNPJ e endereço completo).
+        pendencias = _validar_sacados(titulos)
+        if pendencias:
+            return Response(
+                {
+                    "detail": "Existem títulos com dados do pagador incompletos para a remessa.",
+                    "pendencias": pendencias,
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -108,11 +165,19 @@ class RemessaCNABViewSet(viewsets.ModelViewSet):
             )
 
             total = Decimal("0.00")
+            proximo_nn = config.proximo_nosso_numero
             for titulo in titulos:
+                # Nosso Número sequencial quando a emissão é a cargo do Beneficiário.
+                if config.emissao == ConfiguracaoBancaria.EMISSAO_BENEFICIARIO:
+                    nosso_numero = f"{proximo_nn:010d}"
+                    proximo_nn += 1
+                else:
+                    nosso_numero = ""
                 RemessaCNABItem.objects.create(
                     remessa=remessa,
                     titulo_receber=titulo,
                     valor=titulo.saldo_devedor,
+                    nosso_numero=nosso_numero,
                 )
                 titulo.status = TituloReceber.STATUS_REMESSA_CRIADA
                 titulo.save(update_fields=["status", "updated_at"])
@@ -127,7 +192,8 @@ class RemessaCNABViewSet(viewsets.ModelViewSet):
             ])
 
             config.proximo_nsa = nsa + 1
-            config.save(update_fields=["proximo_nsa", "updated_at"])
+            config.proximo_nosso_numero = proximo_nn
+            config.save(update_fields=["proximo_nsa", "proximo_nosso_numero", "updated_at"])
 
         return Response(RemessaCNABSerializer(remessa).data, status=status.HTTP_201_CREATED)
 

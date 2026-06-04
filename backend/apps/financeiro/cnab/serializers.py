@@ -20,7 +20,8 @@ class ConfiguracaoBancariaSerializer(serializers.ModelSerializer):
             "codigo_beneficiario", "dv_beneficiario",
             "conta_corrente", "dv_conta",
             "carteira", "modalidade", "convenio",
-            "proximo_nsa", "is_active",
+            "emissao", "tipo_formulario",
+            "proximo_nsa", "proximo_nosso_numero", "is_active",
             "created_at", "updated_at",
         ]
         read_only_fields = ["id", "created_at", "updated_at"]

@@ -19,8 +19,8 @@ function defaults(): Config {
     nome_banco: 'SICOOB',
     nome_beneficiario: 'AERO CLUBE DE RIO CLARO',
     cpf_cnpj: '56.391.709/0001-10',
-    prefixo_cooperativa: '',
-    dv_prefixo: '',
+    prefixo_cooperativa: '1001',
+    dv_prefixo: '4',
     codigo_beneficiario: '110980',
     dv_beneficiario: '4',
     conta_corrente: '23913',
@@ -28,7 +28,10 @@ function defaults(): Config {
     carteira: '1',
     modalidade: '01',
     convenio: '',
+    emissao: '2',
+    tipo_formulario: '1',
     proximo_nsa: 1,
+    proximo_nosso_numero: 1,
     is_active: true,
   }
 }
@@ -133,12 +136,36 @@ export default function ConfiguracaoBancaria() {
             {field('Carteira', 'carteira')}
             {field('Modalidade', 'modalidade')}
             <div className="space-y-1.5">
+              <label className={labelCls}>Emissão do Boleto</label>
+              <select
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                value={config.emissao}
+                onChange={e => set('emissao', e.target.value)}
+              >
+                <option value="2">Beneficiário emite</option>
+                <option value="1">Sicoob emite</option>
+              </select>
+            </div>
+            {field('Tipo de Formulário', 'tipo_formulario')}
+          </div>
+
+          <div className="grid grid-cols-4 gap-4">
+            <div className="space-y-1.5">
               <label className={labelCls}>Próximo NSA (sequencial)</label>
               <Input
                 type="number"
                 min={1}
                 value={config.proximo_nsa}
                 onChange={e => set('proximo_nsa', parseInt(e.target.value, 10) || 1)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className={labelCls}>Próximo Nosso Número</label>
+              <Input
+                type="number"
+                min={1}
+                value={config.proximo_nosso_numero}
+                onChange={e => set('proximo_nosso_numero', parseInt(e.target.value, 10) || 1)}
               />
             </div>
           </div>

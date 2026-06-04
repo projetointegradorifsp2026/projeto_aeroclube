@@ -57,8 +57,22 @@ class ConfiguracaoBancaria(models.Model):
     modalidade = models.CharField("Modalidade", max_length=2, default="01")
     convenio = models.CharField("Número do Convênio", max_length=20, blank=True, default="")
 
+    # Emissão do boleto (define como o Nosso Número é montado no segmento P)
+    EMISSAO_SICOOB = "1"
+    EMISSAO_BENEFICIARIO = "2"
+    EMISSAO_CHOICES = [
+        (EMISSAO_SICOOB, "Sicoob emite"),
+        (EMISSAO_BENEFICIARIO, "Beneficiário emite"),
+    ]
+    emissao = models.CharField(
+        "Emissão do Boleto", max_length=1, choices=EMISSAO_CHOICES, default=EMISSAO_BENEFICIARIO
+    )
+    tipo_formulario = models.CharField("Tipo de Formulário", max_length=1, default="1")
+
     # Controle do sequencial de remessa (NSA)
     proximo_nsa = models.PositiveIntegerField("Próximo Nº Sequencial de Remessa (NSA)", default=1)
+    # Sequencial do "Nosso Número" (quando a emissão é a cargo do Beneficiário)
+    proximo_nosso_numero = models.PositiveIntegerField("Próximo Nosso Número", default=1)
 
     is_active = models.BooleanField("Ativa", default=True)
 

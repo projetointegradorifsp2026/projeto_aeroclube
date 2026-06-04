@@ -18,7 +18,10 @@ export interface ConfiguracaoBancaria {
   carteira: string
   modalidade: string
   convenio: string
+  emissao: string
+  tipo_formulario: string
   proximo_nsa: number
+  proximo_nosso_numero: number
   is_active: boolean
 }
 

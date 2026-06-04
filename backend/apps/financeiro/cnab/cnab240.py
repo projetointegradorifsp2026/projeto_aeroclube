@@ -62,12 +62,43 @@ def _tipo_inscricao(cpf_cnpj: str) -> str:
 
 
 def _pagador(titulo):
-    """Retorna (nome, cpf_cnpj) do devedor do título (participante ou cliente de serviço)."""
-    if titulo.participante_id:
-        return titulo.participante.nome, titulo.participante.cpf_cnpj or ""
-    if titulo.cliente_id:
-        return titulo.cliente.nome, titulo.cliente.cpf_cnpj or ""
-    return "", ""
+    """
+    Retorna os dados do devedor do título (participante ou cliente de serviço)
+    necessários ao segmento Q da remessa.
+    """
+    pessoa = titulo.participante if titulo.participante_id else (
+        titulo.cliente if titulo.cliente_id else None
+    )
+    if pessoa is None:
+        return {"nome": "", "cpf_cnpj": "", "logradouro": "", "numero": "",
+                "bairro": "", "cep": "", "cidade": "", "uf": ""}
+    return {
+        "nome": pessoa.nome or "",
+        "cpf_cnpj": pessoa.cpf_cnpj or "",
+        "logradouro": getattr(pessoa, "logradouro", "") or "",
+        "numero": getattr(pessoa, "numero", "") or "",
+        "bairro": getattr(pessoa, "bairro", "") or "",
+        "cep": getattr(pessoa, "cep", "") or "",
+        "cidade": getattr(pessoa, "cidade", "") or "",
+        "uf": getattr(pessoa, "uf", "") or "",
+    }
+
+
+def _nosso_numero(cfg, item, titulo) -> str:
+    """
+    Monta o campo "Nosso Número" (20 posições) do segmento P, conforme layout Sicoob:
+        NumTítulo (10) + Parcela (2) + Modalidade (2) + Tipo Formulário (1) + brancos (5)
+    Se a emissão é a cargo do Sicoob, NumTítulo vai com zeros; se a cargo do
+    Beneficiário, usa o sequencial gravado no item (RemessaCNABItem.nosso_numero).
+    """
+    if cfg.emissao == "1":  # Sicoob emite
+        numtitulo = "0" * 10
+    else:                   # Beneficiário emite
+        numtitulo = num(item.nosso_numero, 10)
+    parcela = num(titulo.num_parcela or 1, 2)
+    modalidade = num(cfg.modalidade or "01", 2)
+    formulario = alpha(cfg.tipo_formulario or "1", 1)
+    return (numtitulo + parcela + modalidade + formulario).ljust(20)[:20]
 
 
 def gerar_arquivo_remessa(remessa) -> str:
@@ -149,12 +180,13 @@ def gerar_arquivo_remessa(remessa) -> str:
     total = Decimal("0.00")
     for item in itens:
         titulo = item.titulo_receber
-        nome_pag, cpf_pag = _pagador(titulo)
+        pag = _pagador(titulo)
+        nome_pag, cpf_pag = pag["nome"], pag["cpf_cnpj"]
         venc = titulo.data_vencimento.strftime("%d%m%Y")
         emissao = titulo.data_emissao.strftime("%d%m%Y")
         valor = item.valor or titulo.saldo_devedor
         total += valor
-        nosso_numero = num(item.nosso_numero, 20) if item.nosso_numero else num("0", 20)
+        nosso_numero = _nosso_numero(cfg, item, titulo)
 
         # SEGMENTO P
         seq += 1
@@ -173,10 +205,10 @@ def gerar_arquivo_remessa(remessa) -> str:
             (alpha("", 1), 1),
             (nosso_numero, 20),
             (num(cfg.carteira or "1", 1), 1),
-            (num("1", 1), 1),
-            (alpha("", 1), 1),
-            (num("2", 1), 1),
-            (num("2", 1), 1),
+            (num("0", 1), 1),                       # Forma de cadastr. do título: "0"
+            (alpha("", 1), 1),                      # Tipo de documento: brancos
+            (num(cfg.emissao or "2", 1), 1),        # Identificação da emissão do boleto
+            (num("2", 1), 1),                       # Identificação da distribuição
             (alpha(str(titulo.id), 15), 15),
             (num(venc, 8), 8),
             (valor_cents(valor, 15), 15),
@@ -204,6 +236,10 @@ def gerar_arquivo_remessa(remessa) -> str:
         ]))
 
         # SEGMENTO Q
+        endereco_pag = pag["logradouro"]
+        if pag["numero"]:
+            endereco_pag = f"{endereco_pag}, {pag['numero']}"
+        cep8 = num(pag["cep"], 8)
         seq += 1
         linhas.append(_montar([
             (num(cfg.codigo_banco or "756", 3), 3),
@@ -216,12 +252,12 @@ def gerar_arquivo_remessa(remessa) -> str:
             (num(_tipo_inscricao(cpf_pag), 1), 1),
             (num(cpf_pag, 15), 15),
             (alpha(nome_pag, 40), 40),
-            (alpha("", 40), 40),
-            (alpha("", 15), 15),
-            (num("0", 5), 5),
-            (num("0", 3), 3),
-            (alpha("", 15), 15),
-            (alpha("", 2), 2),
+            (alpha(endereco_pag, 40), 40),          # Endereço (logradouro, número)
+            (alpha(pag["bairro"], 15), 15),         # Bairro
+            (num(cep8[:5], 5), 5),                  # CEP (prefixo)
+            (num(cep8[5:8], 3), 3),                 # CEP (sufixo)
+            (alpha(pag["cidade"], 15), 15),         # Cidade
+            (alpha(pag["uf"], 2), 2),               # UF
             (num("0", 1), 1),
             (num("0", 15), 15),
             (alpha("", 40), 40),
