@@ -15,6 +15,7 @@ import {
   KeyRound,
   History,
   ChevronDown,
+  Landmark,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -44,6 +45,8 @@ import {
 } from '@/services/usersService'
 import { getAeronaves, type Aeronave } from '@/services/aeronavesService'
 import { UserFormModal, type UserFormData } from '@/components/users/UserFormModal'
+import { DadosBancariosModal } from '@/components/financeiro/DadosBancariosModal'
+import { AlterarSenhaModal } from '@/components/users/AlterarSenhaModal'
 import { getCurrentUser } from '@/services/api/auth'
 import {
   getTitulosReceber,
@@ -104,6 +107,8 @@ export default function UsuarioPerfilPage() {
   const [loadingUser, setLoadingUser] = useState(true)
   const [editOpen, setEditOpen] = useState(false)
 
+  const [dadosBancariosOpen, setDadosBancariosOpen] = useState(false)
+  const [alterarSenhaOpen, setAlterarSenhaOpen] = useState(false)
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [resetSuccess, setResetSuccess] = useState(false)
@@ -538,6 +543,16 @@ export default function UsuarioPerfilPage() {
                     Resetar Senha
                   </Button>
                 )}
+                {String(currentUser?.id ?? '') === String(user.id) && (
+                  <Button variant="outline" size="sm" onClick={() => setAlterarSenhaOpen(true)}>
+                    <KeyRound className="h-3.5 w-3.5" />
+                    Alterar Senha
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" onClick={() => setDadosBancariosOpen(true)}>
+                  <Landmark className="h-3.5 w-3.5" />
+                  Dados Bancários
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
                   <Pencil className="h-3.5 w-3.5" />
                   Editar
@@ -836,6 +851,15 @@ export default function UsuarioPerfilPage() {
 
       {/* Modal de edição */}
       <UserFormModal user={user} open={editOpen} onClose={() => setEditOpen(false)} onSave={handleSaveUser} restrictedFields={!isAdmin} />
+
+      <DadosBancariosModal
+        open={dadosBancariosOpen}
+        onClose={() => setDadosBancariosOpen(false)}
+        usuarioId={user.id}
+        titularNome={user.nome}
+      />
+
+      <AlterarSenhaModal open={alterarSenhaOpen} onClose={() => setAlterarSenhaOpen(false)} />
 
       {/* Dialog: Adicionar Saldo (Por Valor ou Por Horas) */}
       <Dialog open={addSaldoOpen} onOpenChange={o => !o && setAddSaldoOpen(false)}>

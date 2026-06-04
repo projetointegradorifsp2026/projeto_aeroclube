@@ -4,12 +4,17 @@ import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom"
 
 import './index.css'
 import Login from './pages/Login'
+import ResetarSenha from './pages/ResetarSenha'
 import Dashboard from './pages/Dashboard';
 import Usuarios from './pages/Usuarios'
 import Movimentacoes from './pages/Movimentacoes';
 import Layout from './pages/Layout';
 import TitulosReceber from './pages/TitulosReceber';
 import TitulosPagar from './pages/TitulosPagar';
+import Receitas from './pages/Receitas';
+import Custos from './pages/Custos';
+import ConfiguracaoBancaria from './pages/ConfiguracaoBancaria';
+import RemessasCNAB from './pages/RemessasCNAB';
 import Clientes from './pages/Clientes';
 import Aeronaves from './pages/Aeronaves';
 import Fornecedores from './pages/Fornecedores';
@@ -37,6 +42,10 @@ const router = createBrowserRouter([
     element: <Login />
   },
   {
+    path: "/resetar-senha",
+    element: <ResetarSenha />
+  },
+  {
     element: <Layout />,
     children: [
       {
@@ -62,6 +71,22 @@ const router = createBrowserRouter([
       {
         path: "titulos-a-pagar",
         element: <ProtectedRoute route="/titulos-a-pagar"><TitulosPagar /></ProtectedRoute>
+      },
+      {
+        path: "receitas",
+        element: <ProtectedRoute route="/receitas"><Receitas /></ProtectedRoute>
+      },
+      {
+        path: "custos",
+        element: <ProtectedRoute route="/custos"><Custos /></ProtectedRoute>
+      },
+      {
+        path: "remessas-cnab",
+        element: <ProtectedRoute route="/remessas-cnab"><RemessasCNAB /></ProtectedRoute>
+      },
+      {
+        path: "config-bancaria",
+        element: <ProtectedRoute route="/config-bancaria"><ConfiguracaoBancaria /></ProtectedRoute>
       },
       {
         path: "clientes",
