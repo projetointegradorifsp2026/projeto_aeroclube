@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Plus, FileUp, Pencil, Trash2, TrendingUp, AlertCircle, Layers } from 'lucide-react'
+import { Plus, FileUp, Pencil, Trash2, TrendingUp, AlertCircle, Layers, ListChecks } from 'lucide-react'
 import { TablePagination } from '@/components/ui/pagination'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,6 +11,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog'
 import { ReceitaFormModal } from '@/components/financeiro/ReceitaFormModal'
+import { TitulosRelacionadosModal } from '@/components/financeiro/TitulosRelacionadosModal'
 import {
   getReceitas, createReceita, updateReceita, deleteReceita, faturarReceita, faturarReceitasAgrupadas,
   type ReceitaInput, type Parcela,
@@ -45,16 +46,32 @@ const TIPO_COLORS: Record<ReceitaTipo, string> = {
   outros: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
 }
 
+function PagamentoBadge({ info }: { info: Receita['titulos_info'] }) {
+  if (!info) return null
+  if (info.todos_pagos) return (
+    <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+      Pago
+    </span>
+  )
+  if (info.parcialmente_pago) return (
+    <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+      Parcial
+    </span>
+  )
+  return null
+}
+
 interface TableProps {
   items: Receita[]
   selected: Set<string>
   onToggle: (id: string) => void
   onView: (r: Receita) => void
   onFaturar: (r: Receita) => void
+  onVerTitulos: (r: Receita) => void
   emptyMessage: string
 }
 
-function ReceitasTable({ items, selected, onToggle, onView, onFaturar, emptyMessage }: TableProps) {
+function ReceitasTable({ items, selected, onToggle, onView, onFaturar, onVerTitulos, emptyMessage }: TableProps) {
   const [page, setPage] = useState(1)
   useEffect(() => { setPage(1) }, [items])
   const PAGE_SIZE = 10
@@ -111,12 +128,15 @@ function ReceitasTable({ items, selected, onToggle, onView, onFaturar, emptyMess
                 <td className="px-4 py-3 text-right whitespace-nowrap font-medium">{fmt(r.valor)}</td>
                 <td className="px-4 py-3 whitespace-nowrap">{fmtDate(r.data_vencimento)}</td>
                 <td className="px-4 py-3 whitespace-nowrap">
-                  {isAtrasada(r) && (
-                    <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
-                      <AlertCircle className="h-3 w-3" />
-                      Atrasado
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    {isAtrasada(r) && (
+                      <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">
+                        <AlertCircle className="h-3 w-3" />
+                        Atrasado
+                      </span>
+                    )}
+                    <PagamentoBadge info={r.titulos_info} />
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-right whitespace-nowrap">
                   <div className="flex justify-end gap-1">
@@ -124,6 +144,11 @@ function ReceitasTable({ items, selected, onToggle, onView, onFaturar, emptyMess
                       <Button size="sm" variant="outline" onClick={() => onFaturar(r)} title="Gerar título a receber">
                         <FileUp className="h-3.5 w-3.5" />
                         Faturar
+                      </Button>
+                    )}
+                    {r.titulos_resumo.length > 0 && (
+                      <Button size="sm" variant="ghost" onClick={() => onVerTitulos(r)} title="Ver títulos relacionados">
+                        <ListChecks className="h-3.5 w-3.5" />
                       </Button>
                     )}
                     <Button size="sm" variant="ghost" onClick={() => onView(r)} title="Detalhes / editar">
@@ -351,6 +376,7 @@ export default function Receitas() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [faturarTarget, setFaturarTarget] = useState<Receita | null>(null)
   const [agrupamentoOpen, setAgrupamentoOpen] = useState(false)
+  const [titulosTarget, setTitulosTarget] = useState<Receita | null>(null)
 
   useEffect(() => {
     getReceitas().then(setReceitas).catch(() => {}).finally(() => setLoading(false))
@@ -440,12 +466,6 @@ export default function Receitas() {
             <option key={t} value={t}>{RECEITA_TIPO_LABELS[t]}</option>
           ))}
         </FilterSelect>
-        {selected.size >= 2 && (
-          <Button variant="outline" onClick={() => setAgrupamentoOpen(true)} className="shrink-0">
-            <Layers className="h-4 w-4" />
-            Faturar em conjunto ({selected.size})
-          </Button>
-        )}
         <Button onClick={openCreate} className="ml-auto shrink-0">
           <Plus className="h-4 w-4" />
           Nova Receita
@@ -458,16 +478,24 @@ export default function Receitas() {
         </CardContent></Card>
       ) : (
         <Tabs defaultValue="pendente">
-          <TabsList>
-            {tabConfig.map(t => (
-              <TabsTrigger key={t.value} value={t.value}>
-                {t.label}
-                {t.items.length > 0 && (
-                  <span className={cn('ml-1.5 rounded-full px-1.5 py-0.5 text-xs font-medium', t.badge)}>{t.items.length}</span>
-                )}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          <div className="flex items-center justify-between">
+            <TabsList>
+              {tabConfig.map(t => (
+                <TabsTrigger key={t.value} value={t.value}>
+                  {t.label}
+                  {t.items.length > 0 && (
+                    <span className={cn('ml-1.5 rounded-full px-1.5 py-0.5 text-xs font-medium', t.badge)}>{t.items.length}</span>
+                  )}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            {selected.size >= 2 && (
+              <Button variant="outline" size="lg" onClick={() => setAgrupamentoOpen(true)}>
+                <Layers className="h-4 w-4" />
+                Faturar em conjunto ({selected.size})
+              </Button>
+            )}
+          </div>
           {tabConfig.map(t => (
             <TabsContent key={t.value} value={t.value}>
               <Card>
@@ -483,6 +511,7 @@ export default function Receitas() {
                     onToggle={toggleSelect}
                     onView={openEdit}
                     onFaturar={r => setFaturarTarget(r)}
+                    onVerTitulos={r => setTitulosTarget(r)}
                     emptyMessage={`Nenhuma receita ${RECEITA_STATUS_LABELS[t.value].toLowerCase()}`}
                   />
                 </CardContent>
@@ -512,6 +541,14 @@ export default function Receitas() {
         open={agrupamentoOpen}
         onClose={() => setAgrupamentoOpen(false)}
         onConfirm={handleAgrupamentoConfirm}
+      />
+
+      <TitulosRelacionadosModal
+        open={!!titulosTarget}
+        onClose={() => setTitulosTarget(null)}
+        titulo={`Títulos — ${titulosTarget?.descricao ?? ''}`}
+        descricao={titulosTarget ? `${titulosTarget.titulos_resumo.length} título(s) a receber` : undefined}
+        titulos={titulosTarget?.titulos_resumo ?? []}
       />
 
       <Dialog open={!!deleteTarget} onOpenChange={o => !o && setDeleteTarget(null)}>

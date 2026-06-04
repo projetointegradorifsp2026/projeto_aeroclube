@@ -62,11 +62,11 @@ def _tipo_inscricao(cpf_cnpj: str) -> str:
 
 
 def _pagador(titulo):
-    """Retorna (nome, cpf_cnpj) do devedor do título (usuário ou cliente externo)."""
+    """Retorna (nome, cpf_cnpj) do devedor do título (participante ou cliente de serviço)."""
     if titulo.participante_id:
         return titulo.participante.nome, titulo.participante.cpf_cnpj or ""
-    if titulo.cliente_externo_id:
-        return titulo.cliente_externo.nome, titulo.cliente_externo.cpf_cnpj or ""
+    if titulo.cliente_id:
+        return titulo.cliente.nome, titulo.cliente.cpf_cnpj or ""
     return "", ""
 
 

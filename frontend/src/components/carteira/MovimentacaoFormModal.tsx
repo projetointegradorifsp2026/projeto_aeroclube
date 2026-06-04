@@ -100,7 +100,7 @@ export function MovimentacaoFormModal({
     }
   }
 
-  const clientePerfis: Array<'aluno' | 'socio' | 'cliente_externo'> = ['aluno', 'socio', 'cliente_externo']
+  const clientePerfis: Array<'aluno' | 'socio' | 'externo'> = ['aluno', 'socio', 'externo']
   const usuarioOptions = useMemo(
     () =>
       usuarios

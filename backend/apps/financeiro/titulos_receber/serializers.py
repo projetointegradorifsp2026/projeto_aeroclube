@@ -13,7 +13,7 @@ class TituloReceberSerializer(serializers.ModelSerializer):
     class Meta:
         model = TituloReceber
         fields = [
-            "id", "participante", "cliente_externo", "participante_nome",
+            "id", "participante", "cliente", "participante_nome",
             "tipo", "tipo_display", "descricao",
             "voo", "receitas",
             "num_parcela", "total_parcelas",
@@ -28,16 +28,16 @@ class TituloReceberSerializer(serializers.ModelSerializer):
     def get_participante_nome(self, obj):
         if obj.participante:
             return obj.participante.nome
-        if obj.cliente_externo:
-            return obj.cliente_externo.nome
+        if obj.cliente:
+            return obj.cliente.nome
         return "—"
 
     def validate(self, data):
         participante = data.get("participante") or self.instance and self.instance.participante
-        cliente_externo = data.get("cliente_externo") or self.instance and self.instance.cliente_externo
-        if not participante and not cliente_externo:
+        cliente = data.get("cliente") or self.instance and self.instance.cliente
+        if not participante and not cliente:
             raise serializers.ValidationError(
-                {"participante": "Informe participante ou cliente externo."}
+                {"participante": "Informe participante ou cliente."}
             )
         return data
 

@@ -1,5 +1,12 @@
 from rest_framework import serializers
-from .models import EntidadePagar, Fornecedor, Funcionario, Favorecido
+from .models import Cliente, EntidadePagar, Fornecedor, Funcionario, Favorecido
+
+
+class ClienteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cliente
+        fields = ["id", "nome", "cpf_cnpj", "email", "contato", "is_active", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at"]
 
 
 class EntidadePagarSerializer(serializers.ModelSerializer):

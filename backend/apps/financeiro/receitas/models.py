@@ -40,7 +40,7 @@ class Receita(models.Model):
         (STATUS_QUITADA, "Quitada"),
     ]
 
-    # Devedor: usuário do sistema OU cliente externo (mesmo padrão de TituloReceber)
+    # Devedor: participante (usuário do sistema) OU cliente (serviço — não usuário)
     participante = models.ForeignKey(
         "users.Usuario",
         on_delete=models.PROTECT,
@@ -49,11 +49,11 @@ class Receita(models.Model):
         null=True,
         blank=True,
     )
-    cliente_externo = models.ForeignKey(
-        "pessoas.EntidadePagar",
+    cliente = models.ForeignKey(
+        "pessoas.Cliente",
         on_delete=models.PROTECT,
         related_name="receitas",
-        verbose_name="Cliente externo",
+        verbose_name="Cliente",
         null=True,
         blank=True,
     )
@@ -100,7 +100,7 @@ class Receita(models.Model):
     def __str__(self):
         nome = (
             self.participante.nome if self.participante
-            else self.cliente_externo.nome if self.cliente_externo
+            else self.cliente.nome if self.cliente
             else "—"
         )
         return f"{nome} | {self.descricao} | {self.get_status_display()}"

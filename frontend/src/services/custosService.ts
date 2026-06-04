@@ -1,6 +1,20 @@
 import { apiList, apiPost, apiPatch, apiDelete } from '@/services/api/client'
 import { type Custo, type CustoTipo, type CustoStatus } from '@/mocks/financeiroOrigem'
 
+interface BackendTituloResumo {
+  id: number
+  num_parcela: number
+  total_parcelas: number
+  valor: string
+  valor_pago: string | null
+  multa: string
+  data_vencimento: string
+  data_pagamento: string | null
+  status: string
+  status_display: string
+  esta_atrasado: boolean
+}
+
 interface BackendCusto {
   id: number
   tipo: string
@@ -16,9 +30,27 @@ interface BackendCusto {
   status: string
   status_display: string
   esta_faturado: boolean
+  titulos_info: { total: number; baixados: number; todos_pagos: boolean; parcialmente_pago: boolean } | null
+  titulos_resumo: BackendTituloResumo[]
   is_recorrente: boolean
   periodicidade_dias: number | null
   created_at: string
+}
+
+function adaptTituloResumo(t: BackendTituloResumo) {
+  return {
+    id: t.id,
+    num_parcela: t.num_parcela,
+    total_parcelas: t.total_parcelas,
+    valor: parseFloat(t.valor),
+    valor_pago: t.valor_pago !== null ? parseFloat(t.valor_pago) : null,
+    multa: parseFloat(t.multa),
+    data_vencimento: t.data_vencimento,
+    data_pagamento: t.data_pagamento,
+    status: t.status,
+    status_display: t.status_display,
+    esta_atrasado: t.esta_atrasado,
+  }
 }
 
 function adapt(c: BackendCusto): Custo {
@@ -34,6 +66,8 @@ function adapt(c: BackendCusto): Custo {
     status: c.status as CustoStatus,
     esta_faturado: c.esta_faturado,
     is_recorrente: c.is_recorrente,
+    titulos_info: c.titulos_info ?? null,
+    titulos_resumo: (c.titulos_resumo ?? []).map(adaptTituloResumo),
     created_at: c.created_at,
   }
 }

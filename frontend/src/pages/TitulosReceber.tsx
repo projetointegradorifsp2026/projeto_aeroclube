@@ -275,7 +275,7 @@ export default function TitulosReceber() {
           createTituloReceber({
             usuario_id: data.usuario_id,
             usuario_nome: data.usuario_nome,
-            cliente_externo_id: data.cliente_externo_id,
+            cliente_id: data.cliente_id,
             tipo: data.tipo,
             descricao: data.descricao,
             num_parcela: i + 1,
@@ -330,7 +330,7 @@ export default function TitulosReceber() {
     setBaixaCarteiraValor('')
     setBaixaUserSaldo(null)
     // Bug 3: só busca saldo de carteira para participantes (não para clientes externos)
-    if (t.usuario_id && !t.is_cliente_externo) {
+    if (t.usuario_id && !t.is_cliente) {
       getUsers().then(users => {
         const user = users.find(u => u.id === t.usuario_id)
         setBaixaUserSaldo(user?.saldo_carteira ?? 0)

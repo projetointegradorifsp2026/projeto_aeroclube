@@ -13,6 +13,8 @@ class CustoSerializer(serializers.ModelSerializer):
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     favorecido_nome = serializers.SerializerMethodField()
     esta_faturado = serializers.BooleanField(read_only=True)
+    titulos_info = serializers.SerializerMethodField()
+    titulos_resumo = serializers.SerializerMethodField()
 
     class Meta:
         model = Custo
@@ -24,6 +26,7 @@ class CustoSerializer(serializers.ModelSerializer):
             "valor",
             "data_emissao", "data_vencimento",
             "status", "status_display", "esta_faturado",
+            "titulos_info", "titulos_resumo",
             "is_recorrente", "periodicidade_dias",
             "created_at", "updated_at",
         ]
@@ -36,6 +39,37 @@ class CustoSerializer(serializers.ModelSerializer):
         if f.entidade:
             return f.entidade.nome
         return None
+
+    def get_titulos_info(self, obj):
+        titulos = obj.titulos.all()
+        if not titulos.exists():
+            return None
+        total = titulos.count()
+        baixados = titulos.filter(status="baixado").count()
+        return {
+            "total": total,
+            "baixados": baixados,
+            "todos_pagos": baixados == total,
+            "parcialmente_pago": 0 < baixados < total,
+        }
+
+    def get_titulos_resumo(self, obj):
+        result = []
+        for t in obj.titulos.all():
+            result.append({
+                "id": t.id,
+                "num_parcela": t.num_parcela,
+                "total_parcelas": t.total_parcelas,
+                "valor": str(t.valor),
+                "valor_pago": str(t.valor_pago) if t.valor_pago is not None else None,
+                "multa": str(t.multa),
+                "data_vencimento": str(t.data_vencimento),
+                "data_pagamento": str(t.data_pagamento) if t.data_pagamento else None,
+                "status": t.status,
+                "status_display": t.get_status_display(),
+                "esta_atrasado": t.esta_atrasado,
+            })
+        return result
 
 
 class CustoWriteSerializer(serializers.ModelSerializer):

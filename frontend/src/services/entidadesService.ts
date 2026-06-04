@@ -1,6 +1,8 @@
 import { apiList, apiPost, apiPatch, apiDelete } from '@/services/api/client'
 import { type Entidade, type EntidadeTipo } from '@/mocks/entidades'
 
+// Nota: clientes de serviço (tipo 'cliente') foram migrados para clientesService.ts
+
 interface BackendFornecedor {
   id: number
   nome: string
@@ -80,23 +82,16 @@ export async function getEntidades(tipo?: EntidadeTipo): Promise<Entidade[]> {
     const items = await apiList<BackendFuncionario>('/api/v1/funcionarios/?instrutor=true')
     return items.map(adaptFuncionario)
   }
-  if (tipo === 'cliente') {
-    const items = await apiList<BackendEntidade>('/api/v1/entidades/?tipo=cliente')
-    return items.map(adaptEntidade)
-  }
-
-  // Sem filtro: busca todos em paralelo
-  const [fornecedores, funcionarios, instrutores, clientes] = await Promise.all([
+  // Sem filtro: busca todos (fornecedores + funcionários/instrutores)
+  const [fornecedores, funcionarios, instrutores] = await Promise.all([
     apiList<BackendFornecedor>('/api/v1/fornecedores/'),
     apiList<BackendFuncionario>('/api/v1/funcionarios/?instrutor=false'),
     apiList<BackendFuncionario>('/api/v1/funcionarios/?instrutor=true'),
-    apiList<BackendEntidade>('/api/v1/entidades/?tipo=cliente'),
   ])
   return [
     ...fornecedores.map(adaptFornecedor),
     ...funcionarios.map(adaptFuncionario),
     ...instrutores.map(adaptFuncionario),
-    ...clientes.map(adaptEntidade),
   ].sort((a, b) => a.nome.localeCompare(b.nome))
 }
 
@@ -122,17 +117,6 @@ export async function createEntidade(data: Omit<Entidade, 'id'>): Promise<Entida
     const created = await apiPost<BackendFuncionario>('/api/v1/funcionarios/', payload)
     return adaptFuncionario(created)
   }
-  if (data.tipo === 'cliente') {
-    const payload = {
-      nome: data.nome,
-      cpf_cnpj: data.cpf_cnpj || null,
-      email: data.email || null,
-      contato: data.contato || null,
-      tipo: 'cliente',
-    }
-    const created = await apiPost<BackendEntidade>('/api/v1/entidades/', payload)
-    return adaptEntidade(created)
-  }
   throw new Error(`Tipo de entidade '${data.tipo}' não suportado para criação`)
 }
 
@@ -152,19 +136,11 @@ export async function updateEntidade(
     const updated = await apiPatch<BackendFornecedor>(`/api/v1/fornecedores/${id}/`, payload)
     return adaptFornecedor(updated)
   }
-  if (existingTipo === 'cliente') {
-    const updated = await apiPatch<BackendEntidade>(`/api/v1/entidades/${id}/`, payload)
-    return adaptEntidade(updated)
-  }
   const updated = await apiPatch<BackendFuncionario>(`/api/v1/funcionarios/${id}/`, payload)
   return adaptFuncionario(updated)
 }
 
 export async function deleteEntidade(id: string, tipo?: EntidadeTipo): Promise<void> {
-  if (tipo === 'cliente') {
-    await apiDelete(`/api/v1/entidades/${id}/`)
-    return
-  }
   if (tipo === 'fornecedor') {
     await apiDelete(`/api/v1/fornecedores/${id}/`)
     return

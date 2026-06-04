@@ -1,4 +1,5 @@
 from decimal import Decimal
+from django.utils.dateparse import parse_date
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -27,9 +28,12 @@ def faturar_receita(receita: Receita, parcelas=None):
             voo_field = None
             if i == 1 and receita.voo and not TituloReceber.objects.filter(voo=receita.voo).exists():
                 voo_field = receita.voo
+            dv = parcela["data_vencimento"]
+            if isinstance(dv, str):
+                dv = parse_date(dv)
             titulo = TituloReceber.objects.create(
                 participante=receita.participante,
-                cliente_externo=receita.cliente_externo,
+                cliente=receita.cliente,
                 tipo=receita.tipo,
                 descricao=receita.descricao,
                 voo=voo_field,
@@ -37,7 +41,7 @@ def faturar_receita(receita: Receita, parcelas=None):
                 total_parcelas=total_parcelas,
                 valor_original=Decimal(str(parcela["valor"])),
                 data_emissao=receita.data_emissao,
-                data_vencimento=parcela["data_vencimento"],
+                data_vencimento=dv,
                 status=TituloReceber.STATUS_ABERTO,
             )
             titulo.receitas.add(receita)
@@ -49,7 +53,7 @@ def faturar_receita(receita: Receita, parcelas=None):
 
         titulo = TituloReceber.objects.create(
             participante=receita.participante,
-            cliente_externo=receita.cliente_externo,
+            cliente=receita.cliente,
             tipo=receita.tipo,
             descricao=receita.descricao,
             voo=receita.voo if not TituloReceber.objects.filter(voo=receita.voo).exists() else None,
@@ -82,7 +86,7 @@ class ReceitaViewSet(viewsets.ModelViewSet):
       Agrupa N receitas do mesmo participante num único TituloReceber.
       Body: {"receita_ids": [1,2,3]}
     """
-    queryset = Receita.objects.select_related("participante", "cliente_externo", "voo").all()
+    queryset = Receita.objects.select_related("participante", "cliente", "voo").all()
     serializer_class = ReceitaSerializer
     permission_classes = [IsAuthenticated]
 
@@ -168,9 +172,9 @@ class ReceitaViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Valida: mesmo participante/cliente_externo
+        # Valida: mesmo participante/cliente
         participantes = set(r.participante_id for r in receitas)
-        clientes = set(r.cliente_externo_id for r in receitas)
+        clientes = set(r.cliente_id for r in receitas)
         if len(participantes) > 1 or len(clientes) > 1:
             return Response(
                 {"detail": "Só é possível agrupar receitas do mesmo devedor."},
@@ -193,7 +197,7 @@ class ReceitaViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             titulo = TituloReceber.objects.create(
                 participante=primeira.participante,
-                cliente_externo=primeira.cliente_externo,
+                cliente=primeira.cliente,
                 tipo=primeira.tipo,
                 descricao=descricao,
                 num_parcela=1,

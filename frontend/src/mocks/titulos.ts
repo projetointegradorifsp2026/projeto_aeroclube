@@ -25,7 +25,7 @@ export interface TituloReceber {
   id: string
   usuario_id?: string
   usuario_nome: string
-  is_cliente_externo?: boolean
+  is_cliente?: boolean
   tipo: TituloReceberTipo
   descricao: string
   num_parcela: number

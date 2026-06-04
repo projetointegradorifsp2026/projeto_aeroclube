@@ -939,7 +939,7 @@ function DashboardAdmin() {
                 createTituloReceber({
                     usuario_id: data.usuario_id,
                     usuario_nome: data.usuario_nome,
-                    cliente_externo_id: data.cliente_externo_id,
+                    cliente_id: data.cliente_id,
                     tipo: data.tipo,
                     descricao: data.descricao,
                     num_parcela: i + 1,

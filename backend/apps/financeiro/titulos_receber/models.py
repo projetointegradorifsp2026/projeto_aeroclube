@@ -44,12 +44,12 @@ class TituloReceber(models.Model):
         null=True,
         blank=True,
     )
-    # Clientes externos (empresas/pessoas que não são usuários do sistema)
-    cliente_externo = models.ForeignKey(
-        "pessoas.EntidadePagar",
+    # Cliente de serviço (empresa/pessoa que não é usuário do sistema)
+    cliente = models.ForeignKey(
+        "pessoas.Cliente",
         on_delete=models.PROTECT,
         related_name="titulos_receber",
-        verbose_name="Cliente externo",
+        verbose_name="Cliente",
         null=True,
         blank=True,
     )
@@ -101,7 +101,7 @@ class TituloReceber(models.Model):
     def __str__(self):
         nome = (
             self.participante.nome if self.participante
-            else self.cliente_externo.nome if self.cliente_externo
+            else self.cliente.nome if self.cliente
             else "—"
         )
         return f"{nome} | {self.descricao} | {self.get_status_display()}"

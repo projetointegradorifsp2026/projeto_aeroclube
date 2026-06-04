@@ -7,9 +7,9 @@ export type ReceitaStatus = 'pendente' | 'faturada' | 'quitada' | 'cancelada'
 export interface Receita {
   id: string
   participante_id?: string
-  cliente_externo_id?: string
+  cliente_id?: string
   devedor_nome: string
-  is_cliente_externo: boolean
+  is_cliente: boolean
   tipo: ReceitaTipo
   descricao: string
   valor: number
@@ -17,11 +17,34 @@ export interface Receita {
   data_vencimento: string
   status: ReceitaStatus
   esta_faturada: boolean
+  titulos_info: TitulosInfo | null
+  titulos_resumo: TituloResumo[]
   created_at: string
 }
 
 export type CustoTipo = 'fornecedor' | 'folha_pagamento' | 'conta_fixa' | 'outros'
 export type CustoStatus = 'pendente' | 'faturado' | 'quitado' | 'cancelado'
+
+export interface TituloResumo {
+  id: number
+  num_parcela: number
+  total_parcelas: number
+  valor: number
+  valor_pago: number | null
+  multa: number
+  data_vencimento: string
+  data_pagamento: string | null
+  status: string
+  status_display: string
+  esta_atrasado: boolean
+}
+
+export interface TitulosInfo {
+  total: number
+  baixados: number
+  todos_pagos: boolean
+  parcialmente_pago: boolean
+}
 
 export interface Custo {
   id: string
@@ -35,6 +58,8 @@ export interface Custo {
   status: CustoStatus
   esta_faturado: boolean
   is_recorrente: boolean
+  titulos_info: TitulosInfo | null
+  titulos_resumo: TituloResumo[]
   created_at: string
 }
 

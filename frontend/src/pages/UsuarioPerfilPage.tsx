@@ -163,7 +163,7 @@ export default function UsuarioPerfilPage() {
       getTitulosPagar(),
       getMovimentacoesCarteira(id!),
     ])
-    const userReceber = allReceber.filter(t => t.usuario_id === id && t.status === 'baixado')
+    const userReceber = allReceber.filter(t => t.usuario_id === id && t.valor_pago > 0)
     const userPagar = allPagar.filter(t => t.favorecido === nomeUsuario && t.status === 'baixado')
     const entradas: MovRow[] = userReceber.map(t => ({
       id: `r-${t.id}`,
@@ -174,7 +174,7 @@ export default function UsuarioPerfilPage() {
       valor_pago: t.valor_pago,
       status: t.status,
     }))
-    const carteiraRows: MovRow[] = movCarteira.map(m => ({
+    const carteiraRows: MovRow[] = movCarteira.filter(m => m.tipo === 'debito').map(m => ({
       id: `mv-${m.id}`,
       tipo: 'carteira' as const,
       data: m.data_transacao,
@@ -204,7 +204,7 @@ export default function UsuarioPerfilPage() {
           const found = users.find(u => u.id === id)
           if (!found) { navigate('/usuarios'); return }
 
-          const userReceber = allReceber.filter(t => t.usuario_id === id && t.status === 'baixado')
+          const userReceber = allReceber.filter(t => t.usuario_id === id && t.valor_pago > 0)
           const userPagar = allPagar.filter(t => t.favorecido === found.nome && t.status === 'baixado')
 
           const entradas: MovRow[] = userReceber.map(t => ({
@@ -216,7 +216,7 @@ export default function UsuarioPerfilPage() {
             valor_pago: t.valor_pago,
             status: t.status,
           }))
-          const carteiraRows: MovRow[] = movCarteira.map(m => ({
+          const carteiraRows: MovRow[] = movCarteira.filter(m => m.tipo === 'debito').map(m => ({
             id: `mv-${m.id}`,
             tipo: 'carteira' as const,
             data: m.data_transacao,

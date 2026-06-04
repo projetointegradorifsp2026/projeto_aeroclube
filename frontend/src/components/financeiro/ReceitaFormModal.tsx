@@ -19,7 +19,7 @@ import {
 } from '@/mocks/financeiroOrigem'
 import { type ReceitaInput } from '@/services/receitasService'
 import { getUsers, type User } from '@/services/usersService'
-import { getEntidades, type Entidade } from '@/services/entidadesService'
+import { getClientes, type Cliente } from '@/services/clientesService'
 
 const selectCls =
   'h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
@@ -36,7 +36,7 @@ const CLIENTE_PERFIS = ['aluno', 'socio', 'externo'] as const
 interface FormState {
   tipo: ReceitaTipo
   participante_id: string
-  cliente_externo_id: string
+  cliente_id: string
   devedor_nome: string
   descricao: string
   valor: number
@@ -50,7 +50,7 @@ function makeEmpty(): FormState {
   return {
     tipo: 'mensalidade',
     participante_id: '',
-    cliente_externo_id: '',
+    cliente_id: '',
     devedor_nome: '',
     descricao: '',
     valor: 0,
@@ -80,14 +80,14 @@ export function ReceitaFormModal({ receita, open, onClose, onSave, onDeleteReque
 
   useEffect(() => {
     if (open) {
-      Promise.all([getUsers(), getEntidades('cliente')])
-        .then(([users, clientes]: [User[], Entidade[]]) => {
+      Promise.all([getUsers(), getClientes()])
+        .then(([users, clientes]: [User[], Cliente[]]) => {
           setUsuariosOptions(
             users
               .filter(u => u.is_active && u.perfis.some(p => CLIENTE_PERFIS.includes(p as typeof CLIENTE_PERFIS[number])))
               .map(u => ({ value: u.id, label: u.nome })),
           )
-          setClientesOptions(clientes.filter(e => e.is_active).map(e => ({ value: e.id, label: e.nome })))
+          setClientesOptions(clientes.map(c => ({ value: c.id, label: c.nome })))
         })
         .catch(() => {})
     }
@@ -100,7 +100,7 @@ export function ReceitaFormModal({ receita, open, onClose, onSave, onDeleteReque
           ? {
               tipo: receita.tipo,
               participante_id: receita.participante_id ?? '',
-              cliente_externo_id: receita.cliente_externo_id ?? '',
+              cliente_id: receita.cliente_id ?? '',
               devedor_nome: receita.devedor_nome,
               descricao: receita.descricao,
               valor: receita.valor,
@@ -117,7 +117,7 @@ export function ReceitaFormModal({ receita, open, onClose, onSave, onDeleteReque
   const tiposDisponiveis = isEdit ? [...RECEITA_TIPOS_MANUAIS, receita!.tipo].filter((t, i, a) => a.indexOf(t) === i) : RECEITA_TIPOS_MANUAIS
 
   function handleTipoChange(t: ReceitaTipo) {
-    setForm(p => ({ ...p, tipo: t, participante_id: '', cliente_externo_id: '', devedor_nome: '' }))
+    setForm(p => ({ ...p, tipo: t, participante_id: '', cliente_id: '', devedor_nome: '' }))
   }
 
   function validate(): boolean {
@@ -137,7 +137,7 @@ export function ReceitaFormModal({ receita, open, onClose, onSave, onDeleteReque
     try {
       await onSave({
         participante_id: form.tipo === 'servico' ? undefined : form.participante_id || undefined,
-        cliente_externo_id: form.tipo === 'servico' ? form.cliente_externo_id || undefined : undefined,
+        cliente_id: form.tipo === 'servico' ? form.cliente_id || undefined : undefined,
         tipo: form.tipo,
         descricao: form.descricao,
         valor: form.valor,
@@ -156,10 +156,10 @@ export function ReceitaFormModal({ receita, open, onClose, onSave, onDeleteReque
       return (
         <SearchSelect
           options={clientesOptions}
-          value={form.cliente_externo_id}
+          value={form.cliente_id}
           onChange={v => {
             const found = clientesOptions.find(o => o.value === v)
-            setForm(p => ({ ...p, cliente_externo_id: v, participante_id: '', devedor_nome: found?.label ?? v }))
+            setForm(p => ({ ...p, cliente_id: v, participante_id: '', devedor_nome: found?.label ?? v }))
           }}
           placeholder="Selecione o cliente"
           hasError={!!errors.devedor}
@@ -172,7 +172,7 @@ export function ReceitaFormModal({ receita, open, onClose, onSave, onDeleteReque
         value={form.participante_id}
         onChange={v => {
           const found = usuariosOptions.find(o => o.value === v)
-          setForm(p => ({ ...p, participante_id: v, cliente_externo_id: '', devedor_nome: found?.label ?? v }))
+          setForm(p => ({ ...p, participante_id: v, cliente_id: '', devedor_nome: found?.label ?? v }))
         }}
         placeholder="Selecione o devedor"
         hasError={!!errors.devedor}

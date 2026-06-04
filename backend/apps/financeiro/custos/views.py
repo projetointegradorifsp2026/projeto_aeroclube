@@ -1,9 +1,11 @@
 from decimal import Decimal
+from datetime import date as date_type
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db import transaction
+from django.utils.dateparse import parse_date
 
 from .models import Custo
 from .serializers import CustoSerializer, CustoWriteSerializer
@@ -31,6 +33,9 @@ def faturar_custo(custo: Custo, parcelas=None):
         total_parcelas = len(parcelas)
         titulos = []
         for i, parcela in enumerate(parcelas, 1):
+            dv = parcela["data_vencimento"]
+            if isinstance(dv, str):
+                dv = parse_date(dv)
             titulo = TituloPagar.objects.create(
                 tipo=tipo_titulo,
                 favorecido=custo.favorecido,
@@ -39,7 +44,7 @@ def faturar_custo(custo: Custo, parcelas=None):
                 total_parcelas=total_parcelas,
                 valor=Decimal(str(parcela["valor"])),
                 data_emissao=custo.data_emissao,
-                data_vencimento=parcela["data_vencimento"],
+                data_vencimento=dv,
                 status=TituloPagar.STATUS_ABERTO,
                 is_recorrente=custo.is_recorrente if i == 1 else False,
                 periodicidade_dias=custo.periodicidade_dias if i == 1 else None,

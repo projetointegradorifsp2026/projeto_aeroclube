@@ -62,9 +62,10 @@ export default function Movimentacoes() {
     ]).then(([pagar, receber, movCarteira]) => {
       const nomeUsuario = currentUser?.nome ?? ''
 
+      // TitulosReceber com qualquer pagamento (parcial ou total) → "Entrada"
       const entradas: MovRow[] = receber
         .filter(t =>
-          t.status === 'baixado' &&
+          t.valor_pago > 0 &&
           (isAdmin || t.usuario_nome === nomeUsuario)
         )
         .map(t => ({
@@ -78,8 +79,9 @@ export default function Movimentacoes() {
           status: t.status as MovStatus,
         }))
 
-      // Todas as movimentações da carteira (créditos e débitos)
+      // Apenas débitos da carteira (uso em voos etc.) — créditos já aparecem como "Entrada" acima
       const carteiraMovs: MovRow[] = movCarteira
+        .filter(m => m.tipo === 'debito')
         .map(m => ({
           id: `mv-${m.id}`,
           tipo: 'carteira' as MovTipo,

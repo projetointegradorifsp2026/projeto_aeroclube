@@ -1,10 +1,24 @@
 import { apiList, apiPost, apiPatch, apiDelete } from '@/services/api/client'
 import { type Receita, type ReceitaTipo, type ReceitaStatus } from '@/mocks/financeiroOrigem'
 
+interface BackendTituloResumo {
+  id: number
+  num_parcela: number
+  total_parcelas: number
+  valor: string
+  valor_pago: string
+  multa: string
+  data_vencimento: string
+  data_pagamento: string | null
+  status: string
+  status_display: string
+  esta_atrasado: boolean
+}
+
 interface BackendReceita {
   id: number
   participante: number | null
-  cliente_externo: number | null
+  cliente: number | null
   participante_nome: string
   tipo: string
   tipo_display: string
@@ -18,6 +32,8 @@ interface BackendReceita {
   status: string
   status_display: string
   esta_faturada: boolean
+  titulos_info: { total: number; baixados: number; todos_pagos: boolean; parcialmente_pago: boolean } | null
+  titulos_resumo: BackendTituloResumo[]
   created_at: string
 }
 
@@ -25,9 +41,9 @@ function adapt(r: BackendReceita): Receita {
   return {
     id: String(r.id),
     participante_id: r.participante ? String(r.participante) : undefined,
-    cliente_externo_id: r.cliente_externo ? String(r.cliente_externo) : undefined,
+    cliente_id: r.cliente ? String(r.cliente) : undefined,
     devedor_nome: r.participante_nome,
-    is_cliente_externo: r.cliente_externo !== null && r.participante === null,
+    is_cliente: r.cliente !== null && r.participante === null,
     tipo: r.tipo as ReceitaTipo,
     descricao: r.descricao,
     valor: parseFloat(r.valor),
@@ -35,13 +51,27 @@ function adapt(r: BackendReceita): Receita {
     data_vencimento: r.data_vencimento,
     status: r.status as ReceitaStatus,
     esta_faturada: r.esta_faturada,
+    titulos_info: r.titulos_info ?? null,
+    titulos_resumo: (r.titulos_resumo ?? []).map(t => ({
+      id: t.id,
+      num_parcela: t.num_parcela,
+      total_parcelas: t.total_parcelas,
+      valor: parseFloat(t.valor),
+      valor_pago: parseFloat(t.valor_pago),
+      multa: parseFloat(t.multa),
+      data_vencimento: t.data_vencimento,
+      data_pagamento: t.data_pagamento,
+      status: t.status,
+      status_display: t.status_display,
+      esta_atrasado: t.esta_atrasado,
+    })),
     created_at: r.created_at,
   }
 }
 
 export interface ReceitaInput {
   participante_id?: string
-  cliente_externo_id?: string
+  cliente_id?: string
   tipo: ReceitaTipo
   descricao: string
   valor: number
@@ -56,10 +86,10 @@ export async function getReceitas(): Promise<Receita[]> {
 }
 
 export async function createReceita(input: ReceitaInput): Promise<Receita> {
-  const isExterno = !!input.cliente_externo_id
+  const isCliente = !!input.cliente_id
   const payload = {
-    participante: isExterno ? null : (input.participante_id ? parseInt(input.participante_id, 10) : null),
-    cliente_externo: isExterno ? parseInt(input.cliente_externo_id!, 10) : null,
+    participante: isCliente ? null : (input.participante_id ? parseInt(input.participante_id, 10) : null),
+    cliente: isCliente ? parseInt(input.cliente_id!, 10) : null,
     tipo: input.tipo,
     descricao: input.descricao,
     valor: input.valor.toFixed(2),
