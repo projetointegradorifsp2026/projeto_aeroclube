@@ -1,0 +1,199 @@
+================================================================================
+  AEROCLUBE — GUIA DE TESTES MANUAIS DAS ALTERAÇÕES
+  Como verificar, pelo site, cada mudança feita nesta entrega.
+================================================================================
+
+App em desenvolvimento: http://localhost:3000
+Faça login como ADMINISTRADOR (as telas novas de Receitas, Custos, Config.
+Bancária e Remessas CNAB são exclusivas de admin).
+
+Subir o ambiente, se necessário:
+    make dev-up
+  (ou: docker compose -f docker-compose.yml -f docker-compose.dev.yml up)
+
+Resumo do que mudou (visão geral):
+  1. Camada Receita/Custo (origem antes do título) + ação "Faturar"
+  2. Voo passa a gerar Receita (não título direto)
+  3. Fluxos de carteira geram Receita/Custo + título
+  4. CNAB Sicoob: Configuração Bancária do cedente
+  5. CNAB Sicoob: geração de Remessa + DOWNLOAD do arquivo .REM
+  6. Dados Bancários de quem paga/recebe (perfil, clientes, fornecedores)
+  7. Troca de senha pelo próprio usuário
+  8. "Esqueci minha senha" (reset por e-mail)
+  9. Correções técnicas (TypeScript / .pyc) — não aparecem na tela
+
+
+────────────────────────────────────────────────────────────────────────────────
+1. TELAS DE RECEITAS E CUSTOS (camada de origem)
+────────────────────────────────────────────────────────────────────────────────
+O que é: "Receita" = origem de um valor a receber; "Custo" = origem de um valor
+a pagar. Você cria a origem e decide DEPOIS se ela vira título (boleto), evitando
+gerar cobrança redundante.
+
+Como testar:
+  - Menu lateral -> grupo "Títulos" -> "Receitas"
+  - Clique "Nova Receita" -> escolha tipo, devedor, valor, vencimento -> Cadastrar
+  - A receita aparece na aba "Pendentes"
+  - Clique "Faturar" na linha:
+      * a receita sai de "Pendentes" e vai para "Faturadas"
+      * um Título a Receber é criado (confira em Menu -> Títulos a Receber)
+  - Repita marcando, na modal, a opção "Gerar título a receber automaticamente":
+      * a receita já nasce "Faturada" e o título é criado de uma vez
+  - Faça o mesmo em "Custos" (gera Título a Pagar)
+
+Resultado esperado: receita/custo mudam de status corretamente e o título
+correspondente aparece "Em aberto".
+
+
+────────────────────────────────────────────────────────────────────────────────
+2. VOO AGORA GERA RECEITA (não título direto)
+────────────────────────────────────────────────────────────────────────────────
+O que mudou: ao registrar um voo, em vez de criar o título de cobrança direto,
+o sistema cria uma RECEITA pendente. Você fatura depois.
+
+Como testar:
+  - Menu -> "Voos" -> "Novo Voo" -> preencha e salve
+  - Menu -> "Receitas" -> aba "Pendentes": aparece a cobrança (tipo "Cobrança de Voo")
+  - Para validar a correção da duplicidade do instrutor:
+      * registre um voo de PLANADOR com instrutor
+      * em Menu -> "Custos" deve aparecer SÓ UM custo de repasse (sem duplicata)
+
+
+────────────────────────────────────────────────────────────────────────────────
+3. FLUXOS DE CARTEIRA (compra de horas / remoção de saldo)
+────────────────────────────────────────────────────────────────────────────────
+O que mudou: geram a origem (Receita/Custo) já vinculada ao título.
+
+Como testar:
+  - Menu -> "Usuários" -> abra um usuário -> "Adicionar saldo" (compra de horas)
+      * em "Receitas" aparece uma receita "Horas Pré-pagas" já QUITADA
+  - No mesmo perfil -> "Remover saldo"
+      * em "Custos" aparece um custo já QUITADO
+
+
+────────────────────────────────────────────────────────────────────────────────
+4. CNAB — CONFIGURAÇÃO BANCÁRIA DO CEDENTE
+────────────────────────────────────────────────────────────────────────────────
+O que é: tela (admin) com os dados do aeroclube no Sicoob, usados na remessa.
+
+Como testar:
+  - Menu -> grupo "Cobrança Bancária" -> "Config. Bancária"
+  - Os campos vêm pré-preenchidos:
+      AERO CLUBE DE RIO CLARO, CNPJ 56.391.709/0001-10,
+      código do beneficiário 110980-4, conta 23913-5, carteira 1 / 01
+  - Clique "Salvar configuração"
+  - Resultado esperado: mensagem "Configuração salva com sucesso." (sem erro 400)
+    Observação: esse era o bug do "400 Bad Request" que foi corrigido — agora os
+    campos do cedente podem ficar em branco e salvar normalmente.
+
+
+────────────────────────────────────────────────────────────────────────────────
+5. CNAB — GERAÇÃO DE REMESSA + DOWNLOAD DO ARQUIVO .REM
+────────────────────────────────────────────────────────────────────────────────
+O que é: seleciona títulos a receber em aberto, gera o lote de remessa e
+disponibiliza o arquivo .REM (CNAB240, 240 posições por linha, padrão Sicoob).
+
+Pré-requisito: ter ao menos 1 Título a Receber EM ABERTO.
+  (Dica: vá em "Receitas", crie uma e clique "Faturar" — isso gera o título.)
+
+Como testar:
+  - Menu -> "Cobrança Bancária" -> "Remessas CNAB" -> aba "Gerar remessa"
+  - Marque um ou mais títulos -> clique "Gerar remessa"
+  - O título selecionado muda para o status intermediário "Remessa Criada"
+  - Vá na aba "Remessas":
+      * a remessa aparece (status "Gerada", nº sequencial, valor total)
+      * clique na linha para expandir e ver os títulos incluídos
+      * clique no botão ".REM" (ícone de download) para BAIXAR o arquivo
+  - Abra o arquivo .REM baixado num editor de texto:
+      * deve ter linhas de 240 caracteres
+      * primeira linha começa com "756" (banco Sicoob) e tipo de registro "0"
+      * estrutura: header de arquivo (0), header de lote (1), pares P/Q por
+        título (3), trailer de lote (5), trailer de arquivo (9)
+
+Observação importante: a ESCRITA do arquivo está implementada e estruturalmente
+correta. Para o Sicoob ACEITAR o arquivo em produção é necessário completar os
+dados de homologação (convênio, faixa de "nosso número", endereço do pagador).
+A LEITURA do arquivo de retorno (.RET) ainda não foi implementada.
+
+
+────────────────────────────────────────────────────────────────────────────────
+6. DADOS BANCÁRIOS (de quem paga / recebe)
+────────────────────────────────────────────────────────────────────────────────
+O que é: cadastro opcional de banco/agência/conta/Pix da pessoa ou entidade.
+
+Como testar (3 lugares):
+  - Perfil do usuário: Menu -> Usuários -> abrir um -> botão "Dados Bancários"
+  - Clientes: Menu -> Cadastrar -> Clientes -> ícone de banco na linha
+  - Fornecedores: Menu -> Cadastrar -> Fornecedores -> ícone de banco na linha
+  - Preencha e salve; reabra para confirmar que os dados persistiram.
+
+Regra: usuário comum edita os próprios dados no perfil; o administrador pode
+editar de todos (usuários, clientes e fornecedores).
+
+
+────────────────────────────────────────────────────────────────────────────────
+7. TROCA DE SENHA PELO PRÓPRIO USUÁRIO
+────────────────────────────────────────────────────────────────────────────────
+Como testar:
+  - Abra o SEU próprio perfil (Menu -> Usuários -> seu usuário)
+  - Clique "Alterar Senha" (esse botão só aparece no seu próprio perfil)
+  - Informe a senha atual + a nova (mínimo 6 caracteres) -> Alterar
+  - Resultado esperado: "Senha alterada com sucesso!"
+  - Teste o erro: informe a senha atual ERRADA -> deve recusar com mensagem
+
+
+────────────────────────────────────────────────────────────────────────────────
+8. "ESQUECI MINHA SENHA" (RESET POR E-MAIL)
+────────────────────────────────────────────────────────────────────────────────
+Como testar:
+  - Na tela de Login, clique no link "Esqueci minha senha"
+  - Informe o e-mail do usuário -> "Enviar link de redefinição"
+  - Em DESENVOLVIMENTO o e-mail NÃO é enviado de verdade — ele é impresso no
+    log do backend. Veja o link com:
+        make logs-be
+    (ou: docker compose -f docker-compose.yml -f docker-compose.dev.yml logs --tail=40 backend)
+    Procure a linha:  http://localhost:3000/resetar-senha?uid=...&token=...
+  - Copie esse link e abra no navegador
+  - Defina a nova senha -> faça login com ela
+  - Teste o erro: abra /resetar-senha sem uid/token -> mostra "Link inválido"
+
+Para produção: configurar SMTP via variáveis de ambiente (EMAIL_HOST,
+EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, etc.) e DEFAULT_FROM_EMAIL / FRONTEND_URL.
+
+
+────────────────────────────────────────────────────────────────────────────────
+9. CORREÇÕES TÉCNICAS (não aparecem na tela)
+────────────────────────────────────────────────────────────────────────────────
+  - Erros de TypeScript pré-existentes foram corrigidos: o build de produção
+    (npm run build) voltou a passar. Antes estava quebrado.
+        Verificar: docker compose ... exec frontend npm run build  -> "✓ built"
+  - Arquivos .pyc removidos do versionamento e adicionados ao .gitignore.
+
+
+================================================================================
+  OBSERVAÇÕES PARA OUTRO AMBIENTE / REVISÃO
+================================================================================
+  - As MIGRATIONS não são versionadas (decisão existente do projeto, via
+    .gitignore). Em um ambiente novo, rode:
+        make makemigrations
+        make migrate
+    No ambiente atual elas já estão aplicadas no banco.
+
+  - Itens da reunião ainda PENDENTES (não entram nesta entrega):
+        * Leitura do arquivo de RETORNO do banco (.RET)
+        * Homologação efetiva da remessa com o Sicoob (dados de convênio)
+        * Publicação/Deploy da aplicação
+
+
+================================================================================
+  COMMITS DESTA ENTREGA (branch CNAB_correto)
+================================================================================
+  feat(cnab): gera e disponibiliza o arquivo de remessa .REM (CNAB240 Sicoob)
+  fix(cnab): permite salvar configuração bancária com campos do cedente em branco
+  feat: registra rotas e integra ações no perfil do usuário
+  feat(auth): troca de senha pelo usuário e redefinição por e-mail
+  feat(financeiro): adiciona camada Receita/Custo e cobrança bancária CNAB Sicoob
+  fix(frontend): corrige erros de TypeScript pré-existentes
+  chore: ignora e remove artefatos .pyc do versionamento
+
+================================================================================
