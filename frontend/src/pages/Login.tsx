@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input"
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { login, switchPerfilAtivo, type AuthUser } from "@/services/api/auth"
+import { solicitarResetSenha } from "@/services/passwordService"
 import { PROFILE_LABELS } from "@/mocks/users"
 
 type FormErrors = {
@@ -22,6 +23,26 @@ export default function Login() {
   const [selectedPerfil, setSelectedPerfil] = useState("")
   const [switchingPerfil, setSwitchingPerfil] = useState(false)
   const [switchError, setSwitchError] = useState("")
+
+  // Esqueci minha senha
+  const [forgotMode, setForgotMode] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState("")
+  const [forgotLoading, setForgotLoading] = useState(false)
+  const [forgotSent, setForgotSent] = useState(false)
+
+  async function handleForgot() {
+    if (!isValidEmail(forgotEmail)) return
+    setForgotLoading(true)
+    try {
+      await solicitarResetSenha(forgotEmail)
+      setForgotSent(true)
+    } catch {
+      // Mesmo em erro mostramos sucesso (não revelar se o e-mail existe)
+      setForgotSent(true)
+    } finally {
+      setForgotLoading(false)
+    }
+  }
 
   const isValidEmail = (value: string) =>
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
@@ -89,8 +110,46 @@ export default function Login() {
           )}
         </div>
 
+        {/* Esqueci minha senha */}
+        {!pendingUser && forgotMode && (
+          <div className="space-y-4">
+            {forgotSent ? (
+              <p className="text-sm text-center text-muted-foreground">
+                Se o e-mail estiver cadastrado, enviamos as instruções de redefinição.
+                Verifique sua caixa de entrada.
+              </p>
+            ) : (
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">E-mail</label>
+                  <Input
+                    placeholder="seuemail@exemplo.com"
+                    className="bg-background h-10"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                  />
+                </div>
+                <Button
+                  className="w-full h-10"
+                  onClick={handleForgot}
+                  disabled={forgotLoading || !isValidEmail(forgotEmail)}
+                >
+                  {forgotLoading ? "Enviando..." : "Enviar link de redefinição"}
+                </Button>
+              </>
+            )}
+            <Button
+              variant="outline"
+              className="w-full h-10"
+              onClick={() => { setForgotMode(false); setForgotSent(false); setForgotEmail("") }}
+            >
+              Voltar ao login
+            </Button>
+          </div>
+        )}
+
         {/* Etapa 1: formulário de login */}
-        {!pendingUser && (
+        {!pendingUser && !forgotMode && (
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">E-mail</label>
@@ -183,11 +242,15 @@ export default function Login() {
         )}
 
         {/* Footer */}
-        {!pendingUser && (
+        {!pendingUser && !forgotMode && (
           <div className="text-center">
-            <p className="text-xs text-muted-foreground">
-              Esqueceu sua senha? Fale com o suporte
-            </p>
+            <button
+              type="button"
+              onClick={() => setForgotMode(true)}
+              className="text-xs text-muted-foreground hover:text-primary underline underline-offset-2"
+            >
+              Esqueci minha senha
+            </button>
           </div>
         )}
       </div>
