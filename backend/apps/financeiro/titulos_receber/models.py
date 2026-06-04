@@ -23,7 +23,7 @@ class TituloReceber(models.Model):
         (TIPO_VOO, "Cobrança de Voo"),
         (TIPO_HORAS_PRE_PAGAS, "Compra de Horas Pré-pagas"),
         (TIPO_SERVICO, "Serviço"),
-        (TIPO_OUTROS, "Outros"),
+        (TIPO_OUTROS, "Pontual"),
     ]
 
     STATUS_ABERTO = "aberto"

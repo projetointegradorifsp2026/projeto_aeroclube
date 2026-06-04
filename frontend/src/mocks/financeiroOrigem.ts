@@ -68,7 +68,7 @@ export const RECEITA_TIPO_LABELS: Record<ReceitaTipo, string> = {
   voo: 'Cobrança de Voo',
   horas_pre_pagas: 'Horas Pré-pagas',
   servico: 'Serviço',
-  outros: 'Outros',
+  outros: 'Pontual',
 }
 
 export const RECEITA_STATUS_LABELS: Record<ReceitaStatus, string> = {
