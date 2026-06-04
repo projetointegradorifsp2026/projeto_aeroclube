@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TablePagination } from '@/components/ui/pagination'
-import { UserPlus, Eye, Trash2, UserCheck, UserX, KeyRound } from 'lucide-react'
+import { UserPlus, Eye, Trash2, UserCheck, UserX } from 'lucide-react'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -18,7 +18,6 @@ import {
 import { UserFormModal, type UserFormData } from '@/components/users/UserFormModal'
 import { getUsers, createUser, deleteUser, resetPassword, type User, type UserProfile } from '@/services/usersService'
 import { PROFILE_LABELS } from '@/mocks/users'
-import { getCurrentUser } from '@/services/api/auth'
 import { cn } from '@/lib/utils'
 
 const PROFILE_COLORS: Record<UserProfile, string> = {
@@ -35,8 +34,6 @@ const fmtDate = (d: string) =>
 
 export default function Usuarios() {
   const navigate = useNavigate()
-  const currentUser = getCurrentUser()
-  const isAdmin = currentUser?.perfil_ativo === 'admin'
 
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)

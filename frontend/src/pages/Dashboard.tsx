@@ -202,7 +202,7 @@ interface FinCardProps {
     valueColor?: string
 }
 
-function FinCard({ label, value, loading, icon: Icon, iconBg, iconColor, trend, subtitle, valueColor }: FinCardProps) {
+function FinCard({ label, value, loading, icon: Icon, iconColor, trend, subtitle, valueColor }: FinCardProps) {
     return (
         <Card className="relative">
             <CardContent className="px-3 py-3 sm:px-4 sm:py-2">
@@ -235,41 +235,6 @@ function FinCard({ label, value, loading, icon: Icon, iconBg, iconColor, trend, 
 
             </CardContent>
         </Card>
-    )
-}
-
-// ─── MovRow ───────────────────────────────────────────────────────────────────
-
-function MovRow({ mov }: { mov: Movimentacao }) {
-    const isEntrada = mov.tipo === 'entrada'
-    const isCarteira = mov.tipo === 'carteira'
-    const isDebito = isCarteira && mov.carteira_debito
-    return (
-        <tr className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
-            <td className="px-4 py-3">
-                <span className={cn('inline-flex rounded-full px-2 py-0.5 text-xs font-medium mb-1',
-                    isEntrada ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                        : isCarteira ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400'
-                            : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
-                )}>
-                    {isEntrada ? 'Entrada' : isCarteira ? 'Carteira' : 'Saída'}
-                </span>
-                <p className="text-xs text-muted-foreground">{mov.pessoa}</p>
-            </td>
-            <td className="px-4 py-3 text-sm text-muted-foreground max-w-[200px]">
-                <p className="truncate">{mov.descricao}</p>
-            </td>
-            <td className="px-4 py-3 text-sm font-medium whitespace-nowrap">
-                <span className={isEntrada ? 'text-emerald-600 dark:text-emerald-400'
-                    : isCarteira ? 'text-teal-600 dark:text-teal-400'
-                        : 'text-rose-600 dark:text-rose-400'}>
-                    {isEntrada ? '+' : isDebito ? '−' : isCarteira ? '+' : '−'}{fmt(mov.valor)}
-                </span>
-            </td>
-            <td className="px-4 py-3 text-sm text-muted-foreground whitespace-nowrap">
-                {fmtDate(mov.data)}
-            </td>
-        </tr>
     )
 }
 
@@ -924,8 +889,8 @@ function GraficoHistoricoAnual() {
 
 function DashboardAdmin() {
     const [resumo, setResumo] = useState<ResumoFinanceiro | null>(null)
-    const [movs, setMovs] = useState<Movimentacao[]>([])
-    const [titulos, setTitulos] = useState<TituloVencer[]>([])
+    const [, setMovs] = useState<Movimentacao[]>([])
+    const [, setTitulos] = useState<TituloVencer[]>([])
     const [loading, setLoading] = useState(true)
     const [userModalOpen, setUserModalOpen] = useState(false)
     const [pagarModalOpen, setPagarModalOpen] = useState(false)
@@ -999,13 +964,6 @@ function DashboardAdmin() {
         if (l.label === 'Cadastrar usuário') return { ...l, onClick: () => setUserModalOpen(true) }
         return l
     })
-
-    const titulosGrouped = titulos.reduce<Record<string, TituloVencer[]>>((acc, t) => {
-        if (!acc[t.data]) acc[t.data] = []
-        acc[t.data].push(t)
-        return acc
-    }, {})
-    const titulosDates = Object.keys(titulosGrouped).sort()
 
     return (
         <div className="pt-2 space-y-6">

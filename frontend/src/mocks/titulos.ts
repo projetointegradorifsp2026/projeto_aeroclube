@@ -33,8 +33,10 @@ export interface TituloReceber {
   valor: number
   valor_pago: number
   multa: number
-  multa?: number
+  // Campos legados/opcionais ainda referenciados em telas e adapters
+  juros_aplicado?: number
   valor_carteira?: number
+  carteira_debito?: boolean
   data_emissao: string
   data_vencimento: string
   data_pagamento: string | null

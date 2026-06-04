@@ -28,9 +28,6 @@ import {
 import { ENTIDADE_TIPO_LABELS } from '@/mocks/entidades'
 import { cn } from '@/lib/utils'
 
-const inputCls =
-  'h-10 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
-
 const TIPO_COLORS: Record<'funcionario' | 'instrutor', string> = {
   funcionario: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   instrutor: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',

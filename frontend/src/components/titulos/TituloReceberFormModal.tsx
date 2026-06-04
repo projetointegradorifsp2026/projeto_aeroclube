@@ -146,7 +146,7 @@ export function TituloReceberFormModal({
       setForm(
         titulo
           ? {
-              usuario_id: titulo.usuario_id,
+              usuario_id: titulo.usuario_id ?? '',
               usuario_nome: titulo.usuario_nome,
               tipo: titulo.tipo,
               descricao: titulo.descricao,
