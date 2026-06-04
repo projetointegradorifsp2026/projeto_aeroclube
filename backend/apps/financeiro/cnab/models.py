@@ -37,19 +37,19 @@ class ConfiguracaoBancaria(models.Model):
     nome_banco = models.CharField("Nome do Banco", max_length=30, default="SICOOB")
 
     # Beneficiário (cedente)
-    nome_beneficiario = models.CharField("Nome/Razão Social do Beneficiário", max_length=120)
-    cpf_cnpj = models.CharField("CPF/CNPJ do Beneficiário", max_length=18)
+    nome_beneficiario = models.CharField("Nome/Razão Social do Beneficiário", max_length=120, blank=True, default="")
+    cpf_cnpj = models.CharField("CPF/CNPJ do Beneficiário", max_length=18, blank=True, default="")
 
     # Cooperativa / Agência
-    prefixo_cooperativa = models.CharField("Prefixo da Cooperativa (agência)", max_length=4)
+    prefixo_cooperativa = models.CharField("Prefixo da Cooperativa (agência)", max_length=4, blank=True, default="")
     dv_prefixo = models.CharField("DV do Prefixo", max_length=1, blank=True, default="")
 
     # Código do cliente/beneficiário no Sicoob
-    codigo_beneficiario = models.CharField("Código do Beneficiário", max_length=10)
+    codigo_beneficiario = models.CharField("Código do Beneficiário", max_length=10, blank=True, default="")
     dv_beneficiario = models.CharField("DV do Beneficiário", max_length=1, blank=True, default="")
 
     # Conta corrente
-    conta_corrente = models.CharField("Conta Corrente", max_length=12)
+    conta_corrente = models.CharField("Conta Corrente", max_length=12, blank=True, default="")
     dv_conta = models.CharField("DV da Conta", max_length=1, blank=True, default="")
 
     # Carteira / modalidade
