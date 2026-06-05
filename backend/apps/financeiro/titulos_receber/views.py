@@ -50,6 +50,8 @@ class TituloReceberViewSet(viewsets.ModelViewSet):
             juros=ser.validated_data.get("multa", Decimal("0")),
             data=ser.validated_data.get("data_pagamento"),
             valor_via_carteira=valor_via_carteira,
+            forma_pagamento=ser.validated_data.get("forma_pagamento"),
+            criado_por=request.user if request.user.is_authenticated else None,
         )
         return Response(TituloReceberSerializer(titulo).data)
 
@@ -65,6 +67,8 @@ class TituloReceberViewSet(viewsets.ModelViewSet):
         ids = ser.validated_data["titulo_ids"]
         valor_disponivel = Decimal(str(ser.validated_data["valor_total"]))
         data_pgto = ser.validated_data.get("data_pagamento") or timezone.now().date()
+        forma_pagamento = ser.validated_data.get("forma_pagamento")
+        criado_por = request.user if request.user.is_authenticated else None
 
         titulos = TituloReceber.objects.filter(
             id__in=ids, status=TituloReceber.STATUS_ABERTO
@@ -77,7 +81,10 @@ class TituloReceberViewSet(viewsets.ModelViewSet):
                     break
                 saldo = titulo.saldo_devedor
                 valor_aplicar = min(valor_disponivel, saldo)
-                titulo.aplicar_baixa_parcial(valor=valor_aplicar, data=data_pgto)
+                titulo.aplicar_baixa_parcial(
+                    valor=valor_aplicar, data=data_pgto,
+                    forma_pagamento=forma_pagamento, criado_por=criado_por,
+                )
                 valor_disponivel -= valor_aplicar
                 resultado.append(TituloReceberSerializer(titulo).data)
 

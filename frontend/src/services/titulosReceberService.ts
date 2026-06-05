@@ -1,5 +1,16 @@
 import { apiList, apiPost, apiDelete } from '@/services/api/client'
-import { type TituloReceber, type TituloReceberTipo, type TituloReceberStatus } from '@/mocks/titulos'
+import { type TituloReceber, type TituloReceberTipo, type TituloReceberStatus, type FormaPagamento, type BaixaTitulo } from '@/mocks/titulos'
+
+interface BackendBaixaTitulo {
+  id: number
+  data: string
+  valor: string
+  juros: string
+  valor_via_carteira: string
+  forma_pagamento: string
+  forma_pagamento_display: string
+  criado_por_nome: string | null
+}
 
 interface BackendTituloReceber {
   id: number
@@ -22,6 +33,7 @@ interface BackendTituloReceber {
   data_vencimento: string
   data_pagamento: string | null
   status: string
+  baixas?: BackendBaixaTitulo[]
 }
 
 const TIPO_BACKEND_TO_FRONTEND: Record<string, TituloReceberTipo> = {
@@ -72,6 +84,16 @@ function adaptTitulo(t: BackendTituloReceber): TituloReceber {
     data_vencimento: t.data_vencimento,
     data_pagamento: t.data_pagamento,
     status,
+    baixas: (t.baixas ?? []).map(b => ({
+      id: String(b.id),
+      data: b.data,
+      valor: parseFloat(b.valor),
+      juros: parseFloat(b.juros),
+      valor_via_carteira: parseFloat(b.valor_via_carteira),
+      forma_pagamento: b.forma_pagamento as FormaPagamento,
+      forma_pagamento_display: b.forma_pagamento_display,
+      criado_por_nome: b.criado_por_nome,
+    })) as BaixaTitulo[],
   }
 }
 
@@ -135,6 +157,7 @@ export async function baixarTituloReceber(
   dataPagamento: string,
   multa = 0,
   valorCarteira = 0,
+  formaPagamento: FormaPagamento = 'dinheiro',
 ): Promise<TituloReceber> {
   const updated = await apiPost<BackendTituloReceber>(
     `/api/v1/titulos-receber/${id}/baixa-parcial/`,
@@ -143,9 +166,10 @@ export async function baixarTituloReceber(
       multa: multa.toFixed(2),
       data_pagamento: dataPagamento,
       valor_via_carteira: valorCarteira.toFixed(2),
+      forma_pagamento: formaPagamento,
     },
   )
   return adaptTitulo(updated)
 }
 
-export type { TituloReceber, TituloReceberTipo, TituloReceberStatus }
+export type { TituloReceber, TituloReceberTipo, TituloReceberStatus, FormaPagamento, BaixaTitulo }

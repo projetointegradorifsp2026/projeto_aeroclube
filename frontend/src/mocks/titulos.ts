@@ -21,6 +21,32 @@ export interface TituloPagar {
 export type TituloReceberTipo = 'mensalidade' | 'pontual' | 'servico' | 'voo' | 'carteira'
 export type TituloReceberStatus = 'em_aberto' | 'pago_parcial' | 'baixado'
 
+export type FormaPagamento = 'dinheiro' | 'pix' | 'cartao' | 'boleto' | 'cnab' | 'carteira' | 'outros'
+
+export const FORMA_PAGAMENTO_LABELS: Record<FormaPagamento, string> = {
+  dinheiro: 'Dinheiro',
+  pix: 'PIX',
+  cartao: 'Cartão',
+  boleto: 'Boleto',
+  cnab: 'CNAB / Cobrança',
+  carteira: 'Carteira',
+  outros: 'Outros',
+}
+
+/** Formas selecionáveis no modal de baixa (carteira é definida automaticamente). */
+export const FORMAS_PAGAMENTO_MANUAIS: FormaPagamento[] = ['dinheiro', 'pix', 'cartao', 'boleto', 'cnab', 'outros']
+
+export interface BaixaTitulo {
+  id: string
+  data: string
+  valor: number
+  juros: number
+  valor_via_carteira: number
+  forma_pagamento: FormaPagamento
+  forma_pagamento_display: string
+  criado_por_nome: string | null
+}
+
 export interface TituloReceber {
   id: string
   usuario_id?: string
@@ -41,6 +67,7 @@ export interface TituloReceber {
   data_vencimento: string
   data_pagamento: string | null
   status: TituloReceberStatus
+  baixas?: BaixaTitulo[]
 }
 
 export const TITULO_PAGAR_TIPO_LABELS: Record<TituloPagarTipo, string> = {
