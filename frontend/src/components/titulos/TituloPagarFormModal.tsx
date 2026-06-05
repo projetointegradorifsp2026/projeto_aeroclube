@@ -17,8 +17,9 @@ import {
   TITULO_PAGAR_TIPO_LABELS,
   ALL_TITULO_PAGAR_TIPOS,
 } from '@/mocks/titulos'
-import { mockEntidades } from '@/mocks/entidades'
-import { mockContasFixas } from '@/mocks/contaFixa'
+import { getContasFixas, type ContaFixa } from '@/services/contaFixaService'
+import { getEntidades, type Entidade } from '@/services/entidadesService'
+import { getUsers, type User, type UserProfile } from '@/services/usersService'
 import { cn } from '@/lib/utils'
 
 export interface TituloPagarFormData {
@@ -43,10 +44,6 @@ interface TituloPagarFormModalProps {
 }
 
 const todayStr = () => new Date().toISOString().split('T')[0]
-
-const fornecedores = mockEntidades.filter(e => e.tipo === 'fornecedor' && e.is_active)
-const funcionarios = mockEntidades.filter(e => e.tipo === 'funcionario' && e.is_active)
-const contasFixas = mockContasFixas.filter(cf => cf.is_active)
 
 function addMonths(dateStr: string, months: number): string {
   const d = new Date(dateStr + 'T00:00:00')
@@ -112,7 +109,27 @@ export function TituloPagarFormModal({
   const [errors, setErrors] = useState<FormErrors>({})
   const [saving, setSaving] = useState(false)
   const [selectedContaFixaId, setSelectedContaFixaId] = useState('')
+  const [fornecedores, setFornecedores] = useState<Entidade[]>([])
+  const [instrutores, setInstrutores] = useState<User[]>([])
+  const [contasFixas, setContasFixas] = useState<ContaFixa[]>([])
   const isEdit = !!titulo
+
+  useEffect(() => {
+    if (open) {
+      Promise.all([
+        getEntidades('fornecedor'),
+        getUsers(),
+        getContasFixas(),
+      ]).then(([f, us, cfs]) => {
+        setFornecedores(f.filter(e => e.is_active))
+        setInstrutores(us.filter(u =>
+          u.is_active &&
+          (u.perfis.includes('instrutor' as UserProfile) || u.perfis.includes('funcionario' as UserProfile)),
+        ))
+        setContasFixas(cfs.filter(cf => cf.is_active))
+      }).catch(() => {})
+    }
+  }, [open])
 
   const isTituloAtrasado =
     titulo?.status === 'em_aberto' &&
@@ -159,7 +176,7 @@ export function TituloPagarFormModal({
     if (cf) {
       setForm(p => ({
         ...p,
-        favorecido: cf.favorecido,
+        favorecido: cfId,
         valor: cf.valor,
         parcela_valores: distributeValor(cf.valor, p.total_parcelas),
       }))
@@ -237,6 +254,7 @@ export function TituloPagarFormModal({
   function validate(): boolean {
     const e: FormErrors = {}
     if (!form.favorecido.trim()) e.favorecido = 'Favorecido é obrigatório'
+    if (!form.descricao.trim()) e.descricao = 'Descrição é obrigatória'
     if (!form.valor || form.valor <= 0) e.valor = 'Valor deve ser maior que zero'
     if (!form.data_emissao) e.data_emissao = 'Data de emissão é obrigatória'
     if (form.parcela_vencimentos.some(d => !d))
@@ -264,7 +282,7 @@ export function TituloPagarFormModal({
     if (form.tipo === 'fornecedor') {
       return (
         <SearchSelect
-          options={fornecedores.map(f => ({ value: f.nome, label: f.nome }))}
+          options={fornecedores.map(f => ({ value: f.id, label: f.nome }))}
           value={form.favorecido}
           onChange={v => setForm(p => ({ ...p, favorecido: v }))}
           placeholder="Selecione o fornecedor"
@@ -275,10 +293,10 @@ export function TituloPagarFormModal({
     if (form.tipo === 'folha') {
       return (
         <SearchSelect
-          options={funcionarios.map(f => ({ value: f.nome, label: f.nome }))}
+          options={instrutores.map(u => ({ value: u.id, label: u.nome }))}
           value={form.favorecido}
           onChange={v => setForm(p => ({ ...p, favorecido: v }))}
-          placeholder="Selecione o funcionário"
+          placeholder="Selecione o instrutor/funcionário"
           hasError={!!errors.favorecido}
         />
       )

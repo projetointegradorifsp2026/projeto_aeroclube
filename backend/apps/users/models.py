@@ -51,13 +51,15 @@ class Usuario(AbstractUser):
     PERFIL_INSTRUTOR = "instrutor"
     PERFIL_EXTERNO = "externo"
     PERFIL_ADMIN = "admin"
+    PERFIL_FUNCIONARIO = "funcionario"
 
     PERFIL_CHOICES = [
         (PERFIL_ALUNO, "Aluno"),
         (PERFIL_SOCIO, "Sócio"),
         (PERFIL_INSTRUTOR, "Instrutor"),
-        (PERFIL_EXTERNO, "Cliente Externo"),
+        (PERFIL_EXTERNO, "Aluno Externo"),
         (PERFIL_ADMIN, "Administrador"),
+        (PERFIL_FUNCIONARIO, "Funcionário"),
     ]
 
     # Campos personalizados

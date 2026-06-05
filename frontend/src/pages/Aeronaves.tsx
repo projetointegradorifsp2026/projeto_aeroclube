@@ -144,9 +144,11 @@ function PlanadorTable({
           <thead>
             <tr className="border-b bg-muted/30">
               <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Prefixo</th>
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Valor Fixo</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Fixo Solo</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Fixo Duplo</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Tempo Limite</th>
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Adicional/min</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Adicional/min Solo</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Adicional/min Duplo</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Status</th>
               <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Ações</th>
             </tr>
@@ -161,8 +163,10 @@ function PlanadorTable({
                   </div>
                 </td>
                 <td className="px-4 py-3 font-medium">{fmt(a.valor_fixo_inicial)}</td>
+                <td className="px-4 py-3 font-medium">{a.valor_fixo_duplo != null ? fmt(a.valor_fixo_duplo) : '—'}</td>
                 <td className="px-4 py-3 text-muted-foreground">{a.tempo_limite} min</td>
                 <td className="px-4 py-3 font-medium">{fmt(a.valor_por_minuto)}</td>
+                <td className="px-4 py-3 font-medium">{a.valor_minuto_duplo != null ? fmt(a.valor_minuto_duplo) : '—'}</td>
                 <td className="px-4 py-3">
                   {a.is_active ? (
                     <Badge variant="success">Ativa</Badge>

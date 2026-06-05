@@ -12,7 +12,6 @@ from django.core.exceptions import ValidationError
 
 from apps.users.models import Usuario
 from apps.aeronaves.models import Aeronave
-from apps.pessoas.models import Funcionario
 
 
 def calcular_tempo_decimal(duracao_minutos: int) -> Decimal:
@@ -69,13 +68,12 @@ class Voo(models.Model):
     )
     # Instrutor (obrigatório para tipos duplo comando)
     instrutor = models.ForeignKey(
-        Funcionario,
+        Usuario,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="voos_instrutor",
+        related_name="voos_como_instrutor",
         verbose_name="Instrutor",
-        limit_choices_to={"is_instrutor": True},
     )
     aeronave = models.ForeignKey(
         Aeronave,
@@ -115,6 +113,15 @@ class Voo(models.Model):
     valor_total = models.DecimalField(
         "Valor total do voo (R$)",
         max_digits=10,
+        decimal_places=2,
+        editable=False,
+        default=0,
+    )
+
+    # Repasse ao instrutor (10% do valor do voo para planador com instrutor)
+    valor_repasse_instrutor = models.DecimalField(
+        "Repasse ao instrutor (R$)",
+        max_digits=8,
         decimal_places=2,
         editable=False,
         default=0,
@@ -189,6 +196,11 @@ class Voo(models.Model):
             excedente = max(0, duracao_minutos - planador.minutos_franquia)
             self.valor_tarifa_snapshot = planador.valor_fixo_inicial
             self.valor_total = round(valor, 2)
+            # Instrutor recebe 10% adicionais sobre o valor do voo (planador com instrutor)
+            if self.tipo_voo in self.TIPOS_COM_INSTRUTOR and self.instrutor_id:
+                self.valor_repasse_instrutor = round(self.valor_total * Decimal("0.10"), 2)
+            else:
+                self.valor_repasse_instrutor = Decimal("0.00")
             self.detalhe_cobranca = {
                 "tipo_aeronave": "planador",
                 "duracao_minutos": duracao_minutos,
@@ -197,6 +209,7 @@ class Voo(models.Model):
                 "valor_fixo_inicial": str(planador.valor_fixo_inicial),
                 "valor_minuto_adicional": str(planador.valor_minuto_adicional),
                 "valor_total": str(self.valor_total),
+                "valor_repasse_instrutor": str(self.valor_repasse_instrutor),
             }
         except Exception:
             pass

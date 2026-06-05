@@ -29,6 +29,7 @@ class VooSerializer(serializers.ModelSerializer):
             "destino",
             "valor_tarifa_snapshot",
             "valor_total",
+            "valor_repasse_instrutor",
             "detalhe_cobranca",
             "created_at",
         ]
@@ -37,12 +38,15 @@ class VooSerializer(serializers.ModelSerializer):
             "tempo_decimal",
             "valor_tarifa_snapshot",
             "valor_total",
+            "valor_repasse_instrutor",
             "detalhe_cobranca",
             "created_at",
         ]
 
     def get_instrutor_nome(self, obj):
-        return obj.instrutor.nome if obj.instrutor else None
+        if obj.instrutor:
+            return obj.instrutor.nome
+        return None
 
     def validate(self, data):
         tipo_voo = data.get("tipo_voo")

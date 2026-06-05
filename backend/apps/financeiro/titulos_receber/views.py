@@ -39,10 +39,23 @@ class TituloReceberViewSet(viewsets.ModelViewSet):
             return Response({"detail": "Título já está baixado."}, status=status.HTTP_400_BAD_REQUEST)
         ser = BaixaParcialSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
+        valor_via_carteira = ser.validated_data.get("valor_via_carteira", Decimal("0"))
+        if valor_via_carteira > 0:
+            from apps.pessoas.models import EntidadePagar
+            is_cliente = (
+                titulo.cliente_externo_id and
+                titulo.cliente_externo.tipo == EntidadePagar.TIPO_CLIENTE
+            )
+            if is_cliente:
+                return Response(
+                    {"detail": "Pagamento via carteira não é permitido para clientes."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
         titulo.aplicar_baixa_parcial(
             valor=ser.validated_data["valor"],
-            juros=ser.validated_data.get("juros", Decimal("0")),
+            juros=ser.validated_data.get("multa", Decimal("0")),
             data=ser.validated_data.get("data_pagamento"),
+            valor_via_carteira=valor_via_carteira,
         )
         return Response(TituloReceberSerializer(titulo).data)
 

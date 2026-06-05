@@ -1,19 +1,21 @@
-export type UserProfile = 'administrador' | 'aluno' | 'socio' | 'cliente_externo' | 'colaborador'
+export type UserProfile = 'admin' | 'aluno' | 'socio' | 'externo' | 'instrutor' | 'funcionario'
 
 export const PROFILE_LABELS: Record<UserProfile, string> = {
-  administrador: 'Administrador',
+  admin: 'Administrador',
   aluno: 'Aluno',
   socio: 'Sócio',
-  cliente_externo: 'Cliente Externo',
-  colaborador: 'Colaborador',
+  externo: 'Aluno Externo',
+  instrutor: 'Instrutor',
+  funcionario: 'Funcionário',
 }
 
 export const ALL_PROFILES: UserProfile[] = [
-  'administrador',
+  'admin',
   'aluno',
   'socio',
-  'cliente_externo',
-  'colaborador',
+  'externo',
+  'instrutor',
+  'funcionario',
 ]
 
 export interface User {
@@ -36,8 +38,8 @@ export const mockUsers: User[] = [
     cpf: '123.456.789-00',
     is_active: true,
     created_at: '2024-01-15',
-    perfis: ['administrador'],
-    perfil_ativo: 'administrador',
+    perfis: ['admin'],
+    perfil_ativo: 'admin',
     saldo_carteira: 0,
   },
   {
@@ -80,8 +82,8 @@ export const mockUsers: User[] = [
     cpf: '789.123.456-44',
     is_active: true,
     created_at: '2024-04-05',
-    perfis: ['colaborador'],
-    perfil_ativo: 'colaborador',
+    perfis: ['admin'],
+    perfil_ativo: 'admin',
     saldo_carteira: 0,
   },
   {
@@ -102,8 +104,8 @@ export const mockUsers: User[] = [
     cpf: '112.233.445-66',
     is_active: true,
     created_at: '2024-06-18',
-    perfis: ['cliente_externo'],
-    perfil_ativo: 'cliente_externo',
+    perfis: ['externo'],
+    perfil_ativo: 'externo',
     saldo_carteira: 0,
   },
   {
@@ -124,8 +126,8 @@ export const mockUsers: User[] = [
     cpf: '445.566.778-88',
     is_active: true,
     created_at: '2024-07-22',
-    perfis: ['administrador', 'colaborador'],
-    perfil_ativo: 'administrador',
+    perfis: ['admin'],
+    perfil_ativo: 'admin',
     saldo_carteira: 0,
   },
   {
@@ -168,8 +170,8 @@ export const mockUsers: User[] = [
     cpf: '883.994.005-32',
     is_active: true,
     created_at: '2024-11-20',
-    perfis: ['cliente_externo'],
-    perfil_ativo: 'cliente_externo',
+    perfis: ['externo'],
+    perfil_ativo: 'externo',
     saldo_carteira: 0,
   },
   {

@@ -31,14 +31,31 @@ class UsuarioSerializer(serializers.ModelSerializer):
 
 
 class UsuarioCreateSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, min_length=8)
+    """
+    Cria usuário sem campo de senha — a senha é gerada automaticamente:
+    'aero' + 5 primeiros dígitos do CPF (ex: CPF 12345678900 → aero12345).
+    """
 
     class Meta:
         model = Usuario
-        fields = ["nome", "cpf_cnpj", "email", "perfil_ativo", "password"]
+        fields = ["nome", "cpf_cnpj", "email", "perfil_ativo"]
+        extra_kwargs = {
+            "perfil_ativo": {"required": False, "default": "aluno"},
+            "cpf_cnpj": {"required": True, "allow_null": False, "allow_blank": False},
+        }
+
+    def validate_cpf_cnpj(self, value):
+        digits = "".join(filter(str.isdigit, value or ""))
+        if len(digits) < 5:
+            raise serializers.ValidationError(
+                "CPF deve ter ao menos 5 dígitos para gerar a senha inicial."
+            )
+        return value
 
     def create(self, validated_data):
-        password = validated_data.pop("password")
+        cpf = validated_data.get("cpf_cnpj", "")
+        digits = "".join(filter(str.isdigit, cpf))
+        password = f"aero{digits[:5]}"
         user = Usuario(**validated_data)
         user.set_password(password)
         user.save()

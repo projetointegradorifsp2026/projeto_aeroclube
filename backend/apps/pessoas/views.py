@@ -12,10 +12,19 @@ from .serializers import (
 
 
 class EntidadePagarViewSet(viewsets.ModelViewSet):
-    """GET /api/v1/entidades/ — lista todas as entidades (fornecedores, funcionários, instrutores)."""
-    queryset = EntidadePagar.objects.filter(is_active=True).order_by("nome")
+    """GET /api/v1/entidades/?tipo=cliente|fornecedor|funcionario|instrutor"""
+    queryset = EntidadePagar.objects.all().order_by("nome")
     serializer_class = EntidadePagarSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = EntidadePagar.objects.all().order_by("nome")
+        if self.action == 'list':
+            qs = qs.filter(is_active=True)
+        tipo = self.request.query_params.get("tipo")
+        if tipo:
+            qs = qs.filter(tipo=tipo)
+        return qs
 
     def destroy(self, request, *args, **kwargs):
         obj = self.get_object()
@@ -26,20 +35,40 @@ class EntidadePagarViewSet(viewsets.ModelViewSet):
 
 class FornecedorViewSet(viewsets.ModelViewSet):
     """GET /api/v1/fornecedores/"""
-    queryset = Fornecedor.objects.filter(is_active=True).order_by("nome")
+    queryset = Fornecedor.objects.all().order_by("nome")
     serializer_class = FornecedorSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = Fornecedor.objects.all().order_by("nome")
+        if self.action == 'list':
+            qs = qs.filter(is_active=True)
+        return qs
+
+    def destroy(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.is_active = False
+        obj.save()
+        return Response({"detail": "Fornecedor desativado."}, status=status.HTTP_200_OK)
 
 
 class FuncionarioViewSet(viewsets.ModelViewSet):
     """GET /api/v1/funcionarios/  (inclui instrutores)"""
-    queryset = Funcionario.objects.filter(is_active=True).order_by("nome")
+    queryset = Funcionario.objects.all().order_by("nome")
     serializer_class = FuncionarioSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = Funcionario.objects.all().order_by("nome")
+        if self.action == 'list':
+            qs = qs.filter(is_active=True)
         is_instrutor = self.request.query_params.get("instrutor")
         if is_instrutor is not None:
             qs = qs.filter(is_instrutor=is_instrutor.lower() == "true")
         return qs
+
+    def destroy(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.is_active = False
+        obj.save()
+        return Response({"detail": "Funcionário desativado."}, status=status.HTTP_200_OK)

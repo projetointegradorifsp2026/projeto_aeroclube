@@ -30,6 +30,7 @@ import {
 } from '@/services/titulosReceberService'
 import { getUsers, debitarCarteira } from '@/services/usersService'
 import { TITULO_RECEBER_TIPO_LABELS, type TituloReceberTipo } from '@/mocks/titulos'
+import { getCurrentUser } from '@/services/api/auth'
 import { cn } from '@/lib/utils'
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -68,9 +69,11 @@ interface TableProps {
   onBaixa: (t: TituloReceber) => void
   onView: (t: TituloReceber) => void
   emptyMessage: string
+  hideDevedor?: boolean
+  labelPago?: string
 }
 
-function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessage }: TableProps) {
+function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessage, hideDevedor, labelPago }: TableProps) {
   const [page, setPage] = useState(1)
   useEffect(() => { setPage(1) }, [items])
   const PAGE_SIZE = 10
@@ -92,9 +95,11 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessa
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/30">
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
-                Devedor
-              </th>
+              {!hideDevedor && (
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
+                  Devedor
+                </th>
+              )}
               <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">
                 Tipo
               </th>
@@ -123,9 +128,11 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessa
           <tbody className="divide-y divide-border">
             {paginated.map(t => (
             <tr key={t.id} className="hover:bg-muted/20 transition-colors">
-              <td className="px-4 py-3">
-                <p className="font-medium">{t.usuario_nome}</p>
-              </td>
+              {!hideDevedor && (
+                <td className="px-4 py-3">
+                  <p className="font-medium">{t.usuario_nome}</p>
+                </td>
+              )}
               <td className="px-4 py-3 hidden sm:table-cell">
                 <TipoBadge tipo={t.tipo} />
               </td>
@@ -139,7 +146,7 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessa
                 {t.status === 'baixado' && t.data_pagamento ? (
                   <div>
                     <p className="text-muted-foreground">{fmtDate(t.data_vencimento)}</p>
-                    <p className="text-xs text-emerald-600">Recebido em {fmtDate(t.data_pagamento)}</p>
+                    <p className="text-xs text-emerald-600">{labelPago ?? 'Recebido em'} {fmtDate(t.data_pagamento)}</p>
                   </div>
                 ) : (
                   <p className={cn('text-muted-foreground', isAtrasado(t) && 'text-rose-500 font-medium')}>
@@ -177,7 +184,7 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessa
                   >
                     <Eye className="h-3.5 w-3.5" />
                   </Button>
-                  {showBaixa && t.tipo !== 'carteira' && (
+                  {showBaixa && (
                     <Button size="sm" onClick={() => onBaixa(t)}>
                       Dar baixa
                       <CircleDollarSign className="h-3.5 w-3.5" />
@@ -198,6 +205,9 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessa
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function TitulosReceber() {
+  const currentUser = getCurrentUser()
+  const isAdmin = currentUser?.perfil_ativo === 'admin'
+
   const [titulos, setTitulos] = useState<TituloReceber[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -221,7 +231,10 @@ export default function TitulosReceber() {
 
   useEffect(() => {
     getTitulosReceber().then(data => {
-      setTitulos(data)
+      const filtered = isAdmin
+        ? data
+        : data.filter(t => t.usuario_id === String(currentUser?.id))
+      setTitulos(filtered)
       setLoading(false)
     })
   }, [])
@@ -237,7 +250,7 @@ export default function TitulosReceber() {
         const matchTipo = tipoFilter === 'all' || t.tipo === tipoFilter
         return matchSearch && matchTipo
       })
-      .sort((a, b) => b.data_vencimento.localeCompare(a.data_vencimento))
+      .sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento))
   }, [titulos, search, tipoFilter])
 
   const emAbertoList = filtered.filter(
@@ -264,7 +277,9 @@ export default function TitulosReceber() {
       const created = await Promise.all(
         data.parcela_vencimentos.map((venc, i) =>
           createTituloReceber({
+            usuario_id: data.usuario_id,
             usuario_nome: data.usuario_nome,
+            cliente_externo_id: data.cliente_externo_id,
             tipo: data.tipo,
             descricao: data.descricao,
             num_parcela: i + 1,
@@ -318,7 +333,8 @@ export default function TitulosReceber() {
     setBaixaUsarCarteira(false)
     setBaixaCarteiraValor('')
     setBaixaUserSaldo(null)
-    if (t.usuario_id) {
+    // Bug 3: só busca saldo de carteira para participantes (não para clientes externos)
+    if (t.usuario_id && !t.is_cliente_externo) {
       getUsers().then(users => {
         const user = users.find(u => u.id === t.usuario_id)
         setBaixaUserSaldo(user?.saldo_carteira ?? 0)
@@ -351,29 +367,13 @@ export default function TitulosReceber() {
     const multa = parseFloat(baixaMulta) || 0
     const carteiraAmount = baixaUsarCarteira ? (parseFloat(baixaCarteiraValor) || 0) : 0
 
+    // Bug 5: debita a carteira diretamente (a MovimentacaoCarteira já registra o evento)
+    // Não cria mais TituloReceber fantasma de tipo 'carteira'
     if (carteiraAmount > 0 && baixaTarget.usuario_id) {
-      await Promise.all([
-        debitarCarteira(baixaTarget.usuario_id, carteiraAmount),
-        createTituloReceber({
-          usuario_id: baixaTarget.usuario_id,
-          usuario_nome: baixaTarget.usuario_nome,
-          tipo: 'carteira',
-          descricao: `Débito carteira – ${baixaTarget.descricao}`,
-          num_parcela: 1,
-          total_parcelas: 1,
-          valor: carteiraAmount,
-          valor_pago: carteiraAmount,
-          juros_aplicado: 0,
-          data_emissao: baixaData,
-          data_vencimento: baixaData,
-          data_pagamento: baixaData,
-          status: 'baixado',
-          carteira_debito: true,
-        }),
-      ])
+      await debitarCarteira(baixaTarget.usuario_id, carteiraAmount)
     }
 
-    const totalPayment = (parseFloat(baixaValor) || 0) + carteiraAmount
+    const totalPayment = (parseFloat(baixaValor) || 0) + multa + carteiraAmount
     const updated = await baixarTituloReceber(
       baixaTarget.id,
       totalPayment,
@@ -394,22 +394,22 @@ export default function TitulosReceber() {
     <div className="pt-2 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Títulos a Receber</h1>
+        <h1 className="text-2xl font-bold text-foreground">
+          {isAdmin ? 'Títulos a Receber' : 'Minhas Faturas'}
+        </h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Gerencie os títulos a receber do aeroclube
+          {isAdmin ? 'Gerencie os títulos a receber do aeroclube' : 'Acompanhe seus pagamentos ao aeroclube'}
         </p>
       </div>
 
       {/* Filters */}
       <div className="flex items-center gap-3">
         <FilterInput
-          size="sm"
           value={search}
           onChange={setSearch}
-          placeholder="Buscar por devedor ou descrição..."
+          placeholder={isAdmin ? 'Buscar por devedor ou descrição...' : 'Buscar por descrição...'}
         />
         <FilterSelect
-          size="sm"
           value={tipoFilter}
           onChange={v => setTipoFilter(v as TipoFilter)}
         >
@@ -420,10 +420,12 @@ export default function TitulosReceber() {
           <option value="voo">Voo</option>
           <option value="carteira">Carteira</option>
         </FilterSelect>
-        <Button onClick={openCreate} className="ml-auto shrink-0">
-          <Plus className="h-4 w-4" />
-          Novo Título
-        </Button>
+        {isAdmin && (
+          <Button onClick={openCreate} className="ml-auto shrink-0">
+            <Plus className="h-4 w-4" />
+            Novo Título
+          </Button>
+        )}
       </div>
 
       {/* Tabs + Tables */}
@@ -456,7 +458,7 @@ export default function TitulosReceber() {
               )}
             </TabsTrigger>
             <TabsTrigger value="baixado">
-              Baixados
+              {isAdmin ? 'Baixados' : 'Quitados'}
               {baixadoList.length > 0 && (
                 <span className="ml-1.5 rounded-full bg-emerald-100 text-emerald-700 px-1.5 py-0.5 text-xs font-medium">
                   {baixadoList.length}
@@ -475,11 +477,13 @@ export default function TitulosReceber() {
               <CardContent className="p-0">
                 <TitulosTable
                   items={emAbertoList}
-                  showBaixa
+                  showBaixa={isAdmin}
                   showMulta={false}
                   onBaixa={openBaixa}
                   onView={openView}
                   emptyMessage="Nenhum título em aberto"
+                  hideDevedor={!isAdmin}
+                  labelPago={isAdmin ? 'Recebido em' : 'Pago em'}
                 />
               </CardContent>
             </Card>
@@ -495,11 +499,13 @@ export default function TitulosReceber() {
               <CardContent className="p-0">
                 <TitulosTable
                   items={emAtrasoList}
-                  showBaixa
+                  showBaixa={isAdmin}
                   showMulta
                   onBaixa={openBaixa}
                   onView={openView}
                   emptyMessage="Nenhum título em atraso"
+                  hideDevedor={!isAdmin}
+                  labelPago={isAdmin ? 'Recebido em' : 'Pago em'}
                 />
               </CardContent>
             </Card>
@@ -520,6 +526,8 @@ export default function TitulosReceber() {
                   onBaixa={openBaixa}
                   onView={openView}
                   emptyMessage="Nenhum título baixado"
+                  hideDevedor={!isAdmin}
+                  labelPago={isAdmin ? 'Recebido em' : 'Pago em'}
                 />
               </CardContent>
             </Card>
@@ -545,6 +553,7 @@ export default function TitulosReceber() {
         onEdit={handleViewEdit}
         onBaixa={handleViewBaixa}
         onDeleteRequest={handleViewDeleteRequest}
+        canEdit={isAdmin}
       />
 
       {/* Baixa Dialog */}
@@ -678,7 +687,16 @@ export default function TitulosReceber() {
                       step={0.01}
                       className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow"
                       value={baixaMulta}
-                      onChange={e => setBaixaMulta(e.target.value)}
+                      onChange={e => {
+                        const novaMulta = parseFloat(e.target.value) || 0
+                        setBaixaMulta(e.target.value)
+                        // Bug 2: recalcula o valor em dinheiro para cobrir original + nova multa
+                        if (baixaTarget) {
+                          const novoRestante = baixaTarget.valor + novaMulta - baixaTarget.valor_pago
+                          const carteiraAtual = baixaUsarCarteira ? (parseFloat(baixaCarteiraValor) || 0) : 0
+                          setBaixaValor(Math.max(0, novoRestante - carteiraAtual).toFixed(2))
+                        }
+                      }}
                     />
                   </div>
                 )}

@@ -1,7 +1,7 @@
-﻿import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TablePagination } from '@/components/ui/pagination'
-import { UserPlus, Eye, Trash2, UserCheck, UserX } from 'lucide-react'
+import { UserPlus, Eye, Trash2, UserCheck, UserX, KeyRound } from 'lucide-react'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -16,16 +16,18 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { UserFormModal, type UserFormData } from '@/components/users/UserFormModal'
-import { getUsers, createUser, deleteUser, type User, type UserProfile } from '@/services/usersService'
+import { getUsers, createUser, deleteUser, resetPassword, type User, type UserProfile } from '@/services/usersService'
 import { PROFILE_LABELS } from '@/mocks/users'
+import { getCurrentUser } from '@/services/api/auth'
 import { cn } from '@/lib/utils'
 
 const PROFILE_COLORS: Record<UserProfile, string> = {
-  administrador: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+  admin: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
   aluno: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   socio: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
-  cliente_externo: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  colaborador: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  externo: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+  instrutor: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  funcionario: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',
 }
 
 const fmtDate = (d: string) =>
@@ -33,6 +35,9 @@ const fmtDate = (d: string) =>
 
 export default function Usuarios() {
   const navigate = useNavigate()
+  const currentUser = getCurrentUser()
+  const isAdmin = currentUser?.perfil_ativo === 'admin'
+
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -42,6 +47,11 @@ export default function Usuarios() {
   const [modalOpen, setModalOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null)
   const [deleting, setDeleting] = useState(false)
+
+  const [resetTarget, setResetTarget] = useState<User | null>(null)
+  const [resetting, setResetting] = useState(false)
+  const [resetSuccess, setResetSuccess] = useState(false)
+
   const [page, setPage] = useState(1)
 
   useEffect(() => { setPage(1) }, [search, profileFilter, statusFilter])
@@ -88,8 +98,20 @@ export default function Usuarios() {
     setDeleting(false)
   }
 
-  function openCreate() {
-    setModalOpen(true)
+  async function handleResetPassword() {
+    if (!resetTarget) return
+    setResetting(true)
+    try {
+      await resetPassword(resetTarget.id)
+      setResetSuccess(true)
+    } finally {
+      setResetting(false)
+    }
+  }
+
+  function closeResetDialog() {
+    setResetTarget(null)
+    setResetSuccess(false)
   }
 
   return (
@@ -112,11 +134,12 @@ export default function Usuarios() {
           onChange={v => setProfileFilter(v as UserProfile | 'all')}
         >
           <option value="all">Todos os perfis</option>
-          <option value="administrador">Administrador</option>
+          <option value="admin">Administrador</option>
           <option value="aluno">Aluno</option>
           <option value="socio">Sócio</option>
-          <option value="cliente_externo">Cliente Externo</option>
-          <option value="colaborador">Colaborador</option>
+          <option value="externo">Aluno Externo</option>
+          <option value="instrutor">Instrutor</option>
+          <option value="funcionario">Funcionário</option>
         </FilterSelect>
         <FilterSelect
           value={statusFilter}
@@ -126,7 +149,7 @@ export default function Usuarios() {
           <option value="active">Ativos</option>
           <option value="inactive">Inativos</option>
         </FilterSelect>
-        <Button onClick={openCreate} className="ml-auto shrink-0">
+        <Button onClick={() => setModalOpen(true)} className="ml-auto shrink-0">
           <UserPlus className="h-4 w-4" />
           Novo Usuário
         </Button>
@@ -201,9 +224,7 @@ export default function Usuarios() {
                                 PROFILE_COLORS[p],
                                 user.perfil_ativo === p && 'ring-1 ring-current ring-offset-1',
                               )}
-                              title={
-                                user.perfil_ativo === p ? 'Perfil ativo' : undefined
-                              }
+                              title={user.perfil_ativo === p ? 'Perfil ativo' : undefined}
                             >
                               {PROFILE_LABELS[p]}
                             </span>
@@ -272,8 +293,8 @@ export default function Usuarios() {
             <DialogTitle>Confirmar exclusão</DialogTitle>
             <DialogDescription>
               Tem certeza que deseja excluir o usuário{' '}
-              <strong className="text-foreground">{deleteTarget?.nome}</strong>? Esta ação não pode
-              ser desfeita.
+              <strong className="text-foreground">{deleteTarget?.nome}</strong>? O usuário será
+              desativado e não poderá mais acessar o sistema.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -291,6 +312,41 @@ export default function Usuarios() {
             >
               {deleting ? 'Excluindo...' : 'Excluir'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reset Password Dialog */}
+      <Dialog open={!!resetTarget} onOpenChange={o => !o && closeResetDialog()}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Resetar Senha</DialogTitle>
+            <DialogDescription>
+              {resetSuccess
+                ? `Senha de ${resetTarget?.nome} foi resetada com sucesso. A nova senha é: aero + 5 primeiros dígitos do CPF.`
+                : `A senha de ${resetTarget?.nome} será resetada para: aero + 5 primeiros dígitos do CPF. O usuário deverá trocar a senha no próximo acesso.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            {resetSuccess ? (
+              <Button onClick={closeResetDialog}>Fechar</Button>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  onClick={closeResetDialog}
+                  disabled={resetting}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleResetPassword}
+                  disabled={resetting}
+                >
+                  {resetting ? 'Resetando...' : 'Resetar Senha'}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

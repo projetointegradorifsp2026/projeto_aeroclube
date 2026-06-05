@@ -29,6 +29,7 @@ import {
   type TituloPagar,
 } from '@/services/titulosPagarService'
 import { TITULO_PAGAR_TIPO_LABELS, type TituloPagarTipo } from '@/mocks/titulos'
+import { getCurrentUser } from '@/services/api/auth'
 import { cn } from '@/lib/utils'
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -44,6 +45,7 @@ const TIPO_COLORS: Record<TituloPagarTipo, string> = {
   folha: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   conta_fixa: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   outros: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  instrutor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
 }
 
 function TipoBadge({ tipo }: { tipo: TituloPagarTipo }) {
@@ -66,9 +68,10 @@ interface TableProps {
   onBaixa: (t: TituloPagar) => void
   onView: (t: TituloPagar) => void
   emptyMessage: string
+  hideFavorecido?: boolean
 }
 
-function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessage }: TableProps) {
+function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessage, hideFavorecido }: TableProps) {
   const [page, setPage] = useState(1)
   useEffect(() => { setPage(1) }, [items])
   const PAGE_SIZE = 10
@@ -90,9 +93,11 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessa
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-muted/30">
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
-                Favorecido
-              </th>
+              {!hideFavorecido && (
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">
+                  Favorecido
+                </th>
+              )}
               <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden sm:table-cell">
                 Tipo
               </th>
@@ -121,14 +126,16 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessa
           <tbody className="divide-y divide-border">
             {paginated.map(t => (
             <tr key={t.id} className="hover:bg-muted/20 transition-colors">
-              <td className="px-4 py-3">
-                <div>
-                  <p className="font-medium">{t.favorecido}</p>
-                  {t.recorrente && (
-                    <p className="text-xs text-muted-foreground">Recorrente</p>
-                  )}
-                </div>
-              </td>
+              {!hideFavorecido && (
+                <td className="px-4 py-3">
+                  <div>
+                    <p className="font-medium">{t.favorecido}</p>
+                    {t.recorrente && (
+                      <p className="text-xs text-muted-foreground">Recorrente</p>
+                    )}
+                  </div>
+                </td>
+              )}
               <td className="px-4 py-3 hidden sm:table-cell">
                 <TipoBadge tipo={t.tipo} />
               </td>
@@ -191,6 +198,9 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessa
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function TitulosPagar() {
+  const currentUser = getCurrentUser()
+  const isAdmin = currentUser?.perfil_ativo === 'admin'
+
   const [titulos, setTitulos] = useState<TituloPagar[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -210,7 +220,10 @@ export default function TitulosPagar() {
 
   useEffect(() => {
     getTitulosPagar().then(data => {
-      setTitulos(data)
+      const filtered = isAdmin
+        ? data
+        : data.filter(t => t.favorecido === currentUser?.nome)
+      setTitulos(filtered)
       setLoading(false)
     })
   }, [])
@@ -257,7 +270,7 @@ export default function TitulosPagar() {
             descricao: data.descricao,
             num_parcela: i + 1,
             total_parcelas: data.total_parcelas,
-            valor: data.recorrente ? (data.parcela_valores[i] ?? data.valor) : data.valor,
+            valor: data.parcela_valores[i] ?? data.valor,
             multa: 0,
             data_emissao: data.data_emissao,
             data_vencimento: venc,
@@ -336,9 +349,11 @@ export default function TitulosPagar() {
     <div className="pt-2 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Títulos a Pagar</h1>
+        <h1 className="text-2xl font-bold text-foreground">
+          {isAdmin ? 'Títulos a Pagar' : 'Meus Pagamentos'}
+        </h1>
         <p className="text-sm text-muted-foreground mt-0.5">
-          Gerencie os títulos a pagar do aeroclube
+          {isAdmin ? 'Gerencie os títulos a pagar do aeroclube' : 'Acompanhe os pagamentos que você vai receber do aeroclube'}
         </p>
       </div>
 
@@ -348,7 +363,7 @@ export default function TitulosPagar() {
           size="sm"
           value={search}
           onChange={setSearch}
-          placeholder="Buscar por favorecido ou descrição..."
+          placeholder={isAdmin ? 'Buscar por favorecido ou descrição...' : 'Buscar por descrição...'}
         />
         <FilterSelect
           size="sm"
@@ -361,10 +376,12 @@ export default function TitulosPagar() {
           <option value="conta_fixa">Conta Fixa</option>
           <option value="outros">Outros</option>
         </FilterSelect>
-        <Button onClick={openCreate} className="ml-auto shrink-0">
-          <Plus className="h-4 w-4" />
-          Novo Título
-        </Button>
+        {isAdmin && (
+          <Button onClick={openCreate} className="ml-auto shrink-0">
+            <Plus className="h-4 w-4" />
+            Novo Título
+          </Button>
+        )}
       </div>
 
       {/* Tabs + Tables */}
@@ -397,7 +414,7 @@ export default function TitulosPagar() {
               )}
             </TabsTrigger>
             <TabsTrigger value="baixado">
-              Baixados
+              {isAdmin ? 'Baixados' : 'Recebidos'}
               {baixadoList.length > 0 && (
                 <span className="ml-1.5 rounded-full bg-emerald-100 text-emerald-700 px-1.5 py-0.5 text-xs font-medium">
                   {baixadoList.length}
@@ -416,11 +433,12 @@ export default function TitulosPagar() {
               <CardContent className="p-0">
                 <TitulosTable
                   items={emAbertoList}
-                  showBaixa
+                  showBaixa={isAdmin}
                   showMulta={false}
                   onBaixa={openBaixa}
                   onView={openView}
                   emptyMessage="Nenhum título em aberto"
+                  hideFavorecido={!isAdmin}
                 />
               </CardContent>
             </Card>
@@ -436,11 +454,12 @@ export default function TitulosPagar() {
               <CardContent className="p-0">
                 <TitulosTable
                   items={emAtrasoList}
-                  showBaixa
+                  showBaixa={isAdmin}
                   showMulta
                   onBaixa={openBaixa}
                   onView={openView}
                   emptyMessage="Nenhum título em atraso"
+                  hideFavorecido={!isAdmin}
                 />
               </CardContent>
             </Card>
@@ -450,7 +469,7 @@ export default function TitulosPagar() {
             <Card>
               <CardHeader className="border-b pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {baixadoList.length} título{baixadoList.length !== 1 ? 's' : ''} baixado{baixadoList.length !== 1 ? 's' : ''}
+                  {baixadoList.length} título{baixadoList.length !== 1 ? 's' : ''} {isAdmin ? (baixadoList.length !== 1 ? 'baixados' : 'baixado') : (baixadoList.length !== 1 ? 'recebidos' : 'recebido')}
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
@@ -461,6 +480,7 @@ export default function TitulosPagar() {
                   onBaixa={openBaixa}
                   onView={openView}
                   emptyMessage="Nenhum título baixado"
+                  hideFavorecido={!isAdmin}
                 />
               </CardContent>
             </Card>
@@ -486,6 +506,7 @@ export default function TitulosPagar() {
         onEdit={handleViewEdit}
         onBaixa={handleViewBaixa}
         onDeleteRequest={handleViewDeleteRequest}
+        canEdit={isAdmin}
       />
 
       {/* Baixa Dialog */}

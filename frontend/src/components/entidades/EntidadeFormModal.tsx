@@ -40,6 +40,32 @@ interface EntidadeFormModalProps {
 const selectCls =
   'h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
 
+function maskCpfCnpj(value: string): string {
+  const d = value.replace(/\D/g, '')
+  if (d.length <= 11) {
+    const s = d.slice(0, 11)
+    if (s.length <= 3) return s
+    if (s.length <= 6) return `${s.slice(0, 3)}.${s.slice(3)}`
+    if (s.length <= 9) return `${s.slice(0, 3)}.${s.slice(3, 6)}.${s.slice(6)}`
+    return `${s.slice(0, 3)}.${s.slice(3, 6)}.${s.slice(6, 9)}-${s.slice(9)}`
+  }
+  const s = d.slice(0, 14)
+  if (s.length <= 2) return s
+  if (s.length <= 5) return `${s.slice(0, 2)}.${s.slice(2)}`
+  if (s.length <= 8) return `${s.slice(0, 2)}.${s.slice(2, 5)}.${s.slice(5)}`
+  if (s.length <= 12) return `${s.slice(0, 2)}.${s.slice(2, 5)}.${s.slice(5, 8)}/${s.slice(8)}`
+  return `${s.slice(0, 2)}.${s.slice(2, 5)}.${s.slice(5, 8)}/${s.slice(8, 12)}-${s.slice(12)}`
+}
+
+function maskPhone(value: string): string {
+  const d = value.replace(/\D/g, '').slice(0, 11)
+  if (d.length === 0) return ''
+  if (d.length <= 2) return `(${d}`
+  if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`
+  if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`
+}
+
 function makeEmpty(tipoFixo?: EntidadeTipo): EntidadeFormData {
   return {
     nome: '',
@@ -165,9 +191,9 @@ export function EntidadeFormModal({
             <div className="space-y-1.5">
               <label className="text-sm font-medium">CPF / CNPJ</label>
               <Input
-                placeholder="000.000.000-00"
+                placeholder="000.000.000-00 ou 00.000.000/0000-00"
                 value={form.cpf_cnpj}
-                onChange={e => setForm(p => ({ ...p, cpf_cnpj: e.target.value }))}
+                onChange={e => setForm(p => ({ ...p, cpf_cnpj: maskCpfCnpj(e.target.value) }))}
                 hasError={!!errors.cpf_cnpj}
                 helper={errors.cpf_cnpj}
               />
@@ -177,7 +203,7 @@ export function EntidadeFormModal({
               <Input
                 placeholder="(11) 99999-9999"
                 value={form.contato}
-                onChange={e => setForm(p => ({ ...p, contato: e.target.value }))}
+                onChange={e => setForm(p => ({ ...p, contato: maskPhone(e.target.value) }))}
               />
             </div>
           </div>
@@ -194,15 +220,17 @@ export function EntidadeFormModal({
             />
           </div>
 
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={form.is_active}
-              onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))}
-              className="h-4 w-4 rounded border-input accent-primary"
-            />
-            <span className="text-sm">Ativo</span>
-          </label>
+          {isEdit && (
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={form.is_active}
+                onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))}
+                className="h-4 w-4 rounded border-input accent-primary"
+              />
+              <span className="text-sm">Ativo</span>
+            </label>
+          )}
 
           <DialogFooter>
             <div className="flex w-full items-center gap-2">

@@ -7,6 +7,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { getTitulosPagar } from '@/services/titulosPagarService'
 import { getTitulosReceber } from '@/services/titulosReceberService'
+import { getMovimentacoes } from '@/services/carteiraService'
+import { getCurrentUser } from '@/services/api/auth'
 import { cn } from '@/lib/utils'
 
 const inputCls =
@@ -42,6 +44,9 @@ function StatusBadge({ status }: { status: MovStatus }) {
 }
 
 export default function Movimentacoes() {
+  const currentUser = getCurrentUser()
+  const isAdmin = currentUser?.perfil_ativo === 'admin'
+
   const [rows, setRows] = useState<MovRow[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -52,9 +57,21 @@ export default function Movimentacoes() {
   useEffect(() => { setPage(1) }, [search, tipoFilter, statusFilter])
 
   useEffect(() => {
-    Promise.all([getTitulosPagar(), getTitulosReceber()]).then(([pagar, receber]) => {
+    const usuarioId = !isAdmin && currentUser ? String(currentUser.id) : undefined
+    Promise.all([
+      getTitulosPagar(),
+      getTitulosReceber(),
+      getMovimentacoes(usuarioId),
+    ]).then(([pagar, receber, movCarteira]) => {
+      const nomeUsuario = currentUser?.nome ?? ''
+
       const entradas: MovRow[] = receber
-        .filter(t => t.status === 'baixado' && t.tipo !== 'carteira' && !(t.valor_carteira && t.valor_carteira >= t.valor))
+        .filter(t =>
+          t.status === 'baixado' &&
+          t.tipo !== 'carteira' &&
+          !(t.valor_carteira && t.valor_carteira >= t.valor) &&
+          (isAdmin || t.usuario_nome === nomeUsuario)
+        )
         .map(t => ({
           id: `r-${t.id}`,
           tipo: 'entrada' as MovTipo,
@@ -65,8 +82,13 @@ export default function Movimentacoes() {
           valor_pago: t.valor_pago,
           status: t.status as MovStatus,
         }))
-      const carteiraRows: MovRow[] = receber
-        .filter(t => t.tipo === 'carteira')
+
+      // Títulos tipo 'carteira' (recargas de carteira = créditos)
+      const carteiraCreditos: MovRow[] = receber
+        .filter(t =>
+          t.tipo === 'carteira' &&
+          (isAdmin || t.usuario_nome === nomeUsuario)
+        )
         .map(t => ({
           id: `c-${t.id}`,
           tipo: 'carteira' as MovTipo,
@@ -75,11 +97,30 @@ export default function Movimentacoes() {
           pessoa: t.usuario_nome,
           valor: t.valor,
           valor_pago: t.valor_pago,
-          status: t.status as MovStatus,
-          carteira_debito: t.carteira_debito,
+          status: 'baixado' as MovStatus,
+          carteira_debito: false,
         }))
+
+      // MovimentacaoCarteira débitos (uso de carteira em voos e baixas)
+      const carteiraDebitos: MovRow[] = movCarteira
+        .filter(m => m.tipo === 'debito')
+        .map(m => ({
+          id: `mv-${m.id}`,
+          tipo: 'carteira' as MovTipo,
+          data: m.data_transacao,
+          descricao: m.descricao,
+          pessoa: m.usuario_nome,
+          valor: m.valor,
+          valor_pago: m.valor,
+          status: 'baixado' as MovStatus,
+          carteira_debito: true,
+        }))
+
       const saidas: MovRow[] = pagar
-        .filter(t => t.status === 'baixado')
+        .filter(t =>
+          t.status === 'baixado' &&
+          (isAdmin || t.favorecido === nomeUsuario)
+        )
         .map(t => ({
           id: `p-${t.id}`,
           tipo: 'saida' as MovTipo,
@@ -90,7 +131,11 @@ export default function Movimentacoes() {
           valor_pago: t.valor_pago ?? 0,
           status: t.status as MovStatus,
         }))
-      setRows([...entradas, ...carteiraRows, ...saidas].sort((a, b) => b.data.localeCompare(a.data)))
+
+      setRows(
+        [...entradas, ...carteiraCreditos, ...carteiraDebitos, ...saidas]
+          .sort((a, b) => b.data.localeCompare(a.data))
+      )
       setLoading(false)
     })
   }, [])
@@ -230,12 +275,12 @@ export default function Movimentacoes() {
                               : 'text-rose-600 dark:text-rose-400'
                           }
                         >
-                          {r.tipo === 'entrada' ? '+' : r.tipo === 'carteira' ? (r.carteira_debito ? '−' : '+') : '−'}
+                          {r.tipo === 'entrada' ? '+' : r.tipo === 'carteira' ? (r.carteira_debito ? '' : '+') : '−'}
                           {fmt(r.valor)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell whitespace-nowrap">
-                        {r.valor_pago > 0 ? fmt(r.valor_pago) : '—'}
+                        {(r.tipo === 'carteira' && r.carteira_debito) ? '—' : r.valor_pago > 0 ? fmt(r.valor_pago) : '—'}
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={r.status} />

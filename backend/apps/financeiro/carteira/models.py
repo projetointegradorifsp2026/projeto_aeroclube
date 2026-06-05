@@ -36,7 +36,7 @@ class Carteira(models.Model):
     def __str__(self):
         return f"Carteira de {self.participante.nome} — R$ {self.saldo}"
 
-    def creditar(self, valor: Decimal, descricao: str, data_vencimento=None) -> "MovimentacaoCarteira":
+    def creditar(self, valor: Decimal, descricao: str, data_vencimento=None, metadados=None) -> "MovimentacaoCarteira":
         """Adiciona crédito na carteira e registra movimentação."""
         self.saldo += valor
         self.save()
@@ -46,6 +46,7 @@ class Carteira(models.Model):
             valor=valor,
             descricao=descricao,
             data_vencimento=data_vencimento,
+            metadados=metadados,
         )
 
     def debitar(self, valor: Decimal, descricao: str) -> "MovimentacaoCarteira":
@@ -105,6 +106,17 @@ class MovimentacaoCarteira(models.Model):
         blank=True,
         related_name="movimentacoes_carteira",
         verbose_name="Voo de origem",
+    )
+
+    # RF14 / Price freeze: armazena tarifa vigente no momento da compra de horas
+    metadados = models.JSONField(
+        "Metadados",
+        null=True,
+        blank=True,
+        help_text=(
+            "Dados extras para créditos por horas: aeronave_id, aeronave_nome, "
+            "aeronave_tipo, tipo_voo, tarifa, horas."
+        ),
     )
 
     class Meta:
