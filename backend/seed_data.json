@@ -653,5 +653,68 @@
     "created_at": "2026-06-04T20:20:24.060Z",
     "updated_at": "2026-06-04T20:20:24.060Z"
   }
+},
+{
+  "model": "aeronaves.aeronave",
+  "pk": 1,
+  "fields": {
+    "nome": "PT-ABC",
+    "tipo": "aviao",
+    "foto": null,
+    "is_active": true,
+    "created_at": "2026-06-04T20:20:25.000Z",
+    "updated_at": "2026-06-04T20:20:25.000Z"
+  }
+},
+{
+  "model": "aeronaves.aviao",
+  "pk": 1,
+  "fields": {
+    "tarifa_solo": "300.00",
+    "tarifa_duplo_comando": "360.00"
+  }
+},
+{
+  "model": "aeronaves.aeronave",
+  "pk": 2,
+  "fields": {
+    "nome": "PT-DEF",
+    "tipo": "aviao",
+    "foto": null,
+    "is_active": true,
+    "created_at": "2026-06-04T20:20:25.100Z",
+    "updated_at": "2026-06-04T20:20:25.100Z"
+  }
+},
+{
+  "model": "aeronaves.aviao",
+  "pk": 2,
+  "fields": {
+    "tarifa_solo": "280.00",
+    "tarifa_duplo_comando": "340.00"
+  }
+},
+{
+  "model": "aeronaves.aeronave",
+  "pk": 3,
+  "fields": {
+    "nome": "PP-GHI",
+    "tipo": "planador",
+    "foto": null,
+    "is_active": true,
+    "created_at": "2026-06-04T20:20:25.200Z",
+    "updated_at": "2026-06-04T20:20:25.200Z"
+  }
+},
+{
+  "model": "aeronaves.planador",
+  "pk": 3,
+  "fields": {
+    "minutos_franquia": 45,
+    "valor_fixo_inicial": "330.00",
+    "valor_minuto_adicional": "3.00",
+    "valor_fixo_duplo": null,
+    "valor_minuto_duplo": null
+  }
 }
 ]
