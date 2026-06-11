@@ -27,7 +27,12 @@ import {
   baixarTituloPagar,
   type TituloPagar,
 } from '@/services/titulosPagarService'
-import { TITULO_PAGAR_TIPO_LABELS, type TituloPagarTipo } from '@/mocks/titulos'
+import {
+  TITULO_PAGAR_TIPO_LABELS,
+  FORMA_PAGAMENTO_PAGAR_LABELS,
+  type TituloPagarTipo,
+  type FormaPagamentoPagar,
+} from '@/mocks/titulos'
 import { getCurrentUser } from '@/services/api/auth'
 import { cn } from '@/lib/utils'
 
@@ -210,6 +215,7 @@ export default function TitulosPagar() {
   const [baixaTarget, setBaixaTarget] = useState<TituloPagar | null>(null)
   const [baixaMulta, setBaixaMulta] = useState('0')
   const [baixaData, setBaixaData] = useState('')
+  const [baixaForma, setBaixaForma] = useState<FormaPagamentoPagar>('dinheiro')
   const [baixando, setBaixando] = useState(false)
 
   const [viewTitulo, setViewTitulo] = useState<TituloPagar | null>(null)
@@ -309,6 +315,7 @@ export default function TitulosPagar() {
     setBaixaTarget(t)
     setBaixaMulta((t.multa ?? 0).toFixed(2))
     setBaixaData(todayStr())
+    setBaixaForma('dinheiro')
   }
 
   function openView(t: TituloPagar) {
@@ -335,7 +342,7 @@ export default function TitulosPagar() {
     setBaixando(true)
     const multa = parseFloat(baixaMulta) || 0
     const valorPago = baixaTarget.valor + multa
-    const updated = await baixarTituloPagar(baixaTarget.id, valorPago, baixaData, multa)
+    const updated = await baixarTituloPagar(baixaTarget.id, valorPago, baixaData, multa, baixaForma)
     setTitulos(prev => prev.map(t => (t.id === baixaTarget.id ? updated : t)))
     setBaixaTarget(null)
     setBaixando(false)
@@ -570,6 +577,19 @@ export default function TitulosPagar() {
                     value={baixaData}
                     onChange={e => setBaixaData(e.target.value)}
                   />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Forma de pagamento</label>
+                  <select
+                    className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
+                    value={baixaForma}
+                    onChange={e => setBaixaForma(e.target.value as FormaPagamentoPagar)}
+                  >
+                    {Object.entries(FORMA_PAGAMENTO_PAGAR_LABELS).map(([v, label]) => (
+                      <option key={v} value={v}>{label}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
               <DialogFooter>

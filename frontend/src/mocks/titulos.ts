@@ -1,6 +1,34 @@
 export type TituloPagarTipo = 'fornecedor' | 'folha' | 'conta_fixa' | 'outros' | 'instrutor'
 export type TituloPagarStatus = 'em_aberto' | 'baixado'
 
+// Formas de pagamento do lado A PAGAR (sem carteira/cnab; inclui transferência).
+export type FormaPagamentoPagar =
+  | 'dinheiro'
+  | 'pix'
+  | 'transferencia'
+  | 'cartao'
+  | 'boleto'
+  | 'outros'
+
+export const FORMA_PAGAMENTO_PAGAR_LABELS: Record<FormaPagamentoPagar, string> = {
+  dinheiro: 'Dinheiro',
+  pix: 'PIX',
+  transferencia: 'Transferência',
+  cartao: 'Cartão',
+  boleto: 'Boleto',
+  outros: 'Outros',
+}
+
+export interface BaixaPagar {
+  id: string
+  data: string
+  valor: number
+  multa: number
+  forma_pagamento: FormaPagamentoPagar
+  forma_pagamento_display: string
+  criado_por_nome: string | null
+}
+
 export interface TituloPagar {
   id: string
   tipo: TituloPagarTipo
@@ -16,6 +44,7 @@ export interface TituloPagar {
   valor_pago: number | null
   data_pagamento: string | null
   recorrente: boolean
+  baixas?: BaixaPagar[]
 }
 
 export type TituloReceberTipo = 'mensalidade' | 'pontual' | 'servico' | 'voo' | 'carteira'

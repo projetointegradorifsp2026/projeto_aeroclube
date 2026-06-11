@@ -1,5 +1,21 @@
 import { apiList, apiPost, apiPatch, apiDelete } from '@/services/api/client'
-import { type TituloPagar, type TituloPagarTipo, type TituloPagarStatus } from '@/mocks/titulos'
+import {
+  type TituloPagar,
+  type TituloPagarTipo,
+  type TituloPagarStatus,
+  type BaixaPagar,
+  type FormaPagamentoPagar,
+} from '@/mocks/titulos'
+
+interface BackendBaixaPagar {
+  id: number
+  data: string
+  valor: string
+  multa: string
+  forma_pagamento: string
+  forma_pagamento_display: string
+  criado_por_nome: string | null
+}
 
 interface BackendTituloPagar {
   id: number
@@ -19,6 +35,7 @@ interface BackendTituloPagar {
   data_pagamento: string | null
   is_recorrente: boolean
   periodicidade_dias: number | null
+  baixas?: BackendBaixaPagar[]
 }
 
 const TIPO_BACKEND_TO_FRONTEND: Record<string, TituloPagarTipo> = {
@@ -53,6 +70,19 @@ function adaptTitulo(t: BackendTituloPagar): TituloPagar {
     valor_pago: t.valor_pago !== null ? parseFloat(t.valor_pago) : null,
     data_pagamento: t.data_pagamento,
     recorrente: t.is_recorrente,
+    baixas: (t.baixas ?? []).map(adaptBaixa),
+  }
+}
+
+function adaptBaixa(b: BackendBaixaPagar): BaixaPagar {
+  return {
+    id: String(b.id),
+    data: b.data,
+    valor: parseFloat(b.valor),
+    multa: parseFloat(b.multa || '0'),
+    forma_pagamento: b.forma_pagamento as FormaPagamentoPagar,
+    forma_pagamento_display: b.forma_pagamento_display,
+    criado_por_nome: b.criado_por_nome,
   }
 }
 
@@ -106,6 +136,7 @@ export async function baixarTituloPagar(
   valorPago: number,
   dataPagamento: string,
   multa = 0,
+  formaPagamento: FormaPagamentoPagar = 'dinheiro',
 ): Promise<TituloPagar> {
   const updated = await apiPost<BackendTituloPagar>(
     `/api/v1/titulos-pagar/${id}/baixar/`,
@@ -113,6 +144,7 @@ export async function baixarTituloPagar(
       valor_pago: valorPago.toFixed(2),
       data_pagamento: dataPagamento,
       multa: multa.toFixed(2),
+      forma_pagamento: formaPagamento,
     },
   )
   return adaptTitulo(updated)
