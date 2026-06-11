@@ -23,16 +23,6 @@ interface BackendFuncionario {
   is_active: boolean
 }
 
-interface BackendEntidade {
-  id: number
-  nome: string
-  cpf_cnpj: string | null
-  email: string | null
-  contato: string | null
-  tipo: string
-  is_active: boolean
-}
-
 function adaptFornecedor(f: BackendFornecedor): Entidade {
   return {
     id: String(f.id),
@@ -54,18 +44,6 @@ function adaptFuncionario(f: BackendFuncionario): Entidade {
     contato: f.contato ?? '',
     tipo: f.is_instrutor ? 'instrutor' : 'funcionario',
     is_active: f.is_active,
-  }
-}
-
-function adaptEntidade(e: BackendEntidade): Entidade {
-  return {
-    id: String(e.id),
-    nome: e.nome,
-    cpf_cnpj: e.cpf_cnpj ?? '',
-    email: e.email ?? '',
-    contato: e.contato ?? '',
-    tipo: e.tipo as EntidadeTipo,
-    is_active: e.is_active,
   }
 }
 
