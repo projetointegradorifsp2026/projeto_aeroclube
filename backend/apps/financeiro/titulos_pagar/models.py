@@ -114,6 +114,25 @@ class TituloPagar(models.Model):
             criado_por=criado_por,
         )
         self._debitar_carteira_se_necessario()
+        self._quitar_custos_se_completos()
+
+    def _quitar_custos_se_completos(self):
+        """
+        Marca como QUITADO cada custo de origem cujos títulos estejam todos
+        baixados. Um custo pode estar dividido em vários títulos (split 1→N);
+        só é quitado quando o último deles é pago.
+        """
+        from apps.financeiro.custos.models import Custo as CustoModel
+
+        for custo in self.custos.all():
+            if custo.status == CustoModel.STATUS_QUITADO:
+                continue
+            titulos = custo.titulos.all()
+            if titulos.exists() and all(
+                t.status == self.STATUS_BAIXADO for t in titulos
+            ):
+                custo.status = CustoModel.STATUS_QUITADO
+                custo.save(update_fields=["status", "updated_at"])
 
     def _debitar_carteira_se_necessario(self):
         """Debita a carteira quando o custo é de remoção de saldo."""

@@ -146,6 +146,25 @@ class TituloReceber(models.Model):
         )
         if self.status == self.STATUS_BAIXADO and not ja_estava_baixado:
             self._creditar_carteira_se_necessario()
+            self._quitar_receitas_se_completas()
+
+    def _quitar_receitas_se_completas(self):
+        """
+        Marca como QUITADA cada receita de origem cujos títulos estejam todos
+        baixados. Uma receita pode estar dividida em vários títulos (split 1→N);
+        só é quitada quando o último deles é pago.
+        """
+        from apps.financeiro.receitas.models import Receita as ReceitaModel
+
+        for receita in self.receitas.all():
+            if receita.status == ReceitaModel.STATUS_QUITADA:
+                continue
+            titulos = receita.titulos.all()
+            if titulos.exists() and all(
+                t.status == self.STATUS_BAIXADO for t in titulos
+            ):
+                receita.status = ReceitaModel.STATUS_QUITADA
+                receita.save(update_fields=["status", "updated_at"])
 
     def _creditar_carteira_se_necessario(self):
         """Credita a carteira quando o título é de compra de horas pré-pagas."""
