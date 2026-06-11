@@ -509,7 +509,17 @@ export default function VooFormPage() {
 
             {/* Pricing preview */}
             {selectedAeronave && (
-              <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm">
+              <div className="rounded-lg border border-border bg-muted/30 overflow-hidden text-sm">
+                {selectedAeronave.foto && (
+                  <img
+                    src={selectedAeronave.foto}
+                    alt={selectedAeronave.nome}
+                    loading="lazy"
+                    className="w-full h-36 object-cover border-b border-border"
+                    onError={e => { e.currentTarget.style.display = 'none' }}
+                  />
+                )}
+                <div className="px-4 py-3">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2.5">
                   Tarifação — {selectedAeronave.nome}
                 </p>
@@ -549,6 +559,7 @@ export default function VooFormPage() {
                     </div>
                   </div>
                 )}
+                </div>
               </div>
             )}
           </CardContent>

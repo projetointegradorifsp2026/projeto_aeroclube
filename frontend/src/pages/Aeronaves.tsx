@@ -31,6 +31,36 @@ const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', curren
 
 const PAGE_SIZE = 10
 
+// ─── Thumbnail ────────────────────────────────────────────────────────────────
+
+function AeronaveThumb({ foto, tipo }: { foto?: string; tipo: 'aviao' | 'planador' }) {
+  const Icon = tipo === 'planador' ? Wind : Plane
+  if (foto) {
+    return (
+      <img
+        src={foto}
+        alt=""
+        loading="lazy"
+        className="h-10 w-16 rounded-md object-cover border border-border bg-muted shrink-0"
+        onError={e => {
+          const el = e.currentTarget
+          el.onerror = null
+          el.src =
+            'data:image/svg+xml;utf8,' +
+            encodeURIComponent(
+              '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="40"/>',
+            )
+        }}
+      />
+    )
+  }
+  return (
+    <div className="h-10 w-16 rounded-md bg-muted flex items-center justify-center shrink-0">
+      <Icon className="h-4 w-4 text-muted-foreground" />
+    </div>
+  )
+}
+
 // ─── Sub-tables ───────────────────────────────────────────────────────────────
 
 function AviaoTable({
@@ -73,8 +103,8 @@ function AviaoTable({
             {paginated.map(a => (
               <tr key={a.id} className="hover:bg-muted/20 transition-colors">
                 <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <Plane className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex items-center gap-3">
+                    <AeronaveThumb foto={a.foto} tipo="aviao" />
                     <span className="font-semibold tracking-wide">{a.nome}</span>
                   </div>
                 </td>
@@ -153,8 +183,8 @@ function PlanadorTable({
             {paginated.map(a => (
               <tr key={a.id} className="hover:bg-muted/20 transition-colors">
                 <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <Wind className="h-4 w-4 text-muted-foreground" />
+                  <div className="flex items-center gap-3">
+                    <AeronaveThumb foto={a.foto} tipo="planador" />
                     <span className="font-semibold tracking-wide">{a.nome}</span>
                   </div>
                 </td>

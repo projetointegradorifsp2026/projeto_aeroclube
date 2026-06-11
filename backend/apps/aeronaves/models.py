@@ -30,12 +30,14 @@ class Aeronave(models.Model):
 
     nome = models.CharField("Nome / Prefixo", max_length=100, unique=True)
     tipo = models.CharField("Tipo", max_length=10, choices=TIPO_CHOICES)
-    foto = models.CharField(
-        "Caminho da foto",
-        max_length=500,
+    foto = models.TextField(
+        "Foto da aeronave",
         blank=True,
         null=True,
-        help_text="Caminho relativo ou URL da imagem da aeronave.",
+        help_text=(
+            "URL/caminho da imagem (ex.: /aeronaves/cessna-152.jpg) OU a própria "
+            "imagem embutida como data URL base64 (upload pela tela de cadastro)."
+        ),
     )
     is_active = models.BooleanField("Ativa", default=True)
 
