@@ -1,4 +1,4 @@
-import { apiList, apiGet, apiPost, apiPatch, apiFetch } from '@/services/api/client'
+import { apiList, apiGet, apiPost, apiPatch, apiFetch, apiUpload } from '@/services/api/client'
 
 // ─── Configuração Bancária (cedente / aeroclube) ──────────────────────────────
 
@@ -20,6 +20,10 @@ export interface ConfiguracaoBancaria {
   convenio: string
   emissao: string
   tipo_formulario: string
+  codigos_liquidacao: string
+  chave_pix: string
+  nome_recebedor: string
+  cidade_recebedor: string
   proximo_nsa: number
   proximo_nosso_numero: number
   is_active: boolean
@@ -149,6 +153,40 @@ export interface RetornoCNAB {
 
 export async function getRetornos(): Promise<RetornoCNAB[]> {
   return apiList<RetornoCNAB>('/api/v1/retornos-cnab/')
+}
+
+export interface RetornoItem {
+  id: number
+  nosso_numero: string
+  codigo_ocorrencia: string
+  descricao_ocorrencia: string
+  valor_pago: string | null
+  data_pagamento: string | null
+  titulo_receber: number | null
+}
+
+export interface ResumoRetorno {
+  itens: number
+  baixados: number
+  sem_titulo: number
+  ignorados: number
+}
+
+export interface ProcessarRetornoResp extends RetornoCNAB {
+  itens: RetornoItem[]
+  resumo: ResumoRetorno
+}
+
+/** Envia o arquivo .RET, registra as ocorrências e dá baixa automática nos
+ *  títulos liquidados. Retorna o retorno processado + o resumo das baixas. */
+export async function processarRetorno(
+  configuracaoId: number,
+  arquivo: File,
+): Promise<ProcessarRetornoResp> {
+  const form = new FormData()
+  form.append('configuracao', String(configuracaoId))
+  form.append('arquivo', arquivo)
+  return apiUpload<ProcessarRetornoResp>('/api/v1/retornos-cnab/processar/', form)
 }
 
 // ─── Títulos elegíveis para remessa (status cru "aberto" do backend) ──────────

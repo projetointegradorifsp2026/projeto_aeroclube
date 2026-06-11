@@ -84,6 +84,34 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   return res.json() as Promise<T>
 }
 
+/** POST multipart/form-data (uploads). Não define Content-Type — o browser
+ *  adiciona o boundary automaticamente. Mantém o refresh de token em 401. */
+export async function apiUpload<T>(path: string, form: FormData): Promise<T> {
+  const url = `${BASE}${path}`
+  const send = (token: string | null) =>
+    fetch(url, {
+      method: 'POST',
+      body: form,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+
+  let res = await send(getAccessToken())
+  if (res.status === 401) {
+    const newToken = await tryRefresh()
+    if (newToken) {
+      res = await send(newToken)
+    } else {
+      window.location.href = '/'
+      throw new Error('Sessão expirada')
+    }
+  }
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Erro desconhecido' }))
+    throw new Error(typeof err === 'object' ? JSON.stringify(err) : String(err))
+  }
+  return res.json() as Promise<T>
+}
+
 export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
   const res = await apiFetch(path, {
     method: 'PATCH',
