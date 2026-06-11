@@ -1,720 +1,3979 @@
 [
-{
-  "model": "users.usuario",
-  "pk": 2,
-  "fields": {
-    "password": "pbkdf2_sha256$1200000$yK8pgRRPTvy70Q4se6XTKb$pX0kMxyoX6z4XwSvoPPOkKR0qfWiTF9wgw5ZY0lwKz4=",
-    "last_login": null,
-    "is_superuser": false,
-    "first_name": "",
-    "last_name": "",
-    "is_staff": false,
-    "is_active": true,
-    "date_joined": "2026-06-04T20:20:08.964Z",
-    "nome": "João Aluno",
-    "cpf_cnpj": "111.444.777-35",
-    "email": "joao.aluno@aeroclube.com",
-    "cep": "13500-001",
-    "logradouro": "Rua dos Aviadores",
-    "numero": "100",
-    "bairro": "Centro",
-    "cidade": "Rio Claro",
-    "uf": "SP",
-    "perfil_ativo": "aluno",
-    "updated_at": "2026-06-04T20:20:09.692Z",
-    "groups": [],
-    "user_permissions": []
+  {
+    "model": "users.usuario",
+    "pk": 2,
+    "fields": {
+      "password": "pbkdf2_sha256$1200000$yK8pgRRPTvy70Q4se6XTKb$pX0kMxyoX6z4XwSvoPPOkKR0qfWiTF9wgw5ZY0lwKz4=",
+      "last_login": null,
+      "is_superuser": false,
+      "first_name": "",
+      "last_name": "",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2026-06-04T20:20:08.964Z",
+      "nome": "João Aluno",
+      "cpf_cnpj": "111.444.777-35",
+      "email": "joao.aluno@aeroclube.com",
+      "cep": "13500-001",
+      "logradouro": "Rua dos Aviadores",
+      "numero": "100",
+      "bairro": "Centro",
+      "cidade": "Rio Claro",
+      "uf": "SP",
+      "perfil_ativo": "aluno",
+      "updated_at": "2026-06-04T20:20:09.692Z",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "users.usuarioperfil",
+    "pk": 2,
+    "fields": {
+      "usuario": 2,
+      "perfil": "aluno"
+    }
+  },
+  {
+    "model": "carteira.carteira",
+    "pk": 1,
+    "fields": {
+      "participante": 2,
+      "saldo": "0.00",
+      "updated_at": "2026-06-04T20:20:09.996Z"
+    }
+  },
+  {
+    "model": "users.usuario",
+    "pk": 3,
+    "fields": {
+      "password": "pbkdf2_sha256$1200000$9gWgMRTfOAtdr5D2OlSVFJ$2wgvu01ObbIdKGOXeYU0U2LFl+WjR2FypMc98aqvjY0=",
+      "last_login": null,
+      "is_superuser": false,
+      "first_name": "",
+      "last_name": "",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2026-06-04T20:20:10.267Z",
+      "nome": "Maria Aluna",
+      "cpf_cnpj": "222.555.888-46",
+      "email": "maria.aluna@aeroclube.com",
+      "cep": "13500-002",
+      "logradouro": "Avenida Brasil",
+      "numero": "200",
+      "bairro": "Cidade Nova",
+      "cidade": "Rio Claro",
+      "uf": "SP",
+      "perfil_ativo": "aluno",
+      "updated_at": "2026-06-04T20:20:11.029Z",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "users.usuarioperfil",
+    "pk": 3,
+    "fields": {
+      "usuario": 3,
+      "perfil": "aluno"
+    }
+  },
+  {
+    "model": "carteira.carteira",
+    "pk": 2,
+    "fields": {
+      "participante": 3,
+      "saldo": "0.00",
+      "updated_at": "2026-06-04T20:20:11.297Z"
+    }
+  },
+  {
+    "model": "users.usuario",
+    "pk": 4,
+    "fields": {
+      "password": "pbkdf2_sha256$1200000$h3waTXu0QT7Moj86DNavha$SxkhTHsLcdywUMVV0PODWNQNsw9dDWC2Ik4ODOqhwQw=",
+      "last_login": null,
+      "is_superuser": false,
+      "first_name": "",
+      "last_name": "",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2026-06-04T20:20:11.421Z",
+      "nome": "Pedro Aluno",
+      "cpf_cnpj": "333.666.999-57",
+      "email": "pedro.aluno@aeroclube.com",
+      "cep": "13500-003",
+      "logradouro": "Rua das Hélices",
+      "numero": "300",
+      "bairro": "Jardim Paulista",
+      "cidade": "Rio Claro",
+      "uf": "SP",
+      "perfil_ativo": "aluno",
+      "updated_at": "2026-06-04T20:20:12.097Z",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "users.usuarioperfil",
+    "pk": 4,
+    "fields": {
+      "usuario": 4,
+      "perfil": "aluno"
+    }
+  },
+  {
+    "model": "carteira.carteira",
+    "pk": 3,
+    "fields": {
+      "participante": 4,
+      "saldo": "0.00",
+      "updated_at": "2026-06-04T20:20:12.386Z"
+    }
+  },
+  {
+    "model": "users.usuario",
+    "pk": 5,
+    "fields": {
+      "password": "pbkdf2_sha256$1200000$nkYpyeulYpMyaFtsSxK98K$7E9jwu1+3MPbJEN30JiVdXK2ONS6Opzp9xOV/OaLOoM=",
+      "last_login": null,
+      "is_superuser": false,
+      "first_name": "",
+      "last_name": "",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2026-06-04T20:20:12.638Z",
+      "nome": "Ana Externa",
+      "cpf_cnpj": "444.777.111-07",
+      "email": "ana.externa@aeroclube.com",
+      "cep": "13560-100",
+      "logradouro": "Rua São Carlos",
+      "numero": "45",
+      "bairro": "Centro",
+      "cidade": "São Carlos",
+      "uf": "SP",
+      "perfil_ativo": "externo",
+      "updated_at": "2026-06-04T20:20:13.441Z",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "users.usuarioperfil",
+    "pk": 5,
+    "fields": {
+      "usuario": 5,
+      "perfil": "externo"
+    }
+  },
+  {
+    "model": "carteira.carteira",
+    "pk": 4,
+    "fields": {
+      "participante": 5,
+      "saldo": "0.00",
+      "updated_at": "2026-06-04T20:20:13.690Z"
+    }
+  },
+  {
+    "model": "users.usuario",
+    "pk": 6,
+    "fields": {
+      "password": "pbkdf2_sha256$1200000$oh01PqdN8FervSrNcwTPRE$Jgho9y0l+emA+hyfOxFTiwof/zSwR1Ng09KEGSCXxe8=",
+      "last_login": null,
+      "is_superuser": false,
+      "first_name": "",
+      "last_name": "",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2026-06-04T20:20:13.803Z",
+      "nome": "Bruno Externo",
+      "cpf_cnpj": "555.888.222-00",
+      "email": "bruno.externo@aeroclube.com",
+      "cep": "13560-200",
+      "logradouro": "Avenida São Paulo",
+      "numero": "789",
+      "bairro": "Vila Nery",
+      "cidade": "São Carlos",
+      "uf": "SP",
+      "perfil_ativo": "externo",
+      "updated_at": "2026-06-04T20:20:14.514Z",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "users.usuarioperfil",
+    "pk": 6,
+    "fields": {
+      "usuario": 6,
+      "perfil": "externo"
+    }
+  },
+  {
+    "model": "carteira.carteira",
+    "pk": 5,
+    "fields": {
+      "participante": 6,
+      "saldo": "0.00",
+      "updated_at": "2026-06-04T20:20:14.867Z"
+    }
+  },
+  {
+    "model": "users.usuario",
+    "pk": 7,
+    "fields": {
+      "password": "pbkdf2_sha256$1200000$DPFaC1UK4QGJs5DKDxpJ51$xXC4k35OmgXbRBJ155cfM90RZAIBn5m9csEMoL2BMAI=",
+      "last_login": null,
+      "is_superuser": false,
+      "first_name": "",
+      "last_name": "",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2026-06-04T20:20:14.980Z",
+      "nome": "Carlos Sócio",
+      "cpf_cnpj": "666.999.333-10",
+      "email": "carlos.socio@aeroclube.com",
+      "cep": "13500-010",
+      "logradouro": "Rua dos Pioneiros",
+      "numero": "12",
+      "bairro": "Centro",
+      "cidade": "Rio Claro",
+      "uf": "SP",
+      "perfil_ativo": "socio",
+      "updated_at": "2026-06-04T20:20:15.638Z",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "users.usuarioperfil",
+    "pk": 7,
+    "fields": {
+      "usuario": 7,
+      "perfil": "socio"
+    }
+  },
+  {
+    "model": "carteira.carteira",
+    "pk": 6,
+    "fields": {
+      "participante": 7,
+      "saldo": "0.00",
+      "updated_at": "2026-06-04T20:20:15.926Z"
+    }
+  },
+  {
+    "model": "users.usuario",
+    "pk": 8,
+    "fields": {
+      "password": "pbkdf2_sha256$1200000$JPNMTapDoqkd6c1nwVdZsF$qlsfhfMCwX/yfU4dqat7vNwOw92WgQcRnu2H14MRrqM=",
+      "last_login": null,
+      "is_superuser": false,
+      "first_name": "",
+      "last_name": "",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2026-06-04T20:20:16.101Z",
+      "nome": "Diana Sócia",
+      "cpf_cnpj": "777.111.444-07",
+      "email": "diana.socia@aeroclube.com",
+      "cep": "13500-011",
+      "logradouro": "Rua Treze de Maio",
+      "numero": "555",
+      "bairro": "Centro",
+      "cidade": "Rio Claro",
+      "uf": "SP",
+      "perfil_ativo": "socio",
+      "updated_at": "2026-06-04T20:20:16.763Z",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "users.usuarioperfil",
+    "pk": 8,
+    "fields": {
+      "usuario": 8,
+      "perfil": "socio"
+    }
+  },
+  {
+    "model": "carteira.carteira",
+    "pk": 7,
+    "fields": {
+      "participante": 8,
+      "saldo": "0.00",
+      "updated_at": "2026-06-04T20:20:17.046Z"
+    }
+  },
+  {
+    "model": "users.usuario",
+    "pk": 9,
+    "fields": {
+      "password": "pbkdf2_sha256$1200000$X9X609X6wRMqdOhrUJP0JL$+8L5rz7Sj9cPB+lt0XKO6tedNKFGWMCRMh0gemy9nbQ=",
+      "last_login": null,
+      "is_superuser": false,
+      "first_name": "",
+      "last_name": "",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2026-06-04T20:20:17.158Z",
+      "nome": "Eduardo Instrutor",
+      "cpf_cnpj": "888.222.555-00",
+      "email": "eduardo.instrutor@aeroclube.com",
+      "cep": "13500-020",
+      "logradouro": "Rua do Aeroporto",
+      "numero": "1",
+      "bairro": "Aeroporto",
+      "cidade": "Rio Claro",
+      "uf": "SP",
+      "perfil_ativo": "instrutor",
+      "updated_at": "2026-06-04T20:20:17.861Z",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "users.usuarioperfil",
+    "pk": 9,
+    "fields": {
+      "usuario": 9,
+      "perfil": "instrutor"
+    }
+  },
+  {
+    "model": "carteira.carteira",
+    "pk": 8,
+    "fields": {
+      "participante": 9,
+      "saldo": "0.00",
+      "updated_at": "2026-06-04T20:20:18.098Z"
+    }
+  },
+  {
+    "model": "users.usuario",
+    "pk": 10,
+    "fields": {
+      "password": "pbkdf2_sha256$1200000$WqmiWaIwfFSGki9pB12KQZ$JOUqta2zbkrKRTCr/zorUgmmI/DLhevdfvNsR36Zsn8=",
+      "last_login": null,
+      "is_superuser": false,
+      "first_name": "",
+      "last_name": "",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2026-06-04T20:20:18.201Z",
+      "nome": "Fernanda Instrutora",
+      "cpf_cnpj": "999.333.666-10",
+      "email": "fernanda.instrutora@aeroclube.com",
+      "cep": "13500-021",
+      "logradouro": "Rua do Aeroporto",
+      "numero": "2",
+      "bairro": "Aeroporto",
+      "cidade": "Rio Claro",
+      "uf": "SP",
+      "perfil_ativo": "instrutor",
+      "updated_at": "2026-06-04T20:20:19.129Z",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "users.usuarioperfil",
+    "pk": 10,
+    "fields": {
+      "usuario": 10,
+      "perfil": "instrutor"
+    }
+  },
+  {
+    "model": "carteira.carteira",
+    "pk": 9,
+    "fields": {
+      "participante": 10,
+      "saldo": "0.00",
+      "updated_at": "2026-06-04T20:20:19.582Z"
+    }
+  },
+  {
+    "model": "users.usuario",
+    "pk": 11,
+    "fields": {
+      "password": "pbkdf2_sha256$1200000$qrqbFbIbPCsg3B90ulphUf$cpQZ7P+/puAMfsc6LH4AOJzPLeP2jAmVcWqWekPGtis=",
+      "last_login": null,
+      "is_superuser": false,
+      "first_name": "",
+      "last_name": "",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2026-06-04T20:20:19.712Z",
+      "nome": "Gabriel Sócio-Instrutor",
+      "cpf_cnpj": "123.456.789-09",
+      "email": "gabriel.si@aeroclube.com",
+      "cep": "13500-030",
+      "logradouro": "Rua Coronel Cabral",
+      "numero": "321",
+      "bairro": "Centro",
+      "cidade": "Rio Claro",
+      "uf": "SP",
+      "perfil_ativo": "socio",
+      "updated_at": "2026-06-04T20:20:20.398Z",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "users.usuarioperfil",
+    "pk": 11,
+    "fields": {
+      "usuario": 11,
+      "perfil": "socio"
+    }
+  },
+  {
+    "model": "users.usuarioperfil",
+    "pk": 12,
+    "fields": {
+      "usuario": 11,
+      "perfil": "instrutor"
+    }
+  },
+  {
+    "model": "carteira.carteira",
+    "pk": 10,
+    "fields": {
+      "participante": 11,
+      "saldo": "0.00",
+      "updated_at": "2026-06-04T20:20:20.765Z"
+    }
+  },
+  {
+    "model": "users.usuario",
+    "pk": 12,
+    "fields": {
+      "password": "pbkdf2_sha256$1200000$tZeENK1V41NwdjUJRRYa7j$TZbhLo/qcDjFF/1JgA4Ocad6DJdHL+9KGFTyGuGjAwk=",
+      "last_login": null,
+      "is_superuser": false,
+      "first_name": "",
+      "last_name": "",
+      "is_staff": false,
+      "is_active": true,
+      "date_joined": "2026-06-04T20:20:20.879Z",
+      "nome": "Helena Funcionária",
+      "cpf_cnpj": "987.654.321-00",
+      "email": "helena.func@aeroclube.com",
+      "cep": "13500-040",
+      "logradouro": "Rua da Secretaria",
+      "numero": "10",
+      "bairro": "Centro",
+      "cidade": "Rio Claro",
+      "uf": "SP",
+      "perfil_ativo": "funcionario",
+      "updated_at": "2026-06-04T20:20:21.533Z",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "users.usuarioperfil",
+    "pk": 13,
+    "fields": {
+      "usuario": 12,
+      "perfil": "funcionario"
+    }
+  },
+  {
+    "model": "pessoas.cliente",
+    "pk": 3,
+    "fields": {
+      "nome": "Cliente Silva",
+      "cpf_cnpj": "456.789.123-64",
+      "email": "cliente.silva@email.com",
+      "contato": "(19) 99999-1111",
+      "cep": "13500-500",
+      "logradouro": "Rua das Palmeiras",
+      "numero": "88",
+      "bairro": "Jardim América",
+      "cidade": "Rio Claro",
+      "uf": "SP",
+      "is_active": true,
+      "created_at": "2026-06-04T20:20:22.036Z",
+      "updated_at": "2026-06-04T20:20:22.036Z"
+    }
+  },
+  {
+    "model": "pessoas.cliente",
+    "pk": 4,
+    "fields": {
+      "nome": "Empresa XYZ Ltda",
+      "cpf_cnpj": "11.222.333/0001-81",
+      "email": "contato@xyz.com.br",
+      "contato": "(19) 3333-2222",
+      "cep": "13560-900",
+      "logradouro": "Avenida Industrial",
+      "numero": "1500",
+      "bairro": "Distrito Industrial",
+      "cidade": "São Carlos",
+      "uf": "SP",
+      "is_active": true,
+      "created_at": "2026-06-04T20:20:22.148Z",
+      "updated_at": "2026-06-04T20:20:22.148Z"
+    }
+  },
+  {
+    "model": "pessoas.entidadepagar",
+    "pk": 1,
+    "fields": {
+      "nome": "Posto Aviação Ltda",
+      "cpf_cnpj": "44.555.666/0001-81",
+      "email": "vendas@postoaviacao.com.br",
+      "contato": "(19) 3333-4444",
+      "tipo": "fornecedor",
+      "is_active": true,
+      "usuario": null,
+      "created_at": "2026-06-04T20:20:22.311Z",
+      "updated_at": "2026-06-04T20:20:22.311Z"
+    }
+  },
+  {
+    "model": "pessoas.fornecedor",
+    "pk": 1,
+    "fields": {
+      "produto_servico": "Combustível de aviação (AVGAS)"
+    }
+  },
+  {
+    "model": "pessoas.entidadepagar",
+    "pk": 2,
+    "fields": {
+      "nome": "Oficina Aeronáutica ME",
+      "cpf_cnpj": "77.888.999/0001-81",
+      "email": "contato@oficinaaero.com.br",
+      "contato": "(19) 3333-5555",
+      "tipo": "fornecedor",
+      "is_active": true,
+      "usuario": null,
+      "created_at": "2026-06-04T20:20:22.970Z",
+      "updated_at": "2026-06-04T20:20:22.970Z"
+    }
+  },
+  {
+    "model": "pessoas.fornecedor",
+    "pk": 2,
+    "fields": {
+      "produto_servico": "Manutenção de aeronaves"
+    }
+  },
+  {
+    "model": "pessoas.entidadepagar",
+    "pk": 3,
+    "fields": {
+      "nome": "Roberto Instrutor Externo",
+      "cpf_cnpj": "159.753.486-25",
+      "email": "roberto.instrutor@email.com",
+      "contato": "(19) 98888-1111",
+      "tipo": "instrutor",
+      "is_active": true,
+      "usuario": null,
+      "created_at": "2026-06-04T20:20:23.463Z",
+      "updated_at": "2026-06-04T20:20:23.463Z"
+    }
+  },
+  {
+    "model": "pessoas.funcionario",
+    "pk": 3,
+    "fields": {
+      "funcao": "Instrutor de voo",
+      "is_instrutor": true,
+      "salario_base": "4500.00"
+    }
+  },
+  {
+    "model": "pessoas.entidadepagar",
+    "pk": 4,
+    "fields": {
+      "nome": "Júlia Secretária",
+      "cpf_cnpj": "357.159.852-00",
+      "email": "julia.sec@email.com",
+      "contato": "(19) 98888-2222",
+      "tipo": "funcionario",
+      "is_active": true,
+      "usuario": null,
+      "created_at": "2026-06-04T20:20:23.587Z",
+      "updated_at": "2026-06-04T20:20:23.587Z"
+    }
+  },
+  {
+    "model": "pessoas.funcionario",
+    "pk": 4,
+    "fields": {
+      "funcao": "Secretária",
+      "is_instrutor": false,
+      "salario_base": "2200.00"
+    }
+  },
+  {
+    "model": "conta_fixa.contafixa",
+    "pk": 1,
+    "fields": {
+      "nome": "Aluguel do Hangar",
+      "descricao": "Aluguel mensal do hangar principal",
+      "favorecido": "Imobiliária Central",
+      "valor": "3500.00",
+      "dia_vencimento": 5,
+      "is_active": true,
+      "created_at": "2026-06-04T20:20:23.712Z",
+      "updated_at": "2026-06-04T20:20:23.712Z"
+    }
+  },
+  {
+    "model": "conta_fixa.contafixa",
+    "pk": 2,
+    "fields": {
+      "nome": "Energia Elétrica",
+      "descricao": "Conta de energia do hangar e sede",
+      "favorecido": "CPFL Energia",
+      "valor": "1200.00",
+      "dia_vencimento": 10,
+      "is_active": true,
+      "created_at": "2026-06-04T20:20:23.823Z",
+      "updated_at": "2026-06-04T20:20:23.823Z"
+    }
+  },
+  {
+    "model": "conta_fixa.contafixa",
+    "pk": 3,
+    "fields": {
+      "nome": "Internet e Telefonia",
+      "descricao": "Link dedicado e telefonia",
+      "favorecido": "Operadora Telecom",
+      "valor": "300.00",
+      "dia_vencimento": 15,
+      "is_active": true,
+      "created_at": "2026-06-04T20:20:24.060Z",
+      "updated_at": "2026-06-04T20:20:24.060Z"
+    }
+  },
+  {
+    "model": "aeronaves.aeronave",
+    "pk": 1,
+    "fields": {
+      "nome": "PT-NEV NEIVA 56-C-1 (Paulistinha)",
+      "tipo": "aviao",
+      "foto": "/aeronaves/neiva-56c.jpg",
+      "is_active": true,
+      "created_at": "2026-06-04T20:20:25.000Z",
+      "updated_at": "2026-06-04T20:20:25.000Z"
+    }
+  },
+  {
+    "model": "aeronaves.aviao",
+    "pk": 1,
+    "fields": {
+      "tarifa_solo": "280.00",
+      "tarifa_duplo_comando": "340.00"
+    }
+  },
+  {
+    "model": "aeronaves.aeronave",
+    "pk": 2,
+    "fields": {
+      "nome": "PT-CUB PIPER J3C-65 (Cub)",
+      "tipo": "aviao",
+      "foto": "/aeronaves/piper-j3c.jpg",
+      "is_active": true,
+      "created_at": "2026-06-04T20:20:25.000Z",
+      "updated_at": "2026-06-04T20:20:25.000Z"
+    }
+  },
+  {
+    "model": "aeronaves.aviao",
+    "pk": 2,
+    "fields": {
+      "tarifa_solo": "260.00",
+      "tarifa_duplo_comando": "320.00"
+    }
+  },
+  {
+    "model": "aeronaves.aeronave",
+    "pk": 3,
+    "fields": {
+      "nome": "PT-CSE CESSNA 172D",
+      "tipo": "aviao",
+      "foto": "/aeronaves/cessna-172d.jpg",
+      "is_active": true,
+      "created_at": "2026-06-04T20:20:25.000Z",
+      "updated_at": "2026-06-04T20:20:25.000Z"
+    }
+  },
+  {
+    "model": "aeronaves.aviao",
+    "pk": 3,
+    "fields": {
+      "tarifa_solo": "380.00",
+      "tarifa_duplo_comando": "450.00"
+    }
+  },
+  {
+    "model": "aeronaves.aeronave",
+    "pk": 4,
+    "fields": {
+      "nome": "PT-CSF CESSNA 152",
+      "tipo": "aviao",
+      "foto": "/aeronaves/cessna-152.jpg",
+      "is_active": true,
+      "created_at": "2026-06-04T20:20:25.000Z",
+      "updated_at": "2026-06-04T20:20:25.000Z"
+    }
+  },
+  {
+    "model": "aeronaves.aviao",
+    "pk": 4,
+    "fields": {
+      "tarifa_solo": "320.00",
+      "tarifa_duplo_comando": "390.00"
+    }
+  },
+  {
+    "model": "aeronaves.aeronave",
+    "pk": 5,
+    "fields": {
+      "nome": "PT-ABO AERO BOERO AB-180",
+      "tipo": "aviao",
+      "foto": "/aeronaves/aero-boero-ab180.jpg",
+      "is_active": true,
+      "created_at": "2026-06-04T20:20:25.000Z",
+      "updated_at": "2026-06-04T20:20:25.000Z"
+    }
+  },
+  {
+    "model": "aeronaves.aviao",
+    "pk": 5,
+    "fields": {
+      "tarifa_solo": "300.00",
+      "tarifa_duplo_comando": "360.00"
+    }
+  },
+  {
+    "model": "aeronaves.aeronave",
+    "pk": 6,
+    "fields": {
+      "nome": "PP-PCZ PZL-BIELSKO SZD-50-3 Puchacz",
+      "tipo": "planador",
+      "foto": "/aeronaves/szd-50-puchacz.jpg",
+      "is_active": true,
+      "created_at": "2026-06-04T20:20:25.000Z",
+      "updated_at": "2026-06-04T20:20:25.000Z"
+    }
+  },
+  {
+    "model": "aeronaves.planador",
+    "pk": 6,
+    "fields": {
+      "minutos_franquia": 45,
+      "valor_fixo_inicial": "180.00",
+      "valor_minuto_adicional": "2.50",
+      "valor_fixo_duplo": null,
+      "valor_minuto_duplo": null
+    }
+  },
+  {
+    "model": "aeronaves.aeronave",
+    "pk": 7,
+    "fields": {
+      "nome": "PP-G103 GROB G103 (Twin Astir)",
+      "tipo": "planador",
+      "foto": "/aeronaves/grob-g103.jpg",
+      "is_active": true,
+      "created_at": "2026-06-04T20:20:25.000Z",
+      "updated_at": "2026-06-04T20:20:25.000Z"
+    }
+  },
+  {
+    "model": "aeronaves.planador",
+    "pk": 7,
+    "fields": {
+      "minutos_franquia": 45,
+      "valor_fixo_inicial": "200.00",
+      "valor_minuto_adicional": "3.00",
+      "valor_fixo_duplo": null,
+      "valor_minuto_duplo": null
+    }
+  },
+  {
+    "model": "aeronaves.aeronave",
+    "pk": 8,
+    "fields": {
+      "nome": "PP-JT2 PZL-BIELSKO SZD-48-1 Jantar 2",
+      "tipo": "planador",
+      "foto": "/aeronaves/szd-48-jantar.jpg",
+      "is_active": true,
+      "created_at": "2026-06-04T20:20:25.000Z",
+      "updated_at": "2026-06-04T20:20:25.000Z"
+    }
+  },
+  {
+    "model": "aeronaves.planador",
+    "pk": 8,
+    "fields": {
+      "minutos_franquia": 45,
+      "valor_fixo_inicial": "170.00",
+      "valor_minuto_adicional": "2.50",
+      "valor_fixo_duplo": null,
+      "valor_minuto_duplo": null
+    }
+  },
+  {
+    "model": "aeronaves.aeronave",
+    "pk": 9,
+    "fields": {
+      "nome": "PP-PW5 PZL SWIDNIK PW-5",
+      "tipo": "planador",
+      "foto": "/aeronaves/pw-5.jpg",
+      "is_active": true,
+      "created_at": "2026-06-04T20:20:25.000Z",
+      "updated_at": "2026-06-04T20:20:25.000Z"
+    }
+  },
+  {
+    "model": "aeronaves.planador",
+    "pk": 9,
+    "fields": {
+      "minutos_franquia": 45,
+      "valor_fixo_inicial": "160.00",
+      "valor_minuto_adicional": "2.00",
+      "valor_fixo_duplo": null,
+      "valor_minuto_duplo": null
+    }
+  },
+  {
+    "model": "pessoas.favorecido",
+    "pk": 1,
+    "fields": {
+      "usuario": null,
+      "entidade": 1
+    }
+  },
+  {
+    "model": "pessoas.favorecido",
+    "pk": 2,
+    "fields": {
+      "usuario": null,
+      "entidade": 2
+    }
+  },
+  {
+    "model": "pessoas.favorecido",
+    "pk": 3,
+    "fields": {
+      "usuario": 9,
+      "entidade": null
+    }
+  },
+  {
+    "model": "pessoas.favorecido",
+    "pk": 4,
+    "fields": {
+      "usuario": 10,
+      "entidade": null
+    }
+  },
+  {
+    "model": "pessoas.favorecido",
+    "pk": 5,
+    "fields": {
+      "usuario": null,
+      "entidade": 4
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1000,
+    "fields": {
+      "participante": 2,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Jan/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-01-01",
+      "data_vencimento": "2026-01-10",
+      "data_pagamento": "2026-01-10",
+      "status": "baixado",
+      "created_at": "2026-01-01T12:00:00.000Z",
+      "updated_at": "2026-01-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1001,
+    "fields": {
+      "participante": 3,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Jan/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-01-01",
+      "data_vencimento": "2026-01-10",
+      "data_pagamento": "2026-01-10",
+      "status": "baixado",
+      "created_at": "2026-01-01T12:00:00.000Z",
+      "updated_at": "2026-01-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1002,
+    "fields": {
+      "participante": 4,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Jan/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-01-01",
+      "data_vencimento": "2026-01-10",
+      "data_pagamento": "2026-01-10",
+      "status": "baixado",
+      "created_at": "2026-01-01T12:00:00.000Z",
+      "updated_at": "2026-01-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1003,
+    "fields": {
+      "participante": 5,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Jan/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-01-01",
+      "data_vencimento": "2026-01-10",
+      "data_pagamento": "2026-01-10",
+      "status": "baixado",
+      "created_at": "2026-01-01T12:00:00.000Z",
+      "updated_at": "2026-01-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1004,
+    "fields": {
+      "participante": 6,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Jan/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-01-01",
+      "data_vencimento": "2026-01-10",
+      "data_pagamento": "2026-01-10",
+      "status": "baixado",
+      "created_at": "2026-01-01T12:00:00.000Z",
+      "updated_at": "2026-01-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1005,
+    "fields": {
+      "participante": 7,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Jan/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-01-01",
+      "data_vencimento": "2026-01-10",
+      "data_pagamento": "2026-01-10",
+      "status": "baixado",
+      "created_at": "2026-01-01T12:00:00.000Z",
+      "updated_at": "2026-01-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1006,
+    "fields": {
+      "participante": 8,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Jan/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-01-01",
+      "data_vencimento": "2026-01-10",
+      "data_pagamento": "2026-01-10",
+      "status": "baixado",
+      "created_at": "2026-01-01T12:00:00.000Z",
+      "updated_at": "2026-01-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1007,
+    "fields": {
+      "participante": 3,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Horas de voo — turma manhã Jan/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "4080.00",
+      "multa": "0.00",
+      "valor_pago": "4080.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-01-01",
+      "data_vencimento": "2026-01-16",
+      "data_pagamento": "2026-01-16",
+      "status": "baixado",
+      "created_at": "2026-01-01T12:00:00.000Z",
+      "updated_at": "2026-01-16T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1008,
+    "fields": {
+      "participante": 4,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Horas de voo — turma tarde Jan/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "3060.00",
+      "multa": "0.00",
+      "valor_pago": "3060.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-01-01",
+      "data_vencimento": "2026-01-17",
+      "data_pagamento": "2026-01-17",
+      "status": "baixado",
+      "created_at": "2026-01-01T12:00:00.000Z",
+      "updated_at": "2026-01-17T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1009,
+    "fields": {
+      "participante": 7,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Voos de planador Jan/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "2040.00",
+      "multa": "0.00",
+      "valor_pago": "2040.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-01-01",
+      "data_vencimento": "2026-01-18",
+      "data_pagamento": "2026-01-18",
+      "status": "baixado",
+      "created_at": "2026-01-01T12:00:00.000Z",
+      "updated_at": "2026-01-18T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1010,
+    "fields": {
+      "participante": 2,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Fev/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-02-01",
+      "data_vencimento": "2026-02-10",
+      "data_pagamento": "2026-02-10",
+      "status": "baixado",
+      "created_at": "2026-02-01T12:00:00.000Z",
+      "updated_at": "2026-02-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1011,
+    "fields": {
+      "participante": 3,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Fev/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-02-01",
+      "data_vencimento": "2026-02-10",
+      "data_pagamento": "2026-02-10",
+      "status": "baixado",
+      "created_at": "2026-02-01T12:00:00.000Z",
+      "updated_at": "2026-02-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1012,
+    "fields": {
+      "participante": 4,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Fev/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-02-01",
+      "data_vencimento": "2026-02-10",
+      "data_pagamento": "2026-02-10",
+      "status": "baixado",
+      "created_at": "2026-02-01T12:00:00.000Z",
+      "updated_at": "2026-02-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1013,
+    "fields": {
+      "participante": 5,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Fev/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-02-01",
+      "data_vencimento": "2026-02-10",
+      "data_pagamento": "2026-02-10",
+      "status": "baixado",
+      "created_at": "2026-02-01T12:00:00.000Z",
+      "updated_at": "2026-02-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1014,
+    "fields": {
+      "participante": 6,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Fev/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-02-01",
+      "data_vencimento": "2026-02-10",
+      "data_pagamento": "2026-02-10",
+      "status": "baixado",
+      "created_at": "2026-02-01T12:00:00.000Z",
+      "updated_at": "2026-02-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1015,
+    "fields": {
+      "participante": 7,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Fev/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-02-01",
+      "data_vencimento": "2026-02-10",
+      "data_pagamento": "2026-02-10",
+      "status": "baixado",
+      "created_at": "2026-02-01T12:00:00.000Z",
+      "updated_at": "2026-02-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1016,
+    "fields": {
+      "participante": 8,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Fev/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-02-01",
+      "data_vencimento": "2026-02-10",
+      "data_pagamento": "2026-02-10",
+      "status": "baixado",
+      "created_at": "2026-02-01T12:00:00.000Z",
+      "updated_at": "2026-02-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1017,
+    "fields": {
+      "participante": 3,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Horas de voo — turma manhã Fev/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "4800.00",
+      "multa": "0.00",
+      "valor_pago": "4800.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-02-01",
+      "data_vencimento": "2026-02-16",
+      "data_pagamento": "2026-02-16",
+      "status": "baixado",
+      "created_at": "2026-02-01T12:00:00.000Z",
+      "updated_at": "2026-02-16T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1018,
+    "fields": {
+      "participante": 4,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Horas de voo — turma tarde Fev/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "3600.00",
+      "multa": "0.00",
+      "valor_pago": "3600.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-02-01",
+      "data_vencimento": "2026-02-17",
+      "data_pagamento": "2026-02-17",
+      "status": "baixado",
+      "created_at": "2026-02-01T12:00:00.000Z",
+      "updated_at": "2026-02-17T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1019,
+    "fields": {
+      "participante": 7,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Voos de planador Fev/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "2400.00",
+      "multa": "0.00",
+      "valor_pago": "2400.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-02-01",
+      "data_vencimento": "2026-02-18",
+      "data_pagamento": "2026-02-18",
+      "status": "baixado",
+      "created_at": "2026-02-01T12:00:00.000Z",
+      "updated_at": "2026-02-18T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1020,
+    "fields": {
+      "participante": 5,
+      "cliente": null,
+      "tipo": "horas_pre_pagas",
+      "descricao": "Recarga de carteira Fev/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "2000.00",
+      "multa": "0.00",
+      "valor_pago": "2000.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-02-01",
+      "data_vencimento": "2026-02-20",
+      "data_pagamento": "2026-02-20",
+      "status": "baixado",
+      "created_at": "2026-02-01T12:00:00.000Z",
+      "updated_at": "2026-02-20T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1021,
+    "fields": {
+      "participante": 2,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Mar/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-03-01",
+      "data_vencimento": "2026-03-10",
+      "data_pagamento": "2026-03-10",
+      "status": "baixado",
+      "created_at": "2026-03-01T12:00:00.000Z",
+      "updated_at": "2026-03-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1022,
+    "fields": {
+      "participante": 3,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Mar/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-03-01",
+      "data_vencimento": "2026-03-10",
+      "data_pagamento": "2026-03-10",
+      "status": "baixado",
+      "created_at": "2026-03-01T12:00:00.000Z",
+      "updated_at": "2026-03-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1023,
+    "fields": {
+      "participante": 4,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Mar/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-03-01",
+      "data_vencimento": "2026-03-10",
+      "data_pagamento": "2026-03-10",
+      "status": "baixado",
+      "created_at": "2026-03-01T12:00:00.000Z",
+      "updated_at": "2026-03-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1024,
+    "fields": {
+      "participante": 5,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Mar/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-03-01",
+      "data_vencimento": "2026-03-10",
+      "data_pagamento": "2026-03-10",
+      "status": "baixado",
+      "created_at": "2026-03-01T12:00:00.000Z",
+      "updated_at": "2026-03-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1025,
+    "fields": {
+      "participante": 6,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Mar/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-03-01",
+      "data_vencimento": "2026-03-10",
+      "data_pagamento": "2026-03-10",
+      "status": "baixado",
+      "created_at": "2026-03-01T12:00:00.000Z",
+      "updated_at": "2026-03-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1026,
+    "fields": {
+      "participante": 7,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Mar/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-03-01",
+      "data_vencimento": "2026-03-10",
+      "data_pagamento": "2026-03-10",
+      "status": "baixado",
+      "created_at": "2026-03-01T12:00:00.000Z",
+      "updated_at": "2026-03-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1027,
+    "fields": {
+      "participante": 8,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Mar/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-03-01",
+      "data_vencimento": "2026-03-10",
+      "data_pagamento": "2026-03-10",
+      "status": "baixado",
+      "created_at": "2026-03-01T12:00:00.000Z",
+      "updated_at": "2026-03-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1028,
+    "fields": {
+      "participante": 3,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Horas de voo — turma manhã Mar/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "4416.00",
+      "multa": "0.00",
+      "valor_pago": "4416.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-03-01",
+      "data_vencimento": "2026-03-16",
+      "data_pagamento": "2026-03-16",
+      "status": "baixado",
+      "created_at": "2026-03-01T12:00:00.000Z",
+      "updated_at": "2026-03-16T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1029,
+    "fields": {
+      "participante": 4,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Horas de voo — turma tarde Mar/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "3312.00",
+      "multa": "0.00",
+      "valor_pago": "3312.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-03-01",
+      "data_vencimento": "2026-03-17",
+      "data_pagamento": "2026-03-17",
+      "status": "baixado",
+      "created_at": "2026-03-01T12:00:00.000Z",
+      "updated_at": "2026-03-17T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1030,
+    "fields": {
+      "participante": 7,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Voos de planador Mar/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "2208.00",
+      "multa": "0.00",
+      "valor_pago": "2208.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-03-01",
+      "data_vencimento": "2026-03-18",
+      "data_pagamento": "2026-03-18",
+      "status": "baixado",
+      "created_at": "2026-03-01T12:00:00.000Z",
+      "updated_at": "2026-03-18T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1031,
+    "fields": {
+      "participante": 8,
+      "cliente": null,
+      "tipo": "servico",
+      "descricao": "Hangaragem/serviços Mar/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "700.00",
+      "multa": "0.00",
+      "valor_pago": "700.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-03-01",
+      "data_vencimento": "2026-03-22",
+      "data_pagamento": "2026-03-22",
+      "status": "baixado",
+      "created_at": "2026-03-01T12:00:00.000Z",
+      "updated_at": "2026-03-22T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1032,
+    "fields": {
+      "participante": 2,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Abr/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-04-01",
+      "data_vencimento": "2026-04-10",
+      "data_pagamento": "2026-04-10",
+      "status": "baixado",
+      "created_at": "2026-04-01T12:00:00.000Z",
+      "updated_at": "2026-04-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1033,
+    "fields": {
+      "participante": 3,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Abr/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-04-01",
+      "data_vencimento": "2026-04-10",
+      "data_pagamento": "2026-04-10",
+      "status": "baixado",
+      "created_at": "2026-04-01T12:00:00.000Z",
+      "updated_at": "2026-04-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1034,
+    "fields": {
+      "participante": 4,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Abr/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-04-01",
+      "data_vencimento": "2026-04-10",
+      "data_pagamento": "2026-04-10",
+      "status": "baixado",
+      "created_at": "2026-04-01T12:00:00.000Z",
+      "updated_at": "2026-04-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1035,
+    "fields": {
+      "participante": 5,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Abr/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-04-01",
+      "data_vencimento": "2026-04-10",
+      "data_pagamento": "2026-04-10",
+      "status": "baixado",
+      "created_at": "2026-04-01T12:00:00.000Z",
+      "updated_at": "2026-04-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1036,
+    "fields": {
+      "participante": 6,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Abr/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-04-01",
+      "data_vencimento": "2026-04-10",
+      "data_pagamento": "2026-04-10",
+      "status": "baixado",
+      "created_at": "2026-04-01T12:00:00.000Z",
+      "updated_at": "2026-04-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1037,
+    "fields": {
+      "participante": 7,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Abr/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-04-01",
+      "data_vencimento": "2026-04-10",
+      "data_pagamento": "2026-04-10",
+      "status": "baixado",
+      "created_at": "2026-04-01T12:00:00.000Z",
+      "updated_at": "2026-04-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1038,
+    "fields": {
+      "participante": 8,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Abr/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-04-01",
+      "data_vencimento": "2026-04-10",
+      "data_pagamento": "2026-04-10",
+      "status": "baixado",
+      "created_at": "2026-04-01T12:00:00.000Z",
+      "updated_at": "2026-04-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1039,
+    "fields": {
+      "participante": 3,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Horas de voo — turma manhã Abr/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "5520.00",
+      "multa": "0.00",
+      "valor_pago": "5520.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-04-01",
+      "data_vencimento": "2026-04-16",
+      "data_pagamento": "2026-04-16",
+      "status": "baixado",
+      "created_at": "2026-04-01T12:00:00.000Z",
+      "updated_at": "2026-04-16T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1040,
+    "fields": {
+      "participante": 4,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Horas de voo — turma tarde Abr/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "4140.00",
+      "multa": "0.00",
+      "valor_pago": "4140.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-04-01",
+      "data_vencimento": "2026-04-17",
+      "data_pagamento": "2026-04-17",
+      "status": "baixado",
+      "created_at": "2026-04-01T12:00:00.000Z",
+      "updated_at": "2026-04-17T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1041,
+    "fields": {
+      "participante": 7,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Voos de planador Abr/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "2760.00",
+      "multa": "0.00",
+      "valor_pago": "2760.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-04-01",
+      "data_vencimento": "2026-04-18",
+      "data_pagamento": "2026-04-18",
+      "status": "baixado",
+      "created_at": "2026-04-01T12:00:00.000Z",
+      "updated_at": "2026-04-18T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1042,
+    "fields": {
+      "participante": 5,
+      "cliente": null,
+      "tipo": "horas_pre_pagas",
+      "descricao": "Recarga de carteira Abr/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "2000.00",
+      "multa": "0.00",
+      "valor_pago": "2000.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-04-01",
+      "data_vencimento": "2026-04-20",
+      "data_pagamento": "2026-04-20",
+      "status": "baixado",
+      "created_at": "2026-04-01T12:00:00.000Z",
+      "updated_at": "2026-04-20T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1043,
+    "fields": {
+      "participante": 2,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Mai/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-05-01",
+      "data_vencimento": "2026-05-10",
+      "data_pagamento": "2026-05-10",
+      "status": "baixado",
+      "created_at": "2026-05-01T12:00:00.000Z",
+      "updated_at": "2026-05-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1044,
+    "fields": {
+      "participante": 3,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Mai/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-05-01",
+      "data_vencimento": "2026-05-10",
+      "data_pagamento": "2026-05-10",
+      "status": "baixado",
+      "created_at": "2026-05-01T12:00:00.000Z",
+      "updated_at": "2026-05-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1045,
+    "fields": {
+      "participante": 4,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Mai/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-05-01",
+      "data_vencimento": "2026-05-10",
+      "data_pagamento": "2026-05-10",
+      "status": "baixado",
+      "created_at": "2026-05-01T12:00:00.000Z",
+      "updated_at": "2026-05-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1046,
+    "fields": {
+      "participante": 5,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Mai/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-05-01",
+      "data_vencimento": "2026-05-10",
+      "data_pagamento": "2026-05-10",
+      "status": "baixado",
+      "created_at": "2026-05-01T12:00:00.000Z",
+      "updated_at": "2026-05-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1047,
+    "fields": {
+      "participante": 6,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Mai/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-05-01",
+      "data_vencimento": "2026-05-10",
+      "data_pagamento": "2026-05-10",
+      "status": "baixado",
+      "created_at": "2026-05-01T12:00:00.000Z",
+      "updated_at": "2026-05-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1048,
+    "fields": {
+      "participante": 7,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Mai/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-05-01",
+      "data_vencimento": "2026-05-10",
+      "data_pagamento": "2026-05-10",
+      "status": "baixado",
+      "created_at": "2026-05-01T12:00:00.000Z",
+      "updated_at": "2026-05-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1049,
+    "fields": {
+      "participante": 8,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Mai/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-05-01",
+      "data_vencimento": "2026-05-10",
+      "data_pagamento": "2026-05-10",
+      "status": "baixado",
+      "created_at": "2026-05-01T12:00:00.000Z",
+      "updated_at": "2026-05-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1050,
+    "fields": {
+      "participante": 3,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Horas de voo — turma manhã Mai/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "5040.00",
+      "multa": "0.00",
+      "valor_pago": "5040.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-05-01",
+      "data_vencimento": "2026-05-16",
+      "data_pagamento": "2026-05-16",
+      "status": "baixado",
+      "created_at": "2026-05-01T12:00:00.000Z",
+      "updated_at": "2026-05-16T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1051,
+    "fields": {
+      "participante": 4,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Horas de voo — turma tarde Mai/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "3780.00",
+      "multa": "0.00",
+      "valor_pago": "3780.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-05-01",
+      "data_vencimento": "2026-05-17",
+      "data_pagamento": "2026-05-17",
+      "status": "baixado",
+      "created_at": "2026-05-01T12:00:00.000Z",
+      "updated_at": "2026-05-17T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1052,
+    "fields": {
+      "participante": 7,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Voos de planador Mai/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "2520.00",
+      "multa": "0.00",
+      "valor_pago": "2520.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-05-01",
+      "data_vencimento": "2026-05-18",
+      "data_pagamento": "2026-05-18",
+      "status": "baixado",
+      "created_at": "2026-05-01T12:00:00.000Z",
+      "updated_at": "2026-05-18T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1053,
+    "fields": {
+      "participante": 2,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Jun/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-06-01",
+      "data_vencimento": "2026-06-10",
+      "data_pagamento": "2026-06-10",
+      "status": "baixado",
+      "created_at": "2026-06-01T12:00:00.000Z",
+      "updated_at": "2026-06-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1054,
+    "fields": {
+      "participante": 3,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Jun/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-06-01",
+      "data_vencimento": "2026-06-10",
+      "data_pagamento": "2026-06-10",
+      "status": "baixado",
+      "created_at": "2026-06-01T12:00:00.000Z",
+      "updated_at": "2026-06-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1055,
+    "fields": {
+      "participante": 4,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Jun/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-06-01",
+      "data_vencimento": "2026-06-10",
+      "data_pagamento": "2026-06-10",
+      "status": "baixado",
+      "created_at": "2026-06-01T12:00:00.000Z",
+      "updated_at": "2026-06-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1056,
+    "fields": {
+      "participante": 5,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Jun/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-06-01",
+      "data_vencimento": "2026-06-10",
+      "data_pagamento": "2026-06-10",
+      "status": "baixado",
+      "created_at": "2026-06-01T12:00:00.000Z",
+      "updated_at": "2026-06-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1057,
+    "fields": {
+      "participante": 6,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Jun/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-06-01",
+      "data_vencimento": "2026-06-10",
+      "data_pagamento": "2026-06-10",
+      "status": "baixado",
+      "created_at": "2026-06-01T12:00:00.000Z",
+      "updated_at": "2026-06-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1058,
+    "fields": {
+      "participante": 7,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Jun/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-06-01",
+      "data_vencimento": "2026-06-10",
+      "data_pagamento": "2026-06-10",
+      "status": "baixado",
+      "created_at": "2026-06-01T12:00:00.000Z",
+      "updated_at": "2026-06-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1059,
+    "fields": {
+      "participante": 8,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Jun/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "500.00",
+      "multa": "0.00",
+      "valor_pago": "500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-06-01",
+      "data_vencimento": "2026-06-10",
+      "data_pagamento": "2026-06-10",
+      "status": "baixado",
+      "created_at": "2026-06-01T12:00:00.000Z",
+      "updated_at": "2026-06-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1060,
+    "fields": {
+      "participante": 3,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Horas de voo — turma manhã Jun/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "6000.00",
+      "multa": "0.00",
+      "valor_pago": "6000.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-06-01",
+      "data_vencimento": "2026-06-16",
+      "data_pagamento": "2026-06-16",
+      "status": "baixado",
+      "created_at": "2026-06-01T12:00:00.000Z",
+      "updated_at": "2026-06-16T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1061,
+    "fields": {
+      "participante": 4,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Horas de voo — turma tarde Jun/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "4500.00",
+      "multa": "0.00",
+      "valor_pago": "4500.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-06-01",
+      "data_vencimento": "2026-06-17",
+      "data_pagamento": "2026-06-17",
+      "status": "baixado",
+      "created_at": "2026-06-01T12:00:00.000Z",
+      "updated_at": "2026-06-17T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1062,
+    "fields": {
+      "participante": 7,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Voos de planador Jun/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "3000.00",
+      "multa": "0.00",
+      "valor_pago": "3000.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-06-01",
+      "data_vencimento": "2026-06-18",
+      "data_pagamento": "2026-06-18",
+      "status": "baixado",
+      "created_at": "2026-06-01T12:00:00.000Z",
+      "updated_at": "2026-06-18T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1063,
+    "fields": {
+      "participante": 5,
+      "cliente": null,
+      "tipo": "horas_pre_pagas",
+      "descricao": "Recarga de carteira Jun/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "2000.00",
+      "multa": "0.00",
+      "valor_pago": "2000.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-06-01",
+      "data_vencimento": "2026-06-20",
+      "data_pagamento": "2026-06-20",
+      "status": "baixado",
+      "created_at": "2026-06-01T12:00:00.000Z",
+      "updated_at": "2026-06-20T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1064,
+    "fields": {
+      "participante": 8,
+      "cliente": null,
+      "tipo": "servico",
+      "descricao": "Hangaragem/serviços Jun/2026",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "700.00",
+      "multa": "0.00",
+      "valor_pago": "700.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2026-06-01",
+      "data_vencimento": "2026-06-22",
+      "data_pagamento": "2026-06-22",
+      "status": "baixado",
+      "created_at": "2026-06-01T12:00:00.000Z",
+      "updated_at": "2026-06-22T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1065,
+    "fields": {
+      "participante": 2,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Set/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "480.00",
+      "multa": "0.00",
+      "valor_pago": "480.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-09-01",
+      "data_vencimento": "2025-09-10",
+      "data_pagamento": "2025-09-10",
+      "status": "baixado",
+      "created_at": "2025-09-01T12:00:00.000Z",
+      "updated_at": "2025-09-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1066,
+    "fields": {
+      "participante": 3,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Set/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "480.00",
+      "multa": "0.00",
+      "valor_pago": "480.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-09-01",
+      "data_vencimento": "2025-09-10",
+      "data_pagamento": "2025-09-10",
+      "status": "baixado",
+      "created_at": "2025-09-01T12:00:00.000Z",
+      "updated_at": "2025-09-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1067,
+    "fields": {
+      "participante": 4,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Set/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "480.00",
+      "multa": "0.00",
+      "valor_pago": "480.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-09-01",
+      "data_vencimento": "2025-09-10",
+      "data_pagamento": "2025-09-10",
+      "status": "baixado",
+      "created_at": "2025-09-01T12:00:00.000Z",
+      "updated_at": "2025-09-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1068,
+    "fields": {
+      "participante": 7,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Set/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "480.00",
+      "multa": "0.00",
+      "valor_pago": "480.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-09-01",
+      "data_vencimento": "2025-09-10",
+      "data_pagamento": "2025-09-10",
+      "status": "baixado",
+      "created_at": "2025-09-01T12:00:00.000Z",
+      "updated_at": "2025-09-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1069,
+    "fields": {
+      "participante": 3,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Horas de voo Set/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "6800.00",
+      "multa": "0.00",
+      "valor_pago": "6800.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-09-01",
+      "data_vencimento": "2025-09-16",
+      "data_pagamento": "2025-09-16",
+      "status": "baixado",
+      "created_at": "2025-09-01T12:00:00.000Z",
+      "updated_at": "2025-09-16T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1070,
+    "fields": {
+      "participante": 7,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Voos de planador Set/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "2100.00",
+      "multa": "0.00",
+      "valor_pago": "2100.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-09-01",
+      "data_vencimento": "2025-09-18",
+      "data_pagamento": "2025-09-18",
+      "status": "baixado",
+      "created_at": "2025-09-01T12:00:00.000Z",
+      "updated_at": "2025-09-18T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1071,
+    "fields": {
+      "participante": 2,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Out/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "480.00",
+      "multa": "0.00",
+      "valor_pago": "480.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-10-01",
+      "data_vencimento": "2025-10-10",
+      "data_pagamento": "2025-10-10",
+      "status": "baixado",
+      "created_at": "2025-10-01T12:00:00.000Z",
+      "updated_at": "2025-10-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1072,
+    "fields": {
+      "participante": 3,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Out/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "480.00",
+      "multa": "0.00",
+      "valor_pago": "480.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-10-01",
+      "data_vencimento": "2025-10-10",
+      "data_pagamento": "2025-10-10",
+      "status": "baixado",
+      "created_at": "2025-10-01T12:00:00.000Z",
+      "updated_at": "2025-10-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1073,
+    "fields": {
+      "participante": 4,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Out/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "480.00",
+      "multa": "0.00",
+      "valor_pago": "480.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-10-01",
+      "data_vencimento": "2025-10-10",
+      "data_pagamento": "2025-10-10",
+      "status": "baixado",
+      "created_at": "2025-10-01T12:00:00.000Z",
+      "updated_at": "2025-10-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1074,
+    "fields": {
+      "participante": 7,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Out/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "480.00",
+      "multa": "0.00",
+      "valor_pago": "480.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-10-01",
+      "data_vencimento": "2025-10-10",
+      "data_pagamento": "2025-10-10",
+      "status": "baixado",
+      "created_at": "2025-10-01T12:00:00.000Z",
+      "updated_at": "2025-10-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1075,
+    "fields": {
+      "participante": 3,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Horas de voo Out/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "6800.00",
+      "multa": "0.00",
+      "valor_pago": "6800.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-10-01",
+      "data_vencimento": "2025-10-16",
+      "data_pagamento": "2025-10-16",
+      "status": "baixado",
+      "created_at": "2025-10-01T12:00:00.000Z",
+      "updated_at": "2025-10-16T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1076,
+    "fields": {
+      "participante": 7,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Voos de planador Out/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "2100.00",
+      "multa": "0.00",
+      "valor_pago": "2100.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-10-01",
+      "data_vencimento": "2025-10-18",
+      "data_pagamento": "2025-10-18",
+      "status": "baixado",
+      "created_at": "2025-10-01T12:00:00.000Z",
+      "updated_at": "2025-10-18T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1077,
+    "fields": {
+      "participante": 2,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Nov/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "480.00",
+      "multa": "0.00",
+      "valor_pago": "480.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-11-01",
+      "data_vencimento": "2025-11-10",
+      "data_pagamento": "2025-11-10",
+      "status": "baixado",
+      "created_at": "2025-11-01T12:00:00.000Z",
+      "updated_at": "2025-11-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1078,
+    "fields": {
+      "participante": 3,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Nov/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "480.00",
+      "multa": "0.00",
+      "valor_pago": "480.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-11-01",
+      "data_vencimento": "2025-11-10",
+      "data_pagamento": "2025-11-10",
+      "status": "baixado",
+      "created_at": "2025-11-01T12:00:00.000Z",
+      "updated_at": "2025-11-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1079,
+    "fields": {
+      "participante": 4,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Nov/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "480.00",
+      "multa": "0.00",
+      "valor_pago": "480.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-11-01",
+      "data_vencimento": "2025-11-10",
+      "data_pagamento": "2025-11-10",
+      "status": "baixado",
+      "created_at": "2025-11-01T12:00:00.000Z",
+      "updated_at": "2025-11-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1080,
+    "fields": {
+      "participante": 7,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Nov/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "480.00",
+      "multa": "0.00",
+      "valor_pago": "480.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-11-01",
+      "data_vencimento": "2025-11-10",
+      "data_pagamento": "2025-11-10",
+      "status": "baixado",
+      "created_at": "2025-11-01T12:00:00.000Z",
+      "updated_at": "2025-11-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1081,
+    "fields": {
+      "participante": 3,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Horas de voo Nov/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "6800.00",
+      "multa": "0.00",
+      "valor_pago": "6800.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-11-01",
+      "data_vencimento": "2025-11-16",
+      "data_pagamento": "2025-11-16",
+      "status": "baixado",
+      "created_at": "2025-11-01T12:00:00.000Z",
+      "updated_at": "2025-11-16T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1082,
+    "fields": {
+      "participante": 7,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Voos de planador Nov/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "2100.00",
+      "multa": "0.00",
+      "valor_pago": "2100.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-11-01",
+      "data_vencimento": "2025-11-18",
+      "data_pagamento": "2025-11-18",
+      "status": "baixado",
+      "created_at": "2025-11-01T12:00:00.000Z",
+      "updated_at": "2025-11-18T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1083,
+    "fields": {
+      "participante": 2,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Dez/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "480.00",
+      "multa": "0.00",
+      "valor_pago": "480.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-12-01",
+      "data_vencimento": "2025-12-10",
+      "data_pagamento": "2025-12-10",
+      "status": "baixado",
+      "created_at": "2025-12-01T12:00:00.000Z",
+      "updated_at": "2025-12-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1084,
+    "fields": {
+      "participante": 3,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Dez/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "480.00",
+      "multa": "0.00",
+      "valor_pago": "480.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-12-01",
+      "data_vencimento": "2025-12-10",
+      "data_pagamento": "2025-12-10",
+      "status": "baixado",
+      "created_at": "2025-12-01T12:00:00.000Z",
+      "updated_at": "2025-12-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1085,
+    "fields": {
+      "participante": 4,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Dez/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "480.00",
+      "multa": "0.00",
+      "valor_pago": "480.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-12-01",
+      "data_vencimento": "2025-12-10",
+      "data_pagamento": "2025-12-10",
+      "status": "baixado",
+      "created_at": "2025-12-01T12:00:00.000Z",
+      "updated_at": "2025-12-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1086,
+    "fields": {
+      "participante": 7,
+      "cliente": null,
+      "tipo": "mensalidade",
+      "descricao": "Mensalidade Dez/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "480.00",
+      "multa": "0.00",
+      "valor_pago": "480.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-12-01",
+      "data_vencimento": "2025-12-10",
+      "data_pagamento": "2025-12-10",
+      "status": "baixado",
+      "created_at": "2025-12-01T12:00:00.000Z",
+      "updated_at": "2025-12-10T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1087,
+    "fields": {
+      "participante": 3,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Horas de voo Dez/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "6800.00",
+      "multa": "0.00",
+      "valor_pago": "6800.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-12-01",
+      "data_vencimento": "2025-12-16",
+      "data_pagamento": "2025-12-16",
+      "status": "baixado",
+      "created_at": "2025-12-01T12:00:00.000Z",
+      "updated_at": "2025-12-16T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_receber.tituloreceber",
+    "pk": 1088,
+    "fields": {
+      "participante": 7,
+      "cliente": null,
+      "tipo": "voo",
+      "descricao": "Voos de planador Dez/2025",
+      "voo": null,
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor_original": "2100.00",
+      "multa": "0.00",
+      "valor_pago": "2100.00",
+      "valor_via_carteira": "0.00",
+      "data_emissao": "2025-12-01",
+      "data_vencimento": "2025-12-18",
+      "data_pagamento": "2025-12-18",
+      "status": "baixado",
+      "created_at": "2025-12-01T12:00:00.000Z",
+      "updated_at": "2025-12-18T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2000,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 3,
+      "descricao": "Folha instrutor — Jan/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2500.00",
+      "data_emissao": "2026-01-01",
+      "data_vencimento": "2026-01-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2500.00",
+      "data_pagamento": "2026-01-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-01-01T12:00:00.000Z",
+      "updated_at": "2026-01-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2001,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 4,
+      "descricao": "Folha instrutora — Jan/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2500.00",
+      "data_emissao": "2026-01-01",
+      "data_vencimento": "2026-01-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2500.00",
+      "data_pagamento": "2026-01-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-01-01T12:00:00.000Z",
+      "updated_at": "2026-01-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2002,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 5,
+      "descricao": "Folha secretária — Jan/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "1800.00",
+      "data_emissao": "2026-01-01",
+      "data_vencimento": "2026-01-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "1800.00",
+      "data_pagamento": "2026-01-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-01-01T12:00:00.000Z",
+      "updated_at": "2026-01-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2003,
+    "fields": {
+      "tipo": "fornecedor",
+      "favorecido": 1,
+      "descricao": "Combustível AVGAS — Jan/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2210.00",
+      "data_emissao": "2026-01-01",
+      "data_vencimento": "2026-01-08",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2210.00",
+      "data_pagamento": "2026-01-08",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-01-01T12:00:00.000Z",
+      "updated_at": "2026-01-08T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2004,
+    "fields": {
+      "tipo": "conta_fixa",
+      "favorecido": 2,
+      "descricao": "Manutenção/energia hangar — Jan/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "935.00",
+      "data_emissao": "2026-01-01",
+      "data_vencimento": "2026-01-12",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "935.00",
+      "data_pagamento": "2026-01-12",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-01-01T12:00:00.000Z",
+      "updated_at": "2026-01-12T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2005,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 3,
+      "descricao": "Folha instrutor — Fev/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2500.00",
+      "data_emissao": "2026-02-01",
+      "data_vencimento": "2026-02-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2500.00",
+      "data_pagamento": "2026-02-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-02-01T12:00:00.000Z",
+      "updated_at": "2026-02-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2006,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 4,
+      "descricao": "Folha instrutora — Fev/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2500.00",
+      "data_emissao": "2026-02-01",
+      "data_vencimento": "2026-02-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2500.00",
+      "data_pagamento": "2026-02-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-02-01T12:00:00.000Z",
+      "updated_at": "2026-02-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2007,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 5,
+      "descricao": "Folha secretária — Fev/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "1800.00",
+      "data_emissao": "2026-02-01",
+      "data_vencimento": "2026-02-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "1800.00",
+      "data_pagamento": "2026-02-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-02-01T12:00:00.000Z",
+      "updated_at": "2026-02-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2008,
+    "fields": {
+      "tipo": "fornecedor",
+      "favorecido": 1,
+      "descricao": "Combustível AVGAS — Fev/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2600.00",
+      "data_emissao": "2026-02-01",
+      "data_vencimento": "2026-02-08",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2600.00",
+      "data_pagamento": "2026-02-08",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-02-01T12:00:00.000Z",
+      "updated_at": "2026-02-08T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2009,
+    "fields": {
+      "tipo": "conta_fixa",
+      "favorecido": 2,
+      "descricao": "Manutenção/energia hangar — Fev/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "1100.00",
+      "data_emissao": "2026-02-01",
+      "data_vencimento": "2026-02-12",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "1100.00",
+      "data_pagamento": "2026-02-12",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-02-01T12:00:00.000Z",
+      "updated_at": "2026-02-12T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2010,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 3,
+      "descricao": "Folha instrutor — Mar/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2500.00",
+      "data_emissao": "2026-03-01",
+      "data_vencimento": "2026-03-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2500.00",
+      "data_pagamento": "2026-03-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-03-01T12:00:00.000Z",
+      "updated_at": "2026-03-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2011,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 4,
+      "descricao": "Folha instrutora — Mar/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2500.00",
+      "data_emissao": "2026-03-01",
+      "data_vencimento": "2026-03-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2500.00",
+      "data_pagamento": "2026-03-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-03-01T12:00:00.000Z",
+      "updated_at": "2026-03-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2012,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 5,
+      "descricao": "Folha secretária — Mar/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "1800.00",
+      "data_emissao": "2026-03-01",
+      "data_vencimento": "2026-03-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "1800.00",
+      "data_pagamento": "2026-03-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-03-01T12:00:00.000Z",
+      "updated_at": "2026-03-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2013,
+    "fields": {
+      "tipo": "fornecedor",
+      "favorecido": 1,
+      "descricao": "Combustível AVGAS — Mar/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2392.00",
+      "data_emissao": "2026-03-01",
+      "data_vencimento": "2026-03-08",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2392.00",
+      "data_pagamento": "2026-03-08",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-03-01T12:00:00.000Z",
+      "updated_at": "2026-03-08T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2014,
+    "fields": {
+      "tipo": "conta_fixa",
+      "favorecido": 2,
+      "descricao": "Manutenção/energia hangar — Mar/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "1012.00",
+      "data_emissao": "2026-03-01",
+      "data_vencimento": "2026-03-12",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "1012.00",
+      "data_pagamento": "2026-03-12",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-03-01T12:00:00.000Z",
+      "updated_at": "2026-03-12T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2015,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 3,
+      "descricao": "Folha instrutor — Abr/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2500.00",
+      "data_emissao": "2026-04-01",
+      "data_vencimento": "2026-04-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2500.00",
+      "data_pagamento": "2026-04-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-04-01T12:00:00.000Z",
+      "updated_at": "2026-04-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2016,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 4,
+      "descricao": "Folha instrutora — Abr/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2500.00",
+      "data_emissao": "2026-04-01",
+      "data_vencimento": "2026-04-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2500.00",
+      "data_pagamento": "2026-04-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-04-01T12:00:00.000Z",
+      "updated_at": "2026-04-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2017,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 5,
+      "descricao": "Folha secretária — Abr/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "1800.00",
+      "data_emissao": "2026-04-01",
+      "data_vencimento": "2026-04-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "1800.00",
+      "data_pagamento": "2026-04-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-04-01T12:00:00.000Z",
+      "updated_at": "2026-04-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2018,
+    "fields": {
+      "tipo": "fornecedor",
+      "favorecido": 1,
+      "descricao": "Combustível AVGAS — Abr/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2990.00",
+      "data_emissao": "2026-04-01",
+      "data_vencimento": "2026-04-08",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2990.00",
+      "data_pagamento": "2026-04-08",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-04-01T12:00:00.000Z",
+      "updated_at": "2026-04-08T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2019,
+    "fields": {
+      "tipo": "conta_fixa",
+      "favorecido": 2,
+      "descricao": "Manutenção/energia hangar — Abr/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "1265.00",
+      "data_emissao": "2026-04-01",
+      "data_vencimento": "2026-04-12",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "1265.00",
+      "data_pagamento": "2026-04-12",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-04-01T12:00:00.000Z",
+      "updated_at": "2026-04-12T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2020,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 3,
+      "descricao": "Folha instrutor — Mai/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2500.00",
+      "data_emissao": "2026-05-01",
+      "data_vencimento": "2026-05-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2500.00",
+      "data_pagamento": "2026-05-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-05-01T12:00:00.000Z",
+      "updated_at": "2026-05-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2021,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 4,
+      "descricao": "Folha instrutora — Mai/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2500.00",
+      "data_emissao": "2026-05-01",
+      "data_vencimento": "2026-05-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2500.00",
+      "data_pagamento": "2026-05-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-05-01T12:00:00.000Z",
+      "updated_at": "2026-05-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2022,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 5,
+      "descricao": "Folha secretária — Mai/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "1800.00",
+      "data_emissao": "2026-05-01",
+      "data_vencimento": "2026-05-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "1800.00",
+      "data_pagamento": "2026-05-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-05-01T12:00:00.000Z",
+      "updated_at": "2026-05-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2023,
+    "fields": {
+      "tipo": "fornecedor",
+      "favorecido": 1,
+      "descricao": "Combustível AVGAS — Mai/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2730.00",
+      "data_emissao": "2026-05-01",
+      "data_vencimento": "2026-05-08",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2730.00",
+      "data_pagamento": "2026-05-08",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-05-01T12:00:00.000Z",
+      "updated_at": "2026-05-08T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2024,
+    "fields": {
+      "tipo": "conta_fixa",
+      "favorecido": 2,
+      "descricao": "Manutenção/energia hangar — Mai/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "1155.00",
+      "data_emissao": "2026-05-01",
+      "data_vencimento": "2026-05-12",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "1155.00",
+      "data_pagamento": "2026-05-12",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-05-01T12:00:00.000Z",
+      "updated_at": "2026-05-12T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2025,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 3,
+      "descricao": "Folha instrutor — Jun/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2500.00",
+      "data_emissao": "2026-06-01",
+      "data_vencimento": "2026-06-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2500.00",
+      "data_pagamento": "2026-06-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-06-01T12:00:00.000Z",
+      "updated_at": "2026-06-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2026,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 4,
+      "descricao": "Folha instrutora — Jun/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2500.00",
+      "data_emissao": "2026-06-01",
+      "data_vencimento": "2026-06-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2500.00",
+      "data_pagamento": "2026-06-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-06-01T12:00:00.000Z",
+      "updated_at": "2026-06-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2027,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 5,
+      "descricao": "Folha secretária — Jun/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "1800.00",
+      "data_emissao": "2026-06-01",
+      "data_vencimento": "2026-06-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "1800.00",
+      "data_pagamento": "2026-06-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-06-01T12:00:00.000Z",
+      "updated_at": "2026-06-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2028,
+    "fields": {
+      "tipo": "fornecedor",
+      "favorecido": 1,
+      "descricao": "Combustível AVGAS — Jun/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "3250.00",
+      "data_emissao": "2026-06-01",
+      "data_vencimento": "2026-06-08",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "3250.00",
+      "data_pagamento": "2026-06-08",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-06-01T12:00:00.000Z",
+      "updated_at": "2026-06-08T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2029,
+    "fields": {
+      "tipo": "conta_fixa",
+      "favorecido": 2,
+      "descricao": "Manutenção/energia hangar — Jun/2026",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "1375.00",
+      "data_emissao": "2026-06-01",
+      "data_vencimento": "2026-06-12",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "1375.00",
+      "data_pagamento": "2026-06-12",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2026-06-01T12:00:00.000Z",
+      "updated_at": "2026-06-12T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2030,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 3,
+      "descricao": "Folha instrutor — Set/2025",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2400.00",
+      "data_emissao": "2025-09-01",
+      "data_vencimento": "2025-09-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2400.00",
+      "data_pagamento": "2025-09-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2025-09-01T12:00:00.000Z",
+      "updated_at": "2025-09-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2031,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 5,
+      "descricao": "Folha secretária — Set/2025",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "1750.00",
+      "data_emissao": "2025-09-01",
+      "data_vencimento": "2025-09-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "1750.00",
+      "data_pagamento": "2025-09-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2025-09-01T12:00:00.000Z",
+      "updated_at": "2025-09-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2032,
+    "fields": {
+      "tipo": "fornecedor",
+      "favorecido": 1,
+      "descricao": "Combustível AVGAS — Set/2025",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2300.00",
+      "data_emissao": "2025-09-01",
+      "data_vencimento": "2025-09-08",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2300.00",
+      "data_pagamento": "2025-09-08",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2025-09-01T12:00:00.000Z",
+      "updated_at": "2025-09-08T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2033,
+    "fields": {
+      "tipo": "conta_fixa",
+      "favorecido": 2,
+      "descricao": "Energia hangar — Set/2025",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "1000.00",
+      "data_emissao": "2025-09-01",
+      "data_vencimento": "2025-09-12",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "1000.00",
+      "data_pagamento": "2025-09-12",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2025-09-01T12:00:00.000Z",
+      "updated_at": "2025-09-12T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2034,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 3,
+      "descricao": "Folha instrutor — Out/2025",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2400.00",
+      "data_emissao": "2025-10-01",
+      "data_vencimento": "2025-10-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2400.00",
+      "data_pagamento": "2025-10-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2025-10-01T12:00:00.000Z",
+      "updated_at": "2025-10-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2035,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 5,
+      "descricao": "Folha secretária — Out/2025",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "1750.00",
+      "data_emissao": "2025-10-01",
+      "data_vencimento": "2025-10-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "1750.00",
+      "data_pagamento": "2025-10-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2025-10-01T12:00:00.000Z",
+      "updated_at": "2025-10-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2036,
+    "fields": {
+      "tipo": "fornecedor",
+      "favorecido": 1,
+      "descricao": "Combustível AVGAS — Out/2025",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2300.00",
+      "data_emissao": "2025-10-01",
+      "data_vencimento": "2025-10-08",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2300.00",
+      "data_pagamento": "2025-10-08",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2025-10-01T12:00:00.000Z",
+      "updated_at": "2025-10-08T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2037,
+    "fields": {
+      "tipo": "conta_fixa",
+      "favorecido": 2,
+      "descricao": "Energia hangar — Out/2025",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "1000.00",
+      "data_emissao": "2025-10-01",
+      "data_vencimento": "2025-10-12",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "1000.00",
+      "data_pagamento": "2025-10-12",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2025-10-01T12:00:00.000Z",
+      "updated_at": "2025-10-12T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2038,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 3,
+      "descricao": "Folha instrutor — Nov/2025",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2400.00",
+      "data_emissao": "2025-11-01",
+      "data_vencimento": "2025-11-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2400.00",
+      "data_pagamento": "2025-11-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2025-11-01T12:00:00.000Z",
+      "updated_at": "2025-11-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2039,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 5,
+      "descricao": "Folha secretária — Nov/2025",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "1750.00",
+      "data_emissao": "2025-11-01",
+      "data_vencimento": "2025-11-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "1750.00",
+      "data_pagamento": "2025-11-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2025-11-01T12:00:00.000Z",
+      "updated_at": "2025-11-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2040,
+    "fields": {
+      "tipo": "fornecedor",
+      "favorecido": 1,
+      "descricao": "Combustível AVGAS — Nov/2025",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2300.00",
+      "data_emissao": "2025-11-01",
+      "data_vencimento": "2025-11-08",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2300.00",
+      "data_pagamento": "2025-11-08",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2025-11-01T12:00:00.000Z",
+      "updated_at": "2025-11-08T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2041,
+    "fields": {
+      "tipo": "conta_fixa",
+      "favorecido": 2,
+      "descricao": "Energia hangar — Nov/2025",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "1000.00",
+      "data_emissao": "2025-11-01",
+      "data_vencimento": "2025-11-12",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "1000.00",
+      "data_pagamento": "2025-11-12",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2025-11-01T12:00:00.000Z",
+      "updated_at": "2025-11-12T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2042,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 3,
+      "descricao": "Folha instrutor — Dez/2025",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2400.00",
+      "data_emissao": "2025-12-01",
+      "data_vencimento": "2025-12-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2400.00",
+      "data_pagamento": "2025-12-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2025-12-01T12:00:00.000Z",
+      "updated_at": "2025-12-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2043,
+    "fields": {
+      "tipo": "folha_pagamento",
+      "favorecido": 5,
+      "descricao": "Folha secretária — Dez/2025",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "1750.00",
+      "data_emissao": "2025-12-01",
+      "data_vencimento": "2025-12-05",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "1750.00",
+      "data_pagamento": "2025-12-05",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2025-12-01T12:00:00.000Z",
+      "updated_at": "2025-12-05T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2044,
+    "fields": {
+      "tipo": "fornecedor",
+      "favorecido": 1,
+      "descricao": "Combustível AVGAS — Dez/2025",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "2300.00",
+      "data_emissao": "2025-12-01",
+      "data_vencimento": "2025-12-08",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "2300.00",
+      "data_pagamento": "2025-12-08",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2025-12-01T12:00:00.000Z",
+      "updated_at": "2025-12-08T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "titulos_pagar.titulopagar",
+    "pk": 2045,
+    "fields": {
+      "tipo": "conta_fixa",
+      "favorecido": 2,
+      "descricao": "Energia hangar — Dez/2025",
+      "num_parcela": 1,
+      "total_parcelas": 1,
+      "valor": "1000.00",
+      "data_emissao": "2025-12-01",
+      "data_vencimento": "2025-12-12",
+      "status": "baixado",
+      "multa": "0.00",
+      "valor_pago": "1000.00",
+      "data_pagamento": "2025-12-12",
+      "is_recorrente": false,
+      "periodicidade_dias": null,
+      "created_at": "2025-12-01T12:00:00.000Z",
+      "updated_at": "2025-12-12T12:00:00.000Z"
+    }
+  },
+  {
+    "model": "cnab.configuracaobancaria",
+    "pk": 1,
+    "fields": {
+      "descricao": "Configuração Sicoob",
+      "codigo_banco": "756",
+      "nome_banco": "SICOOB",
+      "nome_beneficiario": "AERO CLUBE DE RIO CLARO",
+      "cpf_cnpj": "56.391.709/0001-10",
+      "prefixo_cooperativa": "1",
+      "dv_prefixo": "",
+      "codigo_beneficiario": "110980",
+      "dv_beneficiario": "4",
+      "conta_corrente": "23913",
+      "dv_conta": "5",
+      "carteira": "1",
+      "modalidade": "01",
+      "convenio": "",
+      "emissao": "2",
+      "tipo_formulario": "1",
+      "codigos_liquidacao": "06,17",
+      "chave_pix": "56391709000110",
+      "nome_recebedor": "AERO CLUBE RIO CLARO",
+      "cidade_recebedor": "RIO CLARO",
+      "proximo_nsa": 1,
+      "proximo_nosso_numero": 1,
+      "is_active": true,
+      "created_at": "2026-06-11T04:19:32.033Z",
+      "updated_at": "2026-06-11T04:19:32.033Z"
+    }
   }
-},
-{
-  "model": "users.usuarioperfil",
-  "pk": 2,
-  "fields": {
-    "usuario": 2,
-    "perfil": "aluno"
-  }
-},
-{
-  "model": "carteira.carteira",
-  "pk": 1,
-  "fields": {
-    "participante": 2,
-    "saldo": "0.00",
-    "updated_at": "2026-06-04T20:20:09.996Z"
-  }
-},
-{
-  "model": "users.usuario",
-  "pk": 3,
-  "fields": {
-    "password": "pbkdf2_sha256$1200000$9gWgMRTfOAtdr5D2OlSVFJ$2wgvu01ObbIdKGOXeYU0U2LFl+WjR2FypMc98aqvjY0=",
-    "last_login": null,
-    "is_superuser": false,
-    "first_name": "",
-    "last_name": "",
-    "is_staff": false,
-    "is_active": true,
-    "date_joined": "2026-06-04T20:20:10.267Z",
-    "nome": "Maria Aluna",
-    "cpf_cnpj": "222.555.888-46",
-    "email": "maria.aluna@aeroclube.com",
-    "cep": "13500-002",
-    "logradouro": "Avenida Brasil",
-    "numero": "200",
-    "bairro": "Cidade Nova",
-    "cidade": "Rio Claro",
-    "uf": "SP",
-    "perfil_ativo": "aluno",
-    "updated_at": "2026-06-04T20:20:11.029Z",
-    "groups": [],
-    "user_permissions": []
-  }
-},
-{
-  "model": "users.usuarioperfil",
-  "pk": 3,
-  "fields": {
-    "usuario": 3,
-    "perfil": "aluno"
-  }
-},
-{
-  "model": "carteira.carteira",
-  "pk": 2,
-  "fields": {
-    "participante": 3,
-    "saldo": "0.00",
-    "updated_at": "2026-06-04T20:20:11.297Z"
-  }
-},
-{
-  "model": "users.usuario",
-  "pk": 4,
-  "fields": {
-    "password": "pbkdf2_sha256$1200000$h3waTXu0QT7Moj86DNavha$SxkhTHsLcdywUMVV0PODWNQNsw9dDWC2Ik4ODOqhwQw=",
-    "last_login": null,
-    "is_superuser": false,
-    "first_name": "",
-    "last_name": "",
-    "is_staff": false,
-    "is_active": true,
-    "date_joined": "2026-06-04T20:20:11.421Z",
-    "nome": "Pedro Aluno",
-    "cpf_cnpj": "333.666.999-57",
-    "email": "pedro.aluno@aeroclube.com",
-    "cep": "13500-003",
-    "logradouro": "Rua das Hélices",
-    "numero": "300",
-    "bairro": "Jardim Paulista",
-    "cidade": "Rio Claro",
-    "uf": "SP",
-    "perfil_ativo": "aluno",
-    "updated_at": "2026-06-04T20:20:12.097Z",
-    "groups": [],
-    "user_permissions": []
-  }
-},
-{
-  "model": "users.usuarioperfil",
-  "pk": 4,
-  "fields": {
-    "usuario": 4,
-    "perfil": "aluno"
-  }
-},
-{
-  "model": "carteira.carteira",
-  "pk": 3,
-  "fields": {
-    "participante": 4,
-    "saldo": "0.00",
-    "updated_at": "2026-06-04T20:20:12.386Z"
-  }
-},
-{
-  "model": "users.usuario",
-  "pk": 5,
-  "fields": {
-    "password": "pbkdf2_sha256$1200000$nkYpyeulYpMyaFtsSxK98K$7E9jwu1+3MPbJEN30JiVdXK2ONS6Opzp9xOV/OaLOoM=",
-    "last_login": null,
-    "is_superuser": false,
-    "first_name": "",
-    "last_name": "",
-    "is_staff": false,
-    "is_active": true,
-    "date_joined": "2026-06-04T20:20:12.638Z",
-    "nome": "Ana Externa",
-    "cpf_cnpj": "444.777.111-07",
-    "email": "ana.externa@aeroclube.com",
-    "cep": "13560-100",
-    "logradouro": "Rua São Carlos",
-    "numero": "45",
-    "bairro": "Centro",
-    "cidade": "São Carlos",
-    "uf": "SP",
-    "perfil_ativo": "externo",
-    "updated_at": "2026-06-04T20:20:13.441Z",
-    "groups": [],
-    "user_permissions": []
-  }
-},
-{
-  "model": "users.usuarioperfil",
-  "pk": 5,
-  "fields": {
-    "usuario": 5,
-    "perfil": "externo"
-  }
-},
-{
-  "model": "carteira.carteira",
-  "pk": 4,
-  "fields": {
-    "participante": 5,
-    "saldo": "0.00",
-    "updated_at": "2026-06-04T20:20:13.690Z"
-  }
-},
-{
-  "model": "users.usuario",
-  "pk": 6,
-  "fields": {
-    "password": "pbkdf2_sha256$1200000$oh01PqdN8FervSrNcwTPRE$Jgho9y0l+emA+hyfOxFTiwof/zSwR1Ng09KEGSCXxe8=",
-    "last_login": null,
-    "is_superuser": false,
-    "first_name": "",
-    "last_name": "",
-    "is_staff": false,
-    "is_active": true,
-    "date_joined": "2026-06-04T20:20:13.803Z",
-    "nome": "Bruno Externo",
-    "cpf_cnpj": "555.888.222-00",
-    "email": "bruno.externo@aeroclube.com",
-    "cep": "13560-200",
-    "logradouro": "Avenida São Paulo",
-    "numero": "789",
-    "bairro": "Vila Nery",
-    "cidade": "São Carlos",
-    "uf": "SP",
-    "perfil_ativo": "externo",
-    "updated_at": "2026-06-04T20:20:14.514Z",
-    "groups": [],
-    "user_permissions": []
-  }
-},
-{
-  "model": "users.usuarioperfil",
-  "pk": 6,
-  "fields": {
-    "usuario": 6,
-    "perfil": "externo"
-  }
-},
-{
-  "model": "carteira.carteira",
-  "pk": 5,
-  "fields": {
-    "participante": 6,
-    "saldo": "0.00",
-    "updated_at": "2026-06-04T20:20:14.867Z"
-  }
-},
-{
-  "model": "users.usuario",
-  "pk": 7,
-  "fields": {
-    "password": "pbkdf2_sha256$1200000$DPFaC1UK4QGJs5DKDxpJ51$xXC4k35OmgXbRBJ155cfM90RZAIBn5m9csEMoL2BMAI=",
-    "last_login": null,
-    "is_superuser": false,
-    "first_name": "",
-    "last_name": "",
-    "is_staff": false,
-    "is_active": true,
-    "date_joined": "2026-06-04T20:20:14.980Z",
-    "nome": "Carlos Sócio",
-    "cpf_cnpj": "666.999.333-10",
-    "email": "carlos.socio@aeroclube.com",
-    "cep": "13500-010",
-    "logradouro": "Rua dos Pioneiros",
-    "numero": "12",
-    "bairro": "Centro",
-    "cidade": "Rio Claro",
-    "uf": "SP",
-    "perfil_ativo": "socio",
-    "updated_at": "2026-06-04T20:20:15.638Z",
-    "groups": [],
-    "user_permissions": []
-  }
-},
-{
-  "model": "users.usuarioperfil",
-  "pk": 7,
-  "fields": {
-    "usuario": 7,
-    "perfil": "socio"
-  }
-},
-{
-  "model": "carteira.carteira",
-  "pk": 6,
-  "fields": {
-    "participante": 7,
-    "saldo": "0.00",
-    "updated_at": "2026-06-04T20:20:15.926Z"
-  }
-},
-{
-  "model": "users.usuario",
-  "pk": 8,
-  "fields": {
-    "password": "pbkdf2_sha256$1200000$JPNMTapDoqkd6c1nwVdZsF$qlsfhfMCwX/yfU4dqat7vNwOw92WgQcRnu2H14MRrqM=",
-    "last_login": null,
-    "is_superuser": false,
-    "first_name": "",
-    "last_name": "",
-    "is_staff": false,
-    "is_active": true,
-    "date_joined": "2026-06-04T20:20:16.101Z",
-    "nome": "Diana Sócia",
-    "cpf_cnpj": "777.111.444-07",
-    "email": "diana.socia@aeroclube.com",
-    "cep": "13500-011",
-    "logradouro": "Rua Treze de Maio",
-    "numero": "555",
-    "bairro": "Centro",
-    "cidade": "Rio Claro",
-    "uf": "SP",
-    "perfil_ativo": "socio",
-    "updated_at": "2026-06-04T20:20:16.763Z",
-    "groups": [],
-    "user_permissions": []
-  }
-},
-{
-  "model": "users.usuarioperfil",
-  "pk": 8,
-  "fields": {
-    "usuario": 8,
-    "perfil": "socio"
-  }
-},
-{
-  "model": "carteira.carteira",
-  "pk": 7,
-  "fields": {
-    "participante": 8,
-    "saldo": "0.00",
-    "updated_at": "2026-06-04T20:20:17.046Z"
-  }
-},
-{
-  "model": "users.usuario",
-  "pk": 9,
-  "fields": {
-    "password": "pbkdf2_sha256$1200000$X9X609X6wRMqdOhrUJP0JL$+8L5rz7Sj9cPB+lt0XKO6tedNKFGWMCRMh0gemy9nbQ=",
-    "last_login": null,
-    "is_superuser": false,
-    "first_name": "",
-    "last_name": "",
-    "is_staff": false,
-    "is_active": true,
-    "date_joined": "2026-06-04T20:20:17.158Z",
-    "nome": "Eduardo Instrutor",
-    "cpf_cnpj": "888.222.555-00",
-    "email": "eduardo.instrutor@aeroclube.com",
-    "cep": "13500-020",
-    "logradouro": "Rua do Aeroporto",
-    "numero": "1",
-    "bairro": "Aeroporto",
-    "cidade": "Rio Claro",
-    "uf": "SP",
-    "perfil_ativo": "instrutor",
-    "updated_at": "2026-06-04T20:20:17.861Z",
-    "groups": [],
-    "user_permissions": []
-  }
-},
-{
-  "model": "users.usuarioperfil",
-  "pk": 9,
-  "fields": {
-    "usuario": 9,
-    "perfil": "instrutor"
-  }
-},
-{
-  "model": "carteira.carteira",
-  "pk": 8,
-  "fields": {
-    "participante": 9,
-    "saldo": "0.00",
-    "updated_at": "2026-06-04T20:20:18.098Z"
-  }
-},
-{
-  "model": "users.usuario",
-  "pk": 10,
-  "fields": {
-    "password": "pbkdf2_sha256$1200000$WqmiWaIwfFSGki9pB12KQZ$JOUqta2zbkrKRTCr/zorUgmmI/DLhevdfvNsR36Zsn8=",
-    "last_login": null,
-    "is_superuser": false,
-    "first_name": "",
-    "last_name": "",
-    "is_staff": false,
-    "is_active": true,
-    "date_joined": "2026-06-04T20:20:18.201Z",
-    "nome": "Fernanda Instrutora",
-    "cpf_cnpj": "999.333.666-10",
-    "email": "fernanda.instrutora@aeroclube.com",
-    "cep": "13500-021",
-    "logradouro": "Rua do Aeroporto",
-    "numero": "2",
-    "bairro": "Aeroporto",
-    "cidade": "Rio Claro",
-    "uf": "SP",
-    "perfil_ativo": "instrutor",
-    "updated_at": "2026-06-04T20:20:19.129Z",
-    "groups": [],
-    "user_permissions": []
-  }
-},
-{
-  "model": "users.usuarioperfil",
-  "pk": 10,
-  "fields": {
-    "usuario": 10,
-    "perfil": "instrutor"
-  }
-},
-{
-  "model": "carteira.carteira",
-  "pk": 9,
-  "fields": {
-    "participante": 10,
-    "saldo": "0.00",
-    "updated_at": "2026-06-04T20:20:19.582Z"
-  }
-},
-{
-  "model": "users.usuario",
-  "pk": 11,
-  "fields": {
-    "password": "pbkdf2_sha256$1200000$qrqbFbIbPCsg3B90ulphUf$cpQZ7P+/puAMfsc6LH4AOJzPLeP2jAmVcWqWekPGtis=",
-    "last_login": null,
-    "is_superuser": false,
-    "first_name": "",
-    "last_name": "",
-    "is_staff": false,
-    "is_active": true,
-    "date_joined": "2026-06-04T20:20:19.712Z",
-    "nome": "Gabriel Sócio-Instrutor",
-    "cpf_cnpj": "123.456.789-09",
-    "email": "gabriel.si@aeroclube.com",
-    "cep": "13500-030",
-    "logradouro": "Rua Coronel Cabral",
-    "numero": "321",
-    "bairro": "Centro",
-    "cidade": "Rio Claro",
-    "uf": "SP",
-    "perfil_ativo": "socio",
-    "updated_at": "2026-06-04T20:20:20.398Z",
-    "groups": [],
-    "user_permissions": []
-  }
-},
-{
-  "model": "users.usuarioperfil",
-  "pk": 11,
-  "fields": {
-    "usuario": 11,
-    "perfil": "socio"
-  }
-},
-{
-  "model": "users.usuarioperfil",
-  "pk": 12,
-  "fields": {
-    "usuario": 11,
-    "perfil": "instrutor"
-  }
-},
-{
-  "model": "carteira.carteira",
-  "pk": 10,
-  "fields": {
-    "participante": 11,
-    "saldo": "0.00",
-    "updated_at": "2026-06-04T20:20:20.765Z"
-  }
-},
-{
-  "model": "users.usuario",
-  "pk": 12,
-  "fields": {
-    "password": "pbkdf2_sha256$1200000$tZeENK1V41NwdjUJRRYa7j$TZbhLo/qcDjFF/1JgA4Ocad6DJdHL+9KGFTyGuGjAwk=",
-    "last_login": null,
-    "is_superuser": false,
-    "first_name": "",
-    "last_name": "",
-    "is_staff": false,
-    "is_active": true,
-    "date_joined": "2026-06-04T20:20:20.879Z",
-    "nome": "Helena Funcionária",
-    "cpf_cnpj": "987.654.321-00",
-    "email": "helena.func@aeroclube.com",
-    "cep": "13500-040",
-    "logradouro": "Rua da Secretaria",
-    "numero": "10",
-    "bairro": "Centro",
-    "cidade": "Rio Claro",
-    "uf": "SP",
-    "perfil_ativo": "funcionario",
-    "updated_at": "2026-06-04T20:20:21.533Z",
-    "groups": [],
-    "user_permissions": []
-  }
-},
-{
-  "model": "users.usuarioperfil",
-  "pk": 13,
-  "fields": {
-    "usuario": 12,
-    "perfil": "funcionario"
-  }
-},
-{
-  "model": "pessoas.cliente",
-  "pk": 3,
-  "fields": {
-    "nome": "Cliente Silva",
-    "cpf_cnpj": "456.789.123-64",
-    "email": "cliente.silva@email.com",
-    "contato": "(19) 99999-1111",
-    "cep": "13500-500",
-    "logradouro": "Rua das Palmeiras",
-    "numero": "88",
-    "bairro": "Jardim América",
-    "cidade": "Rio Claro",
-    "uf": "SP",
-    "is_active": true,
-    "created_at": "2026-06-04T20:20:22.036Z",
-    "updated_at": "2026-06-04T20:20:22.036Z"
-  }
-},
-{
-  "model": "pessoas.cliente",
-  "pk": 4,
-  "fields": {
-    "nome": "Empresa XYZ Ltda",
-    "cpf_cnpj": "11.222.333/0001-81",
-    "email": "contato@xyz.com.br",
-    "contato": "(19) 3333-2222",
-    "cep": "13560-900",
-    "logradouro": "Avenida Industrial",
-    "numero": "1500",
-    "bairro": "Distrito Industrial",
-    "cidade": "São Carlos",
-    "uf": "SP",
-    "is_active": true,
-    "created_at": "2026-06-04T20:20:22.148Z",
-    "updated_at": "2026-06-04T20:20:22.148Z"
-  }
-},
-{
-  "model": "pessoas.entidadepagar",
-  "pk": 1,
-  "fields": {
-    "nome": "Posto Aviação Ltda",
-    "cpf_cnpj": "44.555.666/0001-81",
-    "email": "vendas@postoaviacao.com.br",
-    "contato": "(19) 3333-4444",
-    "tipo": "fornecedor",
-    "is_active": true,
-    "usuario": null,
-    "created_at": "2026-06-04T20:20:22.311Z",
-    "updated_at": "2026-06-04T20:20:22.311Z"
-  }
-},
-{
-  "model": "pessoas.fornecedor",
-  "pk": 1,
-  "fields": {
-    "produto_servico": "Combustível de aviação (AVGAS)"
-  }
-},
-{
-  "model": "pessoas.entidadepagar",
-  "pk": 2,
-  "fields": {
-    "nome": "Oficina Aeronáutica ME",
-    "cpf_cnpj": "77.888.999/0001-81",
-    "email": "contato@oficinaaero.com.br",
-    "contato": "(19) 3333-5555",
-    "tipo": "fornecedor",
-    "is_active": true,
-    "usuario": null,
-    "created_at": "2026-06-04T20:20:22.970Z",
-    "updated_at": "2026-06-04T20:20:22.970Z"
-  }
-},
-{
-  "model": "pessoas.fornecedor",
-  "pk": 2,
-  "fields": {
-    "produto_servico": "Manutenção de aeronaves"
-  }
-},
-{
-  "model": "pessoas.entidadepagar",
-  "pk": 3,
-  "fields": {
-    "nome": "Roberto Instrutor Externo",
-    "cpf_cnpj": "159.753.486-25",
-    "email": "roberto.instrutor@email.com",
-    "contato": "(19) 98888-1111",
-    "tipo": "instrutor",
-    "is_active": true,
-    "usuario": null,
-    "created_at": "2026-06-04T20:20:23.463Z",
-    "updated_at": "2026-06-04T20:20:23.463Z"
-  }
-},
-{
-  "model": "pessoas.funcionario",
-  "pk": 3,
-  "fields": {
-    "funcao": "Instrutor de voo",
-    "is_instrutor": true,
-    "salario_base": "4500.00"
-  }
-},
-{
-  "model": "pessoas.entidadepagar",
-  "pk": 4,
-  "fields": {
-    "nome": "Júlia Secretária",
-    "cpf_cnpj": "357.159.852-00",
-    "email": "julia.sec@email.com",
-    "contato": "(19) 98888-2222",
-    "tipo": "funcionario",
-    "is_active": true,
-    "usuario": null,
-    "created_at": "2026-06-04T20:20:23.587Z",
-    "updated_at": "2026-06-04T20:20:23.587Z"
-  }
-},
-{
-  "model": "pessoas.funcionario",
-  "pk": 4,
-  "fields": {
-    "funcao": "Secretária",
-    "is_instrutor": false,
-    "salario_base": "2200.00"
-  }
-},
-{
-  "model": "conta_fixa.contafixa",
-  "pk": 1,
-  "fields": {
-    "nome": "Aluguel do Hangar",
-    "descricao": "Aluguel mensal do hangar principal",
-    "favorecido": "Imobiliária Central",
-    "valor": "3500.00",
-    "dia_vencimento": 5,
-    "is_active": true,
-    "created_at": "2026-06-04T20:20:23.712Z",
-    "updated_at": "2026-06-04T20:20:23.712Z"
-  }
-},
-{
-  "model": "conta_fixa.contafixa",
-  "pk": 2,
-  "fields": {
-    "nome": "Energia Elétrica",
-    "descricao": "Conta de energia do hangar e sede",
-    "favorecido": "CPFL Energia",
-    "valor": "1200.00",
-    "dia_vencimento": 10,
-    "is_active": true,
-    "created_at": "2026-06-04T20:20:23.823Z",
-    "updated_at": "2026-06-04T20:20:23.823Z"
-  }
-},
-{
-  "model": "conta_fixa.contafixa",
-  "pk": 3,
-  "fields": {
-    "nome": "Internet e Telefonia",
-    "descricao": "Link dedicado e telefonia",
-    "favorecido": "Operadora Telecom",
-    "valor": "300.00",
-    "dia_vencimento": 15,
-    "is_active": true,
-    "created_at": "2026-06-04T20:20:24.060Z",
-    "updated_at": "2026-06-04T20:20:24.060Z"
-  }
-},
-{
-  "model": "aeronaves.aeronave",
-  "pk": 1,
-  "fields": {
-    "nome": "PT-ABC",
-    "tipo": "aviao",
-    "foto": null,
-    "is_active": true,
-    "created_at": "2026-06-04T20:20:25.000Z",
-    "updated_at": "2026-06-04T20:20:25.000Z"
-  }
-},
-{
-  "model": "aeronaves.aviao",
-  "pk": 1,
-  "fields": {
-    "tarifa_solo": "300.00",
-    "tarifa_duplo_comando": "360.00"
-  }
-},
-{
-  "model": "aeronaves.aeronave",
-  "pk": 2,
-  "fields": {
-    "nome": "PT-DEF",
-    "tipo": "aviao",
-    "foto": null,
-    "is_active": true,
-    "created_at": "2026-06-04T20:20:25.100Z",
-    "updated_at": "2026-06-04T20:20:25.100Z"
-  }
-},
-{
-  "model": "aeronaves.aviao",
-  "pk": 2,
-  "fields": {
-    "tarifa_solo": "280.00",
-    "tarifa_duplo_comando": "340.00"
-  }
-},
-{
-  "model": "aeronaves.aeronave",
-  "pk": 3,
-  "fields": {
-    "nome": "PP-GHI",
-    "tipo": "planador",
-    "foto": null,
-    "is_active": true,
-    "created_at": "2026-06-04T20:20:25.200Z",
-    "updated_at": "2026-06-04T20:20:25.200Z"
-  }
-},
-{
-  "model": "aeronaves.planador",
-  "pk": 3,
-  "fields": {
-    "minutos_franquia": 45,
-    "valor_fixo_inicial": "330.00",
-    "valor_minuto_adicional": "3.00",
-    "valor_fixo_duplo": null,
-    "valor_minuto_duplo": null
-  }
-}
 ]
