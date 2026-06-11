@@ -1,14 +1,14 @@
 from rest_framework import serializers
-from .models import TituloReceber, BaixaTitulo
+from .models import TituloReceber, BaixaTituloReceber
 
 
-class BaixaTituloSerializer(serializers.ModelSerializer):
+class BaixaTituloReceberSerializer(serializers.ModelSerializer):
     """Extrato (somente leitura) de cada pagamento de um título."""
     forma_pagamento_display = serializers.CharField(source="get_forma_pagamento_display", read_only=True)
     criado_por_nome = serializers.CharField(source="criado_por.nome", read_only=True, default=None)
 
     class Meta:
-        model = BaixaTitulo
+        model = BaixaTituloReceber
         fields = [
             "id", "data", "valor", "juros", "valor_via_carteira",
             "forma_pagamento", "forma_pagamento_display",
@@ -24,7 +24,7 @@ class TituloReceberSerializer(serializers.ModelSerializer):
     saldo_devedor = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     valor_total_com_juros = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     participante_nome = serializers.SerializerMethodField()
-    baixas = BaixaTituloSerializer(many=True, read_only=True)
+    baixas = BaixaTituloReceberSerializer(many=True, read_only=True)
 
     class Meta:
         model = TituloReceber
@@ -66,7 +66,7 @@ class BaixaParcialSerializer(serializers.Serializer):
     data_pagamento = serializers.DateField(required=False, allow_null=True)
     valor_via_carteira = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=0)
     forma_pagamento = serializers.ChoiceField(
-        choices=BaixaTitulo.FORMA_CHOICES, required=False, default=BaixaTitulo.FORMA_DINHEIRO
+        choices=BaixaTituloReceber.FORMA_CHOICES, required=False, default=BaixaTituloReceber.FORMA_DINHEIRO
     )
 
 
@@ -76,5 +76,5 @@ class QuitacaoMultiplaSerializer(serializers.Serializer):
     valor_total = serializers.DecimalField(max_digits=10, decimal_places=2)
     data_pagamento = serializers.DateField(required=False, allow_null=True)
     forma_pagamento = serializers.ChoiceField(
-        choices=BaixaTitulo.FORMA_CHOICES, required=False, default=BaixaTitulo.FORMA_DINHEIRO
+        choices=BaixaTituloReceber.FORMA_CHOICES, required=False, default=BaixaTituloReceber.FORMA_DINHEIRO
     )

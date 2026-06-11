@@ -7,6 +7,7 @@ from django.db import transaction
 from django.http import HttpResponse
 
 from .cnab240 import gerar_arquivo_remessa
+from .cnab_retorno import ler_arquivo_retorno
 
 from .models import (
     ConfiguracaoBancaria,
@@ -14,6 +15,7 @@ from .models import (
     RemessaCNAB,
     RemessaCNABItem,
     RetornoCNAB,
+    RetornoCNABItem,
 )
 from .serializers import (
     ConfiguracaoBancariaSerializer,
@@ -22,6 +24,18 @@ from .serializers import (
     RetornoCNABSerializer,
 )
 from apps.pessoas.validators import validar_cpf_cnpj
+
+
+# Descrições amigáveis das ocorrências de retorno mais comuns (Sicoob/FEBRABAN).
+OCORRENCIAS_RETORNO = {
+    "02": "Entrada confirmada",
+    "03": "Entrada rejeitada",
+    "06": "Liquidação",
+    "09": "Baixa",
+    "10": "Baixa solicitada",
+    "17": "Liquidação após baixa",
+    "28": "Débito de tarifas/custas",
+}
 
 
 def _validar_sacados(titulos):
@@ -218,9 +232,123 @@ class RemessaCNABViewSet(viewsets.ModelViewSet):
 
 class RetornoCNABViewSet(viewsets.ModelViewSet):
     """
-    /api/v1/retornos-cnab/ — registro de arquivos de retorno (modelagem apenas).
-    A leitura/processamento efetivo do .RET será feito em etapa futura.
+    /api/v1/retornos-cnab/ — importação e processamento dos arquivos de retorno.
+    POST /api/v1/retornos-cnab/processar/
+        multipart: configuracao=<id>, arquivo=<.RET>
+        ou JSON:   { "configuracao": <id>, "conteudo": "<texto do .RET>" }
+    Lê o arquivo, registra cada ocorrência e dá baixa automática nos títulos
+    cujo código de ocorrência seja de liquidação (config.codigos_liquidacao).
     """
     queryset = RetornoCNAB.objects.select_related("configuracao", "criado_por").prefetch_related("itens")
     serializer_class = RetornoCNABSerializer
     permission_classes = [IsAuthenticated]
+
+    @action(detail=False, methods=["post"], url_path="processar")
+    def processar(self, request):
+        from apps.financeiro.titulos_receber.models import TituloReceber
+
+        configuracao_id = request.data.get("configuracao")
+        if not configuracao_id:
+            return Response({"detail": "Informe a configuração bancária (cedente)."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        try:
+            config = ConfiguracaoBancaria.objects.get(pk=configuracao_id)
+        except ConfiguracaoBancaria.DoesNotExist:
+            return Response({"detail": "Configuração bancária não encontrada."},
+                            status=status.HTTP_404_NOT_FOUND)
+
+        # Conteúdo do arquivo: upload (multipart) ou texto no corpo.
+        nome_arquivo = ""
+        arquivo = request.FILES.get("arquivo")
+        if arquivo is not None:
+            conteudo = arquivo.read().decode("latin-1", "ignore")
+            nome_arquivo = arquivo.name
+        else:
+            conteudo = request.data.get("conteudo") or ""
+        if not conteudo.strip():
+            return Response({"detail": "Envie o arquivo .RET (campo 'arquivo') ou o 'conteudo'."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        ocorrencias = ler_arquivo_retorno(conteudo)
+        if not ocorrencias:
+            return Response({"detail": "Nenhuma ocorrência reconhecida no arquivo de retorno."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        codigos_liquidacao = config.codigos_liquidacao_set()
+        usuario = request.user if request.user.is_authenticated else None
+        resumo = {"itens": 0, "baixados": 0, "sem_titulo": 0, "ignorados": 0}
+
+        with transaction.atomic():
+            retorno = RetornoCNAB.objects.create(
+                configuracao=config,
+                status=RetornoCNAB.STATUS_IMPORTADO,
+                conteudo_arquivo=conteudo,
+                nome_arquivo=nome_arquivo,
+                criado_por=usuario,
+            )
+
+            for ocr in ocorrencias:
+                resumo["itens"] += 1
+                titulo = self._casar_titulo(ocr)
+                codigo = ocr["codigo_ocorrencia"]
+                RetornoCNABItem.objects.create(
+                    retorno=retorno,
+                    titulo_receber=titulo,
+                    nosso_numero=ocr["nosso_numero"],
+                    codigo_ocorrencia=codigo,
+                    descricao_ocorrencia=OCORRENCIAS_RETORNO.get(codigo, "Ocorrência"),
+                    valor_pago=ocr["valor_pago"],
+                    data_pagamento=ocr["data_pagamento"],
+                )
+
+                if titulo is None:
+                    resumo["sem_titulo"] += 1
+                    continue
+                if codigo not in codigos_liquidacao:
+                    resumo["ignorados"] += 1
+                    continue
+                # Idempotência: não baixa de novo um título já quitado.
+                if titulo.status == TituloReceber.STATUS_BAIXADO:
+                    resumo["ignorados"] += 1
+                    continue
+
+                valor = ocr["valor_pago"] or titulo.saldo_devedor
+                titulo.aplicar_baixa_parcial(
+                    valor=valor,
+                    data=ocr["data_pagamento"],
+                    forma_pagamento="cnab",
+                    criado_por=usuario,
+                )
+                resumo["baixados"] += 1
+
+            retorno.status = RetornoCNAB.STATUS_PROCESSADO
+            retorno.save(update_fields=["status", "updated_at"])
+
+        data = RetornoCNABSerializer(retorno).data
+        data["resumo"] = resumo
+        return Response(data, status=status.HTTP_201_CREATED)
+
+    @staticmethod
+    def _casar_titulo(ocr):
+        """Casa a ocorrência ao TituloReceber: por nosso_numero (via item de
+        remessa) e, na falta, pelo nº do documento que enviamos (id do título)."""
+        from apps.financeiro.titulos_receber.models import TituloReceber
+
+        # O "Nosso Número" começa pelo NumTítulo (10 dígitos), que é o valor que
+        # gravamos no RemessaCNABItem. Casa por igualdade exata desse bloco.
+        nosso_digitos = "".join(filter(str.isdigit, ocr.get("nosso_numero") or ""))
+        if nosso_digitos:
+            numtitulo = nosso_digitos[:10].zfill(10)
+            item = (
+                RemessaCNABItem.objects
+                .filter(nosso_numero=numtitulo)
+                .select_related("titulo_receber")
+                .order_by("-id")
+                .first()
+            )
+            if item:
+                return item.titulo_receber
+        seu = "".join(filter(str.isdigit, ocr.get("seu_numero") or ""))
+        if seu:
+            return TituloReceber.objects.filter(pk=int(seu)).first()
+        return None

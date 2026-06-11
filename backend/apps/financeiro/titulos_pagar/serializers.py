@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import TituloPagar
+from .models import TituloPagar, BaixaTituloPagar
 
 TIPO_FRONTEND_TO_BACKEND = {
     "folha": TituloPagar.TIPO_FOLHA,
@@ -7,11 +7,27 @@ TIPO_FRONTEND_TO_BACKEND = {
 }
 
 
+class BaixaTituloPagarSerializer(serializers.ModelSerializer):
+    """Extrato (somente leitura) de cada pagamento de um título a pagar."""
+    forma_pagamento_display = serializers.CharField(source="get_forma_pagamento_display", read_only=True)
+    criado_por_nome = serializers.CharField(source="criado_por.nome", read_only=True, default=None)
+
+    class Meta:
+        model = BaixaTituloPagar
+        fields = [
+            "id", "data", "valor", "multa",
+            "forma_pagamento", "forma_pagamento_display",
+            "criado_por", "criado_por_nome", "created_at",
+        ]
+        read_only_fields = fields
+
+
 class TituloPagarSerializer(serializers.ModelSerializer):
     tipo_display = serializers.CharField(source="get_tipo_display", read_only=True)
     status_display = serializers.CharField(source="get_status_display", read_only=True)
     esta_atrasado = serializers.BooleanField(read_only=True)
     favorecido_nome = serializers.SerializerMethodField()
+    baixas = BaixaTituloPagarSerializer(many=True, read_only=True)
 
     class Meta:
         model = TituloPagar
@@ -25,6 +41,7 @@ class TituloPagarSerializer(serializers.ModelSerializer):
             "status", "status_display", "esta_atrasado",
             "multa", "valor_pago", "data_pagamento",
             "is_recorrente", "periodicidade_dias",
+            "baixas",
             "created_at",
         ]
         read_only_fields = ["id", "created_at"]
@@ -117,7 +134,11 @@ class TituloPagarWriteSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
-class BaixaTituloPagarSerializer(serializers.Serializer):
+class BaixaPagarInputSerializer(serializers.Serializer):
+    """Input da baixa total de um título a pagar."""
     valor_pago = serializers.DecimalField(max_digits=10, decimal_places=2)
     data_pagamento = serializers.DateField(required=False, allow_null=True)
     multa = serializers.DecimalField(max_digits=8, decimal_places=2, required=False, default=0)
+    forma_pagamento = serializers.ChoiceField(
+        choices=BaixaTituloPagar.FORMA_CHOICES, required=False, default=BaixaTituloPagar.FORMA_DINHEIRO
+    )

@@ -124,7 +124,7 @@ class TituloReceber(models.Model):
         """
         RF06: Aplica uma baixa parcial. Se o valor cobre o saldo total, baixa o título.
         Ao baixar, credita a carteira do participante se a receita for do tipo horas_pre_pagas.
-        Cada chamada registra uma BaixaTitulo (extrato de como o título foi pago).
+        Cada chamada registra uma BaixaTituloReceber (extrato de como o título foi pago).
         """
         self.multa += juros
         self.valor_pago += valor
@@ -135,13 +135,13 @@ class TituloReceber(models.Model):
             self.status = self.STATUS_BAIXADO
         self.save()
         # Registra a baixa no extrato de pagamentos do título.
-        BaixaTitulo.objects.create(
+        BaixaTituloReceber.objects.create(
             titulo_receber=self,
             data=self.data_pagamento,
             valor=valor,
             juros=juros,
             valor_via_carteira=valor_via_carteira,
-            forma_pagamento=forma_pagamento or BaixaTitulo.FORMA_DINHEIRO,
+            forma_pagamento=forma_pagamento or BaixaTituloReceber.FORMA_DINHEIRO,
             criado_por=criado_por,
         )
         if self.status == self.STATUS_BAIXADO and not ja_estava_baixado:
@@ -174,7 +174,7 @@ class TituloReceber(models.Model):
         receita.save(update_fields=["status", "updated_at"])
 
 
-class BaixaTitulo(models.Model):
+class BaixaTituloReceber(models.Model):
     """
     Extrato de pagamentos de um TituloReceber: cada baixa (parcial ou total)
     gera um registro com o valor abatido e a forma de pagamento usada.
