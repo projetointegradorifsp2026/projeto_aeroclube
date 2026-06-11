@@ -45,6 +45,7 @@ interface Props {
   onEdit: (t: TituloPagar) => void
   onBaixa: (t: TituloPagar) => void
   onDeleteRequest: (t: TituloPagar) => void
+  canEdit?: boolean
 }
 
 export function TituloPagarDetailModal({
@@ -55,6 +56,7 @@ export function TituloPagarDetailModal({
   onEdit,
   onBaixa,
   onDeleteRequest,
+  canEdit = true,
 }: Props) {
   const [current, setCurrent] = useState<TituloPagar | null>(titulo)
 
@@ -225,27 +227,62 @@ export function TituloPagarDetailModal({
               </div>
             </div>
           )}
+
+          {current.baixas && current.baixas.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Histórico de pagamentos
+              </p>
+              <div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+                {current.baixas.map(b => (
+                  <div key={b.id} className="flex items-center gap-3 px-3 py-2 text-sm">
+                    <span className="text-muted-foreground whitespace-nowrap">{fmtDate(b.data)}</span>
+                    <span className="flex-1">
+                      <span className="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs font-medium">
+                        {b.forma_pagamento_display}
+                      </span>
+                      {b.multa > 0 && (
+                        <span className="ml-1.5 text-xs text-rose-500">
+                          (multa {fmt(b.multa)})
+                        </span>
+                      )}
+                      {b.criado_por_nome && (
+                        <span className="ml-1.5 text-xs text-muted-foreground">
+                          · {b.criado_por_nome}
+                        </span>
+                      )}
+                    </span>
+                    <span className="font-medium whitespace-nowrap">{fmt(b.valor)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
           <div className="flex w-full items-center gap-2">
-            <Button
-              variant="ghost"
-              className="text-destructive hover:text-destructive hover:bg-destructive/10 mr-auto"
-              onClick={() => onDeleteRequest(current)}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Excluir
-            </Button>
+            {canEdit && (
+              <Button
+                variant="ghost"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 mr-auto"
+                onClick={() => onDeleteRequest(current)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Excluir
+              </Button>
+            )}
             <div className="flex gap-2 ml-auto">
               <Button variant="outline" onClick={onClose}>
                 Fechar
               </Button>
-              <Button variant="outline" onClick={() => onEdit(current)}>
-                <Pencil className="h-3.5 w-3.5" />
-                Editar
-              </Button>
-              {current.status !== 'baixado' && (
+              {canEdit && (
+                <Button variant="outline" onClick={() => onEdit(current)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                  Editar
+                </Button>
+              )}
+              {canEdit && current.status !== 'baixado' && (
                 <Button onClick={() => onBaixa(current)}>
                   <CircleDollarSign className="h-3.5 w-3.5" />
                   Dar baixa

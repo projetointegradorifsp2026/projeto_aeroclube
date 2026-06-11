@@ -1,5 +1,33 @@
-export type TituloPagarTipo = 'fornecedor' | 'folha' | 'conta_fixa' | 'outros'
+export type TituloPagarTipo = 'fornecedor' | 'folha' | 'conta_fixa' | 'outros' | 'instrutor'
 export type TituloPagarStatus = 'em_aberto' | 'baixado'
+
+// Formas de pagamento do lado A PAGAR (sem carteira/cnab; inclui transferência).
+export type FormaPagamentoPagar =
+  | 'dinheiro'
+  | 'pix'
+  | 'transferencia'
+  | 'cartao'
+  | 'boleto'
+  | 'outros'
+
+export const FORMA_PAGAMENTO_PAGAR_LABELS: Record<FormaPagamentoPagar, string> = {
+  dinheiro: 'Dinheiro',
+  pix: 'PIX',
+  transferencia: 'Transferência',
+  cartao: 'Cartão',
+  boleto: 'Boleto',
+  outros: 'Outros',
+}
+
+export interface BaixaPagar {
+  id: string
+  data: string
+  valor: number
+  multa: number
+  forma_pagamento: FormaPagamentoPagar
+  forma_pagamento_display: string
+  criado_por_nome: string | null
+}
 
 export interface TituloPagar {
   id: string
@@ -16,29 +44,59 @@ export interface TituloPagar {
   valor_pago: number | null
   data_pagamento: string | null
   recorrente: boolean
+  baixas?: BaixaPagar[]
 }
 
 export type TituloReceberTipo = 'mensalidade' | 'pontual' | 'servico' | 'voo' | 'carteira'
 export type TituloReceberStatus = 'em_aberto' | 'pago_parcial' | 'baixado'
 
+export type FormaPagamento = 'dinheiro' | 'pix' | 'cartao' | 'boleto' | 'cnab' | 'carteira' | 'outros'
+
+export const FORMA_PAGAMENTO_LABELS: Record<FormaPagamento, string> = {
+  dinheiro: 'Dinheiro',
+  pix: 'PIX',
+  cartao: 'Cartão',
+  boleto: 'Boleto',
+  cnab: 'CNAB / Cobrança',
+  carteira: 'Carteira',
+  outros: 'Outros',
+}
+
+/** Formas selecionáveis no modal de baixa (carteira é definida automaticamente). */
+export const FORMAS_PAGAMENTO_MANUAIS: FormaPagamento[] = ['dinheiro', 'pix', 'cartao', 'boleto', 'cnab', 'outros']
+
+export interface BaixaTitulo {
+  id: string
+  data: string
+  valor: number
+  juros: number
+  valor_via_carteira: number
+  forma_pagamento: FormaPagamento
+  forma_pagamento_display: string
+  criado_por_nome: string | null
+}
+
 export interface TituloReceber {
   id: string
   usuario_id?: string
   usuario_nome: string
+  is_cliente?: boolean
   tipo: TituloReceberTipo
   descricao: string
   num_parcela: number
   total_parcelas: number
   valor: number
   valor_pago: number
-  juros_aplicado: number
-  multa?: number
+  multa: number
+  // Campos legados/opcionais ainda referenciados em telas e adapters
+  juros_aplicado?: number
   valor_carteira?: number
   carteira_debito?: boolean
   data_emissao: string
   data_vencimento: string
   data_pagamento: string | null
   status: TituloReceberStatus
+  baixas?: BaixaTitulo[]
 }
 
 export const TITULO_PAGAR_TIPO_LABELS: Record<TituloPagarTipo, string> = {
@@ -46,13 +104,14 @@ export const TITULO_PAGAR_TIPO_LABELS: Record<TituloPagarTipo, string> = {
   folha: 'Folha de Pagamento',
   conta_fixa: 'Conta Fixa',
   outros: 'Outros',
+  instrutor: 'Instrutor',
 }
 
 export const TITULO_RECEBER_TIPO_LABELS: Record<TituloReceberTipo, string> = {
   mensalidade: 'Mensalidade',
   pontual: 'Pontual',
   servico: 'Serviço',
-  voo: 'Voo',
+  voo: 'Cobrança de Voo',
   carteira: 'Carteira',
 }
 
@@ -217,298 +276,298 @@ export const mockTitulosReceber: TituloReceber[] = [
   {
     id: '1', usuario_id: '2', usuario_nome: 'Ana Paula Santos', tipo: 'mensalidade',
     descricao: 'Mensalidade aluno – Maio 2026', num_parcela: 5, total_parcelas: 12,
-    valor: 350, valor_pago: 0, juros_aplicado: 0,
+    valor: 350, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-01', data_vencimento: '2026-05-30', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '2', usuario_id: '3', usuario_nome: 'Roberto Ferreira', tipo: 'mensalidade',
     descricao: 'Mensalidade sócio – Maio 2026', num_parcela: 5, total_parcelas: 12,
-    valor: 350, valor_pago: 0, juros_aplicado: 0,
+    valor: 350, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-01', data_vencimento: '2026-05-30', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '3', usuario_id: '6', usuario_nome: 'Fernanda Lima', tipo: 'mensalidade',
     descricao: 'Mensalidade sócia – Maio 2026', num_parcela: 5, total_parcelas: 12,
-    valor: 350, valor_pago: 0, juros_aplicado: 0,
+    valor: 350, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-01', data_vencimento: '2026-05-30', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '4', usuario_id: '12', usuario_nome: 'Beatriz Cardoso', tipo: 'mensalidade',
     descricao: 'Mensalidade sócia – Maio 2026', num_parcela: 3, total_parcelas: 12,
-    valor: 350, valor_pago: 0, juros_aplicado: 0,
+    valor: 350, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-01', data_vencimento: '2026-05-30', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '5', usuario_id: '14', usuario_nome: 'Camila Torres', tipo: 'mensalidade',
     descricao: 'Mensalidade aluno – Maio 2026', num_parcela: 2, total_parcelas: 12,
-    valor: 350, valor_pago: 0, juros_aplicado: 0,
+    valor: 350, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-01', data_vencimento: '2026-05-30', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '6', usuario_id: '11', usuario_nome: 'Thiago Barbosa', tipo: 'mensalidade',
     descricao: 'Mensalidade aluno – Maio 2026', num_parcela: 4, total_parcelas: 12,
-    valor: 350, valor_pago: 0, juros_aplicado: 0,
+    valor: 350, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-01', data_vencimento: '2026-05-30', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '7', usuario_id: '10', usuario_nome: 'Patrícia Nunes', tipo: 'mensalidade',
     descricao: 'Mensalidade aluno – Maio 2026', num_parcela: 5, total_parcelas: 12,
-    valor: 350, valor_pago: 0, juros_aplicado: 0,
+    valor: 350, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-01', data_vencimento: '2026-05-30', data_pagamento: null, status: 'em_aberto',
   },
   // Mensalidades – Abril 2026
   {
     id: '8', usuario_id: '2', usuario_nome: 'Ana Paula Santos', tipo: 'mensalidade',
     descricao: 'Mensalidade aluno – Abril 2026', num_parcela: 4, total_parcelas: 12,
-    valor: 350, valor_pago: 350, juros_aplicado: 0,
+    valor: 350, valor_pago: 350, multa: 0,
     data_emissao: '2026-04-01', data_vencimento: '2026-04-30', data_pagamento: '2026-04-28', status: 'baixado',
   },
   {
     id: '9', usuario_id: '3', usuario_nome: 'Roberto Ferreira', tipo: 'mensalidade',
     descricao: 'Mensalidade sócio – Abril 2026', num_parcela: 4, total_parcelas: 12,
-    valor: 350, valor_pago: 350, juros_aplicado: 0,
+    valor: 350, valor_pago: 350, multa: 0,
     data_emissao: '2026-04-01', data_vencimento: '2026-04-30', data_pagamento: '2026-04-29', status: 'baixado',
   },
   {
     id: '10', usuario_id: '6', usuario_nome: 'Fernanda Lima', tipo: 'mensalidade',
     descricao: 'Mensalidade sócia – Abril 2026', num_parcela: 4, total_parcelas: 12,
-    valor: 350, valor_pago: 350, juros_aplicado: 0,
+    valor: 350, valor_pago: 350, multa: 0,
     data_emissao: '2026-04-01', data_vencimento: '2026-04-30', data_pagamento: '2026-04-27', status: 'baixado',
   },
   {
     id: '11', usuario_id: '12', usuario_nome: 'Beatriz Cardoso', tipo: 'mensalidade',
     descricao: 'Mensalidade sócia – Abril 2026', num_parcela: 2, total_parcelas: 12,
-    valor: 350, valor_pago: 350, juros_aplicado: 0,
+    valor: 350, valor_pago: 350, multa: 0,
     data_emissao: '2026-04-01', data_vencimento: '2026-04-30', data_pagamento: '2026-04-26', status: 'baixado',
   },
   {
     id: '12', usuario_id: '11', usuario_nome: 'Thiago Barbosa', tipo: 'mensalidade',
     descricao: 'Mensalidade aluno – Abril 2026', num_parcela: 3, total_parcelas: 12,
-    valor: 350, valor_pago: 350, juros_aplicado: 0,
+    valor: 350, valor_pago: 350, multa: 0,
     data_emissao: '2026-04-01', data_vencimento: '2026-04-30', data_pagamento: '2026-04-25', status: 'baixado',
   },
   {
     id: '13', usuario_id: '8', usuario_nome: 'Mariana Rocha', tipo: 'mensalidade',
     descricao: 'Mensalidade aluna – Março 2026', num_parcela: 3, total_parcelas: 12,
-    valor: 350, valor_pago: 0, juros_aplicado: 17.5,
+    valor: 350, valor_pago: 0, multa: 17.5,
     data_emissao: '2026-03-01', data_vencimento: '2026-03-30', data_pagamento: null, status: 'em_aberto',
   },
   // Voos – Maio 2026 (em_aberto)
   {
     id: '14', usuario_id: '2', usuario_nome: 'Ana Paula Santos', tipo: 'voo',
     descricao: 'Voo instrução duplo – 1,2h – PP-XYZ', num_parcela: 1, total_parcelas: 1,
-    valor: 504, valor_pago: 0, juros_aplicado: 0,
+    valor: 504, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-15', data_vencimento: '2026-06-15', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '15', usuario_id: '3', usuario_nome: 'Roberto Ferreira', tipo: 'voo',
     descricao: 'Voo sócio solo – 0,8h – PP-ABC', num_parcela: 1, total_parcelas: 1,
-    valor: 280, valor_pago: 0, juros_aplicado: 0,
+    valor: 280, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-14', data_vencimento: '2026-06-14', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '16', usuario_id: '11', usuario_nome: 'Thiago Barbosa', tipo: 'voo',
     descricao: 'Voo instrução duplo – 1,0h – PT-DEF', num_parcela: 1, total_parcelas: 1,
-    valor: 390, valor_pago: 0, juros_aplicado: 0,
+    valor: 390, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-13', data_vencimento: '2026-06-13', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '17', usuario_id: '10', usuario_nome: 'Patrícia Nunes', tipo: 'voo',
     descricao: 'Voo instrução solo – 0,7h – PP-XYZ', num_parcela: 1, total_parcelas: 1,
-    valor: 210, valor_pago: 0, juros_aplicado: 0,
+    valor: 210, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-12', data_vencimento: '2026-06-12', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '18', usuario_id: '6', usuario_nome: 'Fernanda Lima', tipo: 'voo',
     descricao: 'Voo sócio duplo – 1,0h – PP-ABC', num_parcela: 1, total_parcelas: 1,
-    valor: 490, valor_pago: 0, juros_aplicado: 0,
+    valor: 490, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-11', data_vencimento: '2026-06-11', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '19', usuario_id: '7', usuario_nome: 'Paulo Mendes', tipo: 'voo',
     descricao: 'Voo externo – 0,6h – PT-DEF', num_parcela: 1, total_parcelas: 1,
-    valor: 234, valor_pago: 0, juros_aplicado: 0,
+    valor: 234, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-10', data_vencimento: '2026-06-10', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '20', usuario_id: '14', usuario_nome: 'Camila Torres', tipo: 'voo',
     descricao: 'Voo instrução duplo – 1,0h – PT-JKL', num_parcela: 1, total_parcelas: 1,
-    valor: 450, valor_pago: 0, juros_aplicado: 0,
+    valor: 450, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-09', data_vencimento: '2026-06-09', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '21', usuario_id: '12', usuario_nome: 'Beatriz Cardoso', tipo: 'voo',
     descricao: 'Voo sócio solo – 1,0h – PP-ABC', num_parcela: 1, total_parcelas: 1,
-    valor: 350, valor_pago: 0, juros_aplicado: 0,
+    valor: 350, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-08', data_vencimento: '2026-06-08', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '22', usuario_id: '2', usuario_nome: 'Ana Paula Santos', tipo: 'voo',
     descricao: 'Voo instrução solo – 1,0h – PT-DEF', num_parcela: 1, total_parcelas: 1,
-    valor: 280, valor_pago: 0, juros_aplicado: 0,
+    valor: 280, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-07', data_vencimento: '2026-06-07', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '23', usuario_id: '11', usuario_nome: 'Thiago Barbosa', tipo: 'voo',
     descricao: 'Voo instrução duplo – 1,2h – PP-XYZ', num_parcela: 1, total_parcelas: 1,
-    valor: 504, valor_pago: 0, juros_aplicado: 0,
+    valor: 504, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-06', data_vencimento: '2026-06-06', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '24', usuario_id: '3', usuario_nome: 'Roberto Ferreira', tipo: 'voo',
     descricao: 'Voo planador sócio solo – 45min – PT-PLN', num_parcela: 1, total_parcelas: 1,
-    valor: 210, valor_pago: 0, juros_aplicado: 0,
+    valor: 210, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-05', data_vencimento: '2026-06-05', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '25', usuario_id: '14', usuario_nome: 'Camila Torres', tipo: 'voo',
     descricao: 'Voo planador instrução duplo – 35min – PP-VOA', num_parcela: 1, total_parcelas: 1,
-    valor: 195, valor_pago: 0, juros_aplicado: 0,
+    valor: 195, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-04', data_vencimento: '2026-06-04', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '26', usuario_id: '13', usuario_nome: 'Rafael Gomes', tipo: 'voo',
     descricao: 'Voo externo – 1,0h – PT-DEF', num_parcela: 1, total_parcelas: 1,
-    valor: 390, valor_pago: 0, juros_aplicado: 0,
+    valor: 390, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-03', data_vencimento: '2026-06-03', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '27', usuario_id: '6', usuario_nome: 'Fernanda Lima', tipo: 'voo',
     descricao: 'Voo sócio solo – 0,9h – PT-JKL', num_parcela: 1, total_parcelas: 1,
-    valor: 288, valor_pago: 0, juros_aplicado: 0,
+    valor: 288, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-02', data_vencimento: '2026-06-02', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '28', usuario_id: '10', usuario_nome: 'Patrícia Nunes', tipo: 'voo',
     descricao: 'Voo instrução duplo – 1,0h – PP-ABC', num_parcela: 1, total_parcelas: 1,
-    valor: 490, valor_pago: 200, juros_aplicado: 0,
+    valor: 490, valor_pago: 200, multa: 0,
     data_emissao: '2026-05-01', data_vencimento: '2026-06-01', data_pagamento: null, status: 'pago_parcial',
   },
   // Voos – Abril 2026 (mistura baixado/em_aberto)
   {
     id: '29', usuario_id: '12', usuario_nome: 'Beatriz Cardoso', tipo: 'voo',
     descricao: 'Voo sócio duplo – 1,5h – PP-XYZ', num_parcela: 1, total_parcelas: 1,
-    valor: 630, valor_pago: 630, juros_aplicado: 0,
+    valor: 630, valor_pago: 630, multa: 0,
     data_emissao: '2026-04-28', data_vencimento: '2026-05-28', data_pagamento: '2026-04-29', status: 'baixado',
   },
   {
     id: '30', usuario_id: '14', usuario_nome: 'Camila Torres', tipo: 'voo',
     descricao: 'Voo instrução solo – 1,2h – PT-DEF', num_parcela: 1, total_parcelas: 1,
-    valor: 336, valor_pago: 0, juros_aplicado: 0,
+    valor: 336, valor_pago: 0, multa: 0,
     data_emissao: '2026-04-25', data_vencimento: '2026-05-25', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '31', usuario_id: '7', usuario_nome: 'Paulo Mendes', tipo: 'voo',
     descricao: 'Voo externo – 1,0h – PP-ABC', num_parcela: 1, total_parcelas: 1,
-    valor: 490, valor_pago: 0, juros_aplicado: 0,
+    valor: 490, valor_pago: 0, multa: 0,
     data_emissao: '2026-04-22', data_vencimento: '2026-05-22', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '32', usuario_id: '2', usuario_nome: 'Ana Paula Santos', tipo: 'voo',
     descricao: 'Voo instrução duplo – 1,2h – PP-XYZ', num_parcela: 1, total_parcelas: 1,
-    valor: 504, valor_pago: 504, juros_aplicado: 0,
+    valor: 504, valor_pago: 504, multa: 0,
     data_emissao: '2026-04-18', data_vencimento: '2026-05-18', data_pagamento: '2026-04-20', status: 'baixado',
   },
   {
     id: '33', usuario_id: '3', usuario_nome: 'Roberto Ferreira', tipo: 'voo',
     descricao: 'Voo sócio solo – 0,9h – PT-JKL', num_parcela: 1, total_parcelas: 1,
-    valor: 288, valor_pago: 288, juros_aplicado: 0,
+    valor: 288, valor_pago: 288, multa: 0,
     data_emissao: '2026-04-15', data_vencimento: '2026-05-15', data_pagamento: '2026-04-17', status: 'baixado',
   },
   {
     id: '34', usuario_id: '12', usuario_nome: 'Beatriz Cardoso', tipo: 'voo',
     descricao: 'Voo planador sócio solo – 50min – PR-ASA', num_parcela: 1, total_parcelas: 1,
-    valor: 215, valor_pago: 215, juros_aplicado: 0,
+    valor: 215, valor_pago: 215, multa: 0,
     data_emissao: '2026-04-10', data_vencimento: '2026-05-10', data_pagamento: '2026-04-11', status: 'baixado',
   },
   {
     id: '35', usuario_id: '11', usuario_nome: 'Thiago Barbosa', tipo: 'voo',
     descricao: 'Voo planador instrução duplo – 30min – PT-PLN', num_parcela: 1, total_parcelas: 1,
-    valor: 150, valor_pago: 150, juros_aplicado: 0,
+    valor: 150, valor_pago: 150, multa: 0,
     data_emissao: '2026-04-08', data_vencimento: '2026-05-08', data_pagamento: '2026-04-10', status: 'baixado',
   },
   // Carteira (recargas)
   {
     id: '36', usuario_id: '2', usuario_nome: 'Ana Paula Santos', tipo: 'carteira',
     descricao: 'Recarga de carteira', num_parcela: 1, total_parcelas: 1,
-    valor: 1000, valor_pago: 1000, juros_aplicado: 0,
+    valor: 1000, valor_pago: 1000, multa: 0,
     data_emissao: '2026-05-16', data_vencimento: '2026-05-16', data_pagamento: '2026-05-16', status: 'baixado',
   },
   {
     id: '37', usuario_id: '3', usuario_nome: 'Roberto Ferreira', tipo: 'carteira',
     descricao: 'Recarga de carteira', num_parcela: 1, total_parcelas: 1,
-    valor: 1500, valor_pago: 1500, juros_aplicado: 0,
+    valor: 1500, valor_pago: 1500, multa: 0,
     data_emissao: '2026-05-15', data_vencimento: '2026-05-15', data_pagamento: '2026-05-15', status: 'baixado',
   },
   {
     id: '38', usuario_id: '6', usuario_nome: 'Fernanda Lima', tipo: 'carteira',
     descricao: 'Recarga de carteira', num_parcela: 1, total_parcelas: 1,
-    valor: 2000, valor_pago: 2000, juros_aplicado: 0,
+    valor: 2000, valor_pago: 2000, multa: 0,
     data_emissao: '2026-05-14', data_vencimento: '2026-05-14', data_pagamento: '2026-05-14', status: 'baixado',
   },
   {
     id: '39', usuario_id: '12', usuario_nome: 'Beatriz Cardoso', tipo: 'carteira',
     descricao: 'Recarga de carteira', num_parcela: 1, total_parcelas: 1,
-    valor: 2500, valor_pago: 2500, juros_aplicado: 0,
+    valor: 2500, valor_pago: 2500, multa: 0,
     data_emissao: '2026-05-13', data_vencimento: '2026-05-13', data_pagamento: '2026-05-13', status: 'baixado',
   },
   {
     id: '40', usuario_id: '11', usuario_nome: 'Thiago Barbosa', tipo: 'carteira',
     descricao: 'Recarga de carteira', num_parcela: 1, total_parcelas: 1,
-    valor: 500, valor_pago: 500, juros_aplicado: 0,
+    valor: 500, valor_pago: 500, multa: 0,
     data_emissao: '2026-05-12', data_vencimento: '2026-05-12', data_pagamento: '2026-05-12', status: 'baixado',
   },
   {
     id: '41', usuario_id: '14', usuario_nome: 'Camila Torres', tipo: 'carteira',
     descricao: 'Recarga de carteira', num_parcela: 1, total_parcelas: 1,
-    valor: 1000, valor_pago: 1000, juros_aplicado: 0,
+    valor: 1000, valor_pago: 1000, multa: 0,
     data_emissao: '2026-05-11', data_vencimento: '2026-05-11', data_pagamento: '2026-05-11', status: 'baixado',
   },
   // Pontual / Serviço
   {
     id: '42', usuario_id: '4', usuario_nome: 'Júlia Oliveira', tipo: 'pontual',
     descricao: 'Taxa de inscrição no curso', num_parcela: 1, total_parcelas: 1,
-    valor: 500, valor_pago: 500, juros_aplicado: 0,
+    valor: 500, valor_pago: 500, multa: 0,
     data_emissao: '2026-03-10', data_vencimento: '2026-03-20', data_pagamento: '2026-03-19', status: 'baixado',
   },
   {
     id: '43', usuario_id: '5', usuario_nome: 'Marcos Costa', tipo: 'servico',
     descricao: 'Renovação CMA – Exame médico', num_parcela: 1, total_parcelas: 1,
-    valor: 750, valor_pago: 0, juros_aplicado: 0,
+    valor: 750, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-01', data_vencimento: '2026-05-20', data_pagamento: null, status: 'em_aberto',
   },
   {
     id: '44', usuario_id: '13', usuario_nome: 'Rafael Gomes', tipo: 'servico',
     descricao: 'Simulador de voo – 5 horas', num_parcela: 1, total_parcelas: 1,
-    valor: 320, valor_pago: 0, juros_aplicado: 0,
+    valor: 320, valor_pago: 0, multa: 0,
     data_emissao: '2026-05-10', data_vencimento: '2026-05-25', data_pagamento: null, status: 'em_aberto',
   },
   // Funcionários – Carlos Eduardo Silva (entidade 101)
   {
     id: '45', usuario_id: '101', usuario_nome: 'Carlos Eduardo Silva', tipo: 'servico',
     descricao: 'Horas extras – Abril 2026', num_parcela: 1, total_parcelas: 1,
-    valor: 420, valor_pago: 420, juros_aplicado: 0,
+    valor: 420, valor_pago: 420, multa: 0,
     data_emissao: '2026-04-30', data_vencimento: '2026-05-05', data_pagamento: '2026-05-05', status: 'baixado',
   },
   // Funcionários – Marcos Costa (entidade 102)
   {
     id: '47', usuario_id: '102', usuario_nome: 'Marcos Costa', tipo: 'servico',
     descricao: 'Adiantamento salarial – Maio 2026', num_parcela: 1, total_parcelas: 1,
-    valor: 1300, valor_pago: 1300, juros_aplicado: 0,
+    valor: 1300, valor_pago: 1300, multa: 0,
     data_emissao: '2026-05-10', data_vencimento: '2026-05-15', data_pagamento: '2026-05-14', status: 'baixado',
   },
   // Instrutores – Ricardo Almeida (entidade 104)
   {
     id: '48', usuario_id: '104', usuario_nome: 'Ricardo Almeida', tipo: 'servico',
     descricao: 'Comissão instrução – Abril 2026', num_parcela: 1, total_parcelas: 1,
-    valor: 1050, valor_pago: 1050, juros_aplicado: 0,
+    valor: 1050, valor_pago: 1050, multa: 0,
     data_emissao: '2026-04-30', data_vencimento: '2026-05-05', data_pagamento: '2026-05-05', status: 'baixado',
   },
   // Instrutores – Ana Paula Santos (entidade 105)
   {
     id: '50', usuario_id: '105', usuario_nome: 'Ana Paula Santos', tipo: 'servico',
     descricao: 'Comissão instrução – Abril 2026', num_parcela: 1, total_parcelas: 1,
-    valor: 820, valor_pago: 820, juros_aplicado: 0,
+    valor: 820, valor_pago: 820, multa: 0,
     data_emissao: '2026-04-30', data_vencimento: '2026-05-05', data_pagamento: '2026-05-05', status: 'baixado',
   },
 ]

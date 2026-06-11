@@ -17,10 +17,8 @@ import {
 import { getVoos, deleteVoo, type Voo } from '@/services/voosService'
 import { getAeronaves, type Aeronave } from '@/services/aeronavesService'
 import { TIPO_VOO_LABELS, type TipoVoo, ALL_TIPOS_VOO } from '@/mocks/voos'
+import { getCurrentUser } from '@/services/api/auth'
 import { cn } from '@/lib/utils'
-
-const inputCls =
-  'h-10 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR')
@@ -35,6 +33,8 @@ const TIPO_VOO_COLORS: Record<TipoVoo, string> = {
 
 export default function Voos() {
   const navigate = useNavigate()
+  const currentUser = getCurrentUser()
+  const isAdmin = currentUser?.perfil_ativo === 'admin'
 
   const [voos, setVoos] = useState<Voo[]>([])
   const [aeronaves, setAeronaves] = useState<Aeronave[]>([])
@@ -52,7 +52,7 @@ export default function Voos() {
 
   useEffect(() => {
     Promise.all([getVoos(), getAeronaves()]).then(([vs, avs]) => {
-      setVoos(vs)
+      setVoos(isAdmin ? vs : vs.filter(v => v.participante_id === String(currentUser?.id) || v.instrutor_id === String(currentUser?.id)))
       setAeronaves(avs)
       setLoading(false)
     })
@@ -124,10 +124,12 @@ export default function Voos() {
             </option>
           ))}
         </FilterSelect>
-        <Button onClick={() => navigate('/voos/novo')} className="ml-auto shrink-0">
-          <Plus className="h-4 w-4" />
-          Registrar Voo
-        </Button>
+        {isAdmin && (
+          <Button onClick={() => navigate('/voos/novo')} className="ml-auto shrink-0">
+            <Plus className="h-4 w-4" />
+            Registrar Voo
+          </Button>
+        )}
       </div>
 
       <Card>
@@ -163,7 +165,7 @@ export default function Voos() {
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap hidden lg:table-cell">Aeronave</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Tempo</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Valor</th>
-                    <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Ações</th>
+                    {isAdmin && <th className="text-right px-4 py-3 font-medium text-muted-foreground whitespace-nowrap">Ações</th>}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -197,35 +199,38 @@ export default function Voos() {
                           <span className="font-medium">{v.aeronave_nome}</span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 font-medium whitespace-nowrap">
-                        {v.tipo_aeronave === 'planador'
-                          ? `${Math.round(v.tempo_decimal * 60)}min`
-                          : `${v.tempo_decimal.toFixed(1)}h`}
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <p className="font-medium">{Math.round(v.tempo_decimal * 60)} min</p>
+                        <p className="text-xs text-muted-foreground">
+                          {v.tempo_decimal.toFixed(1).replace('.', ',')} h
+                        </p>
                       </td>
                       <td className="px-4 py-3 font-medium whitespace-nowrap">
                         {fmt(v.valor_voo)}
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => navigate(`/voos/${v.id}/editar`, { state: { voo: v } })}
-                            title="Editar voo"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon-sm"
-                            onClick={() => setDeleteTarget(v)}
-                            title="Excluir voo"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </td>
+                      {isAdmin && (
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => navigate(`/voos/${v.id}/editar`, { state: { voo: v } })}
+                              title="Editar voo"
+                            >
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => setDeleteTarget(v)}
+                              title="Excluir voo"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>

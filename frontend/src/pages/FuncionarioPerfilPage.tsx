@@ -107,7 +107,7 @@ export default function FuncionarioPerfilPage() {
           tipo: 'entrada',
           data: t.data_emissao,
           descricao: t.descricao,
-          valor: t.valor + t.juros_aplicado,
+          valor: t.valor + t.multa,
           valor_pago: t.valor_pago,
           status: t.status,
         }))
@@ -143,7 +143,7 @@ export default function FuncionarioPerfilPage() {
   const someSelected = selectableTitulos.some(t => selectedIds.has(t.id)) && !allSelected
   const selectedTitulos = titulos.filter(t => selectedIds.has(t.id))
   const totalBatch = selectedTitulos.reduce(
-    (sum, t) => sum + (t.valor + t.juros_aplicado - t.valor_pago),
+    (sum, t) => sum + (t.valor + t.multa - t.valor_pago),
     0,
   )
 
@@ -189,7 +189,7 @@ export default function FuncionarioPerfilPage() {
     setBatchBaixando(true)
     const updates = await Promise.all(
       selectedTitulos.map(t => {
-        const remaining = t.valor + t.juros_aplicado - t.valor_pago
+        const remaining = t.valor + t.multa - t.valor_pago
         return baixarTituloReceber(t.id, remaining, batchData)
       }),
     )
@@ -507,7 +507,7 @@ export default function FuncionarioPerfilPage() {
                         {fmtDate(t.data_vencimento)}
                       </td>
                       <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
-                        {fmt(t.valor + t.juros_aplicado)}
+                        {fmt(t.valor + t.multa)}
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap text-muted-foreground hidden sm:table-cell">
                         {fmt(t.valor_pago)}
@@ -565,7 +565,7 @@ export default function FuncionarioPerfilPage() {
       {(() => {
         const valorRecebido = parseFloat(baixaValor)
         const restante = baixaTarget
-          ? baixaTarget.valor + baixaTarget.juros_aplicado - baixaTarget.valor_pago
+          ? baixaTarget.valor + baixaTarget.multa - baixaTarget.valor_pago
           : 0
         const baixaValorError =
           baixaTarget && !isNaN(valorRecebido) && valorRecebido > restante
@@ -653,7 +653,7 @@ export default function FuncionarioPerfilPage() {
           <div className="space-y-3 py-1">
             <div className="max-h-48 overflow-y-auto divide-y divide-border rounded-lg border border-border">
               {selectedTitulos.map(t => {
-                const restante = t.valor + t.juros_aplicado - t.valor_pago
+                const restante = t.valor + t.multa - t.valor_pago
                 return (
                   <div
                     key={t.id}

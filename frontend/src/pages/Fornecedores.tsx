@@ -1,6 +1,7 @@
 ﻿import { useEffect, useState, useMemo } from 'react'
 import { TablePagination } from '@/components/ui/pagination'
-import { Plus, Pencil, Trash2, Building2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, Building2, Landmark } from 'lucide-react'
+import { DadosBancariosModal } from '@/components/financeiro/DadosBancariosModal'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -25,10 +26,6 @@ import {
   deleteEntidade,
   type Entidade,
 } from '@/services/entidadesService'
-import { cn } from '@/lib/utils'
-
-const inputCls =
-  'h-10 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
 
 export default function Fornecedores() {
   const [fornecedores, setFornecedores] = useState<Entidade[]>([])
@@ -39,6 +36,7 @@ export default function Fornecedores() {
   const [editItem, setEditItem] = useState<Entidade | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Entidade | null>(null)
+  const [dadosBancariosTarget, setDadosBancariosTarget] = useState<Entidade | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [page, setPage] = useState(1)
 
@@ -84,7 +82,7 @@ export default function Fornecedores() {
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
-    await deleteEntidade(deleteTarget.id)
+    await deleteEntidade(deleteTarget.id, deleteTarget.tipo)
     setFornecedores(prev => prev.filter(e => e.id !== deleteTarget.id))
     setDeleteTarget(null)
     setDeleting(false)
@@ -207,6 +205,14 @@ export default function Fornecedores() {
                           <Button
                             variant="ghost"
                             size="icon-sm"
+                            onClick={() => setDadosBancariosTarget(e)}
+                            title="Dados bancários"
+                          >
+                            <Landmark className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon-sm"
                             onClick={() => openEdit(e)}
                             title="Editar fornecedor"
                           >
@@ -232,6 +238,13 @@ export default function Fornecedores() {
           <TablePagination page={page} totalPages={totalPages} onPageChange={setPage} />
         </CardContent>
       </Card>
+
+      <DadosBancariosModal
+        open={!!dadosBancariosTarget}
+        onClose={() => setDadosBancariosTarget(null)}
+        entidadeId={dadosBancariosTarget?.id}
+        titularNome={dadosBancariosTarget?.nome}
+      />
 
       <EntidadeFormModal
         entidade={editItem}

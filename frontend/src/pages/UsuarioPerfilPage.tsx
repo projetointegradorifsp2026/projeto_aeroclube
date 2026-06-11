@@ -12,6 +12,10 @@ import {
   EyeOff,
   Plus,
   Minus,
+  KeyRound,
+  History,
+  ChevronDown,
+  Landmark,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -19,6 +23,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { TablePagination } from '@/components/ui/pagination'
 import { Input } from '@/components/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog,
   DialogContent,
@@ -27,15 +32,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { getUsers, updateUser, addSaldoCarteira, debitarCarteira, type User } from '@/services/usersService'
+import {
+  getUsers,
+  updateUser,
+  addSaldoCarteira,
+  removerSaldoCarteira,
+  resetPassword,
+  getMovimentacoesCarteira,
+  type User,
+  type MovimentacaoCarteira,
+  type CreditoHorasMetadados,
+} from '@/services/usersService'
+import { getAeronaves, type Aeronave } from '@/services/aeronavesService'
 import { UserFormModal, type UserFormData } from '@/components/users/UserFormModal'
+import {
+  getDadosBancariosUsuario, salvarDadosBancarios, emptyDadosBancarios, type DadosBancarios,
+} from '@/services/cnabService'
+import { AlterarSenhaModal } from '@/components/users/AlterarSenhaModal'
+import { getCurrentUser } from '@/services/api/auth'
 import {
   getTitulosReceber,
   baixarTituloReceber,
-  createTituloReceber,
   type TituloReceber,
 } from '@/services/titulosReceberService'
-import { getTitulosPagar, createTituloPagar } from '@/services/titulosPagarService'
+import { getTitulosPagar } from '@/services/titulosPagarService'
 import { PROFILE_LABELS, type UserProfile } from '@/mocks/users'
 import { TITULO_RECEBER_TIPO_LABELS, type TituloReceberStatus } from '@/mocks/titulos'
 import { cn } from '@/lib/utils'
@@ -56,11 +76,12 @@ type MovRow = {
 }
 
 const PROFILE_COLORS: Record<UserProfile, string> = {
-  administrador: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+  admin: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
   aluno: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   socio: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
-  cliente_externo: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
-  colaborador: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  externo: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+  instrutor: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  funcionario: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',
 }
 
 const TITULO_STATUS_LABELS: Record<TituloReceberStatus, string> = {
@@ -81,16 +102,40 @@ export default function UsuarioPerfilPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
+  const currentUser = getCurrentUser()
+  const isAdmin = currentUser?.perfil_ativo === 'admin'
+
   const [user, setUser] = useState<User | null>(null)
   const [loadingUser, setLoadingUser] = useState(true)
   const [editOpen, setEditOpen] = useState(false)
 
+  const [alterarSenhaOpen, setAlterarSenhaOpen] = useState(false)
+  const [dadosBancarios, setDadosBancarios] = useState<DadosBancarios>(emptyDadosBancarios())
+  const [dadosBancariosLoading, setDadosBancariosLoading] = useState(false)
+  const [dadosBancariosSaving, setDadosBancariosSaving] = useState(false)
+  const [resetDialogOpen, setResetDialogOpen] = useState(false)
+  const [resetting, setResetting] = useState(false)
+  const [resetSuccess, setResetSuccess] = useState(false)
+
   // Carteira
   const [saldoVisible, setSaldoVisible] = useState(false)
   const [addSaldoOpen, setAddSaldoOpen] = useState(false)
+  const [addSaldoTab, setAddSaldoTab] = useState<'valor' | 'horas'>('valor')
   const [addSaldoValor, setAddSaldoValor] = useState('')
   const [addSaldoData, setAddSaldoData] = useState(todayStr())
   const [addSaldoSaving, setAddSaldoSaving] = useState(false)
+  // Aba "Por Horas"
+  const [aeronaves, setAeronaves] = useState<Aeronave[]>([])
+  const [horasAeronaveId, setHorasAeronaveId] = useState('')
+  const [horasTipoVoo, setHorasTipoVoo] = useState<'solo' | 'duplo'>('solo')
+  const [horasQtd, setHorasQtd] = useState('')
+  const [horasValorInput, setHorasValorInput] = useState('')
+  // Histórico da carteira
+  const [historicoOpen, setHistoricoOpen] = useState(false)
+  const [historicoData, setHistoricoData] = useState<MovimentacaoCarteira[]>([])
+  const [historicoLoading, setHistoricoLoading] = useState(false)
+  const [historicoAeronaves, setHistoricoAeronaves] = useState<Aeronave[]>([])
+  const [expandedEquiv, setExpandedEquiv] = useState<Set<string>>(new Set())
   const [removeSaldoOpen, setRemoveSaldoOpen] = useState(false)
   const [removeSaldoValor, setRemoveSaldoValor] = useState('')
   const [removeSaldoData, setRemoveSaldoData] = useState(todayStr())
@@ -113,9 +158,12 @@ export default function UsuarioPerfilPage() {
   const [batchBaixando, setBatchBaixando] = useState(false)
 
   async function reloadMovimentacoes(nomeUsuario: string) {
-    const [allReceber, allPagar] = await Promise.all([getTitulosReceber(), getTitulosPagar()])
-    const userReceber = allReceber.filter(t => t.usuario_id === id && t.status === 'baixado' && t.tipo !== 'carteira' && !(t.valor_carteira && t.valor_carteira >= t.valor))
-    const userCarteira = allReceber.filter(t => t.usuario_id === id && t.tipo === 'carteira')
+    const [allReceber, allPagar, movCarteira] = await Promise.all([
+      getTitulosReceber(),
+      getTitulosPagar(),
+      getMovimentacoesCarteira(id!),
+    ])
+    const userReceber = allReceber.filter(t => t.usuario_id === id && t.valor_pago > 0)
     const userPagar = allPagar.filter(t => t.favorecido === nomeUsuario && t.status === 'baixado')
     const entradas: MovRow[] = userReceber.map(t => ({
       id: `r-${t.id}`,
@@ -126,15 +174,14 @@ export default function UsuarioPerfilPage() {
       valor_pago: t.valor_pago,
       status: t.status,
     }))
-    const carteiraRows: MovRow[] = userCarteira.map(t => ({
-      id: `c-${t.id}`,
+    const carteiraRows: MovRow[] = movCarteira.filter(m => m.tipo === 'debito').map(m => ({
+      id: `mv-${m.id}`,
       tipo: 'carteira' as const,
-      data: t.data_emissao,
-      descricao: t.descricao,
-      valor: t.valor,
-      valor_pago: t.valor_pago,
-      status: t.status,
-      carteira_debito: t.carteira_debito,
+      data: m.data_transacao,
+      descricao: m.descricao,
+      valor: m.valor,
+      valor_pago: 0,
+      status: 'baixado' as const,
     }))
     const saidas: MovRow[] = userPagar.map(t => ({
       id: `p-${t.id}`,
@@ -151,57 +198,76 @@ export default function UsuarioPerfilPage() {
 
   useEffect(() => {
     if (!id) return
-    Promise.all([getUsers(), getTitulosReceber(), getTitulosPagar()]).then(
-      ([users, allReceber, allPagar]) => {
+    if (isAdmin) {
+      Promise.all([getUsers(), getTitulosReceber(), getTitulosPagar(), getMovimentacoesCarteira(id)]).then(
+        ([users, allReceber, allPagar, movCarteira]) => {
+          const found = users.find(u => u.id === id)
+          if (!found) { navigate('/usuarios'); return }
+
+          const userReceber = allReceber.filter(t => t.usuario_id === id && t.valor_pago > 0)
+          const userPagar = allPagar.filter(t => t.favorecido === found.nome && t.status === 'baixado')
+
+          const entradas: MovRow[] = userReceber.map(t => ({
+            id: `r-${t.id}`,
+            tipo: 'entrada' as const,
+            data: t.data_emissao,
+            descricao: t.descricao,
+            valor: t.valor,
+            valor_pago: t.valor_pago,
+            status: t.status,
+          }))
+          const carteiraRows: MovRow[] = movCarteira.filter(m => m.tipo === 'debito').map(m => ({
+            id: `mv-${m.id}`,
+            tipo: 'carteira' as const,
+            data: m.data_transacao,
+            descricao: m.descricao,
+            valor: m.valor,
+            valor_pago: 0,
+            status: 'baixado' as const,
+          }))
+          const saidas: MovRow[] = userPagar.map(t => ({
+            id: `p-${t.id}`,
+            tipo: 'saida' as const,
+            data: t.data_emissao,
+            descricao: t.descricao,
+            valor: t.valor,
+            valor_pago: t.valor_pago ?? 0,
+            status: t.status,
+          }))
+
+          setUser(found)
+          setMovimentacoes(
+            [...entradas, ...carteiraRows, ...saidas].sort((a, b) => b.data.localeCompare(a.data)),
+          )
+          setTitulos(
+            allReceber
+              .filter(t => t.usuario_id === id && t.status !== 'baixado')
+              .sort((a, b) => b.data_vencimento.localeCompare(a.data_vencimento)),
+          )
+          setLoadingUser(false)
+        },
+      )
+      // Carrega dados bancários em paralelo
+      setDadosBancariosLoading(true)
+      getDadosBancariosUsuario(id)
+        .then(d => setDadosBancarios(d ?? emptyDadosBancarios()))
+        .catch(() => {})
+        .finally(() => setDadosBancariosLoading(false))
+    } else {
+      getUsers().then(users => {
         const found = users.find(u => u.id === id)
-        if (!found) { navigate('/usuarios'); return }
-
-        const userReceber = allReceber.filter(t => t.usuario_id === id && t.status === 'baixado' && t.tipo !== 'carteira' && !(t.valor_carteira && t.valor_carteira >= t.valor))
-        const userCarteira = allReceber.filter(t => t.usuario_id === id && t.tipo === 'carteira')
-        const userPagar = allPagar.filter(t => t.favorecido === found.nome && t.status === 'baixado')
-
-        const entradas: MovRow[] = userReceber.map(t => ({
-          id: `r-${t.id}`,
-          tipo: 'entrada' as const,
-          data: t.data_emissao,
-          descricao: t.descricao,
-          valor: t.valor,
-          valor_pago: t.valor_pago,
-          status: t.status,
-        }))
-        const carteiraRows: MovRow[] = userCarteira.map(t => ({
-          id: `c-${t.id}`,
-          tipo: 'carteira' as const,
-          data: t.data_emissao,
-          descricao: t.descricao,
-          valor: t.valor,
-          valor_pago: t.valor_pago,
-          status: t.status,
-          carteira_debito: t.carteira_debito,
-        }))
-        const saidas: MovRow[] = userPagar.map(t => ({
-          id: `p-${t.id}`,
-          tipo: 'saida' as const,
-          data: t.data_emissao,
-          descricao: t.descricao,
-          valor: t.valor,
-          valor_pago: t.valor_pago ?? 0,
-          status: t.status,
-        }))
-
+        if (!found) { navigate('/dashboard'); return }
         setUser(found)
-        setMovimentacoes(
-          [...entradas, ...carteiraRows, ...saidas].sort((a, b) => b.data.localeCompare(a.data)),
-        )
-        setTitulos(
-          allReceber
-            .filter(t => t.usuario_id === id && t.status !== 'baixado')
-            .sort((a, b) => b.data_vencimento.localeCompare(a.data_vencimento)),
-        )
         setLoadingUser(false)
-      },
-    )
-  }, [id, navigate])
+      })
+      // Carrega dados bancários para o próprio usuário
+      setDadosBancariosLoading(true)
+      getDadosBancariosUsuario(id)
+        .then(d => setDadosBancarios(d ?? emptyDadosBancarios()))
+        .catch(() => {})
+        .finally(() => setDadosBancariosLoading(false))
+    }
+  }, [id, navigate, isAdmin])
 
   const movTotalPages = Math.ceil(movimentacoes.length / PAGE_SIZE)
   const movPaginated = movimentacoes.slice((movPage - 1) * PAGE_SIZE, movPage * PAGE_SIZE)
@@ -236,70 +302,148 @@ export default function UsuarioPerfilPage() {
     }
   }
 
+  async function handleSaveDadosBancarios() {
+    if (!user) return
+    setDadosBancariosSaving(true)
+    try {
+      await salvarDadosBancarios({ ...dadosBancarios, usuario: parseInt(user.id, 10), entidade: null })
+    } finally {
+      setDadosBancariosSaving(false)
+    }
+  }
+
   async function handleSaveUser(data: UserFormData) {
     if (!user) return
-    const updated = await updateUser(user.id, data)
+    const updated = await updateUser(user.id, data, user.perfis)
     setUser(updated)
+  }
+
+  async function handleResetPassword() {
+    if (!user) return
+    setResetting(true)
+    try {
+      await resetPassword(user.id)
+      setResetSuccess(true)
+    } finally {
+      setResetting(false)
+    }
+  }
+
+  function closeResetDialog() {
+    setResetDialogOpen(false)
+    setResetSuccess(false)
+  }
+
+  function getHorasTarifa(): number {
+    if (!horasAeronaveId) return 0
+    const aeronave = aeronaves.find(a => a.id === horasAeronaveId)
+    if (!aeronave) return 0
+    if (aeronave.tipo === 'aviao') return horasTipoVoo === 'duplo' ? aeronave.valor_duplo : aeronave.valor_solo
+    return aeronave.valor_fixo_inicial
+  }
+
+  function handleHorasQtdChange(val: string) {
+    setHorasQtd(val)
+    const tarifa = getHorasTarifa()
+    if (tarifa > 0 && val) {
+      setHorasValorInput((parseFloat(val) * tarifa).toFixed(2))
+    } else {
+      setHorasValorInput('')
+    }
+  }
+
+  function handleHorasValorChange(val: string) {
+    setHorasValorInput(val)
+    const tarifa = getHorasTarifa()
+    if (tarifa > 0 && val) {
+      setHorasQtd((parseFloat(val) / tarifa).toFixed(2))
+    } else {
+      setHorasQtd('')
+    }
+  }
+
+  function openAddSaldo() {
+    setAddSaldoValor('')
+    setAddSaldoData(todayStr())
+    setAddSaldoTab('valor')
+    setHorasAeronaveId('')
+    setHorasTipoVoo('solo')
+    setHorasQtd('')
+    setHorasValorInput('')
+    if (aeronaves.length === 0) {
+      getAeronaves().then(av => setAeronaves(av.filter(a => a.is_active)))
+    }
+    setAddSaldoOpen(true)
   }
 
   async function handleAddSaldo() {
     if (!user) return
-    const valor = parseFloat(addSaldoValor)
+    const tarifa = getHorasTarifa()
+    const valor = addSaldoTab === 'horas'
+      ? parseFloat(horasValorInput)
+      : parseFloat(addSaldoValor)
     if (!valor || valor <= 0 || !addSaldoData) return
+
+    let descricao = 'Recarga de carteira'
+    let horasMetadados: CreditoHorasMetadados | undefined
+
+    if (addSaldoTab === 'horas' && horasAeronaveId) {
+      const aeronave = aeronaves.find(a => a.id === horasAeronaveId)
+      if (aeronave) {
+        const labelTipo = aeronave.tipo === 'aviao'
+          ? (horasTipoVoo === 'duplo' ? 'Duplo Comando' : 'Solo')
+          : 'Sessão'
+        descricao = `Compra de horas — ${aeronave.nome} (${parseFloat(horasQtd).toFixed(2)}h ${labelTipo})`
+        horasMetadados = {
+          aeronave_id: parseInt(aeronave.id),
+          aeronave_nome: aeronave.nome,
+          aeronave_tipo: aeronave.tipo as 'aviao' | 'planador',
+          tipo_voo: aeronave.tipo === 'aviao' ? horasTipoVoo : null,
+          tarifa,
+          horas: parseFloat(horasQtd),
+        }
+      }
+    }
+
     setAddSaldoSaving(true)
-    const [updatedUser] = await Promise.all([
-      addSaldoCarteira(user.id, valor),
-      createTituloReceber({
-        usuario_id: user.id,
-        usuario_nome: user.nome,
-        tipo: 'carteira',
-        descricao: `Recarga de carteira`,
-        num_parcela: 1,
-        total_parcelas: 1,
-        valor,
-        valor_pago: valor,
-        juros_aplicado: 0,
-        data_emissao: addSaldoData,
-        data_vencimento: addSaldoData,
-        data_pagamento: addSaldoData,
-        status: 'baixado',
-      }),
-    ])
-    setUser(updatedUser)
-    await reloadMovimentacoes(updatedUser.nome)
-    setAddSaldoOpen(false)
-    setAddSaldoValor('')
-    setAddSaldoSaving(false)
+    try {
+      const updatedUser = await addSaldoCarteira(user.id, valor, descricao, addSaldoData, horasMetadados)
+      setUser(updatedUser)
+      await reloadMovimentacoes(updatedUser.nome)
+      setAddSaldoOpen(false)
+    } finally {
+      setAddSaldoSaving(false)
+    }
+  }
+
+  async function handleOpenHistorico() {
+    if (!user) return
+    setHistoricoOpen(true)
+    setHistoricoLoading(true)
+    try {
+      const [mov, aeronaves] = await Promise.all([
+        getMovimentacoesCarteira(user.id),
+        getAeronaves(),
+      ])
+      setHistoricoData(mov.filter(m => m.tipo === 'credito'))
+      setHistoricoAeronaves(aeronaves.filter(a => a.is_active))
+    } finally {
+      setHistoricoLoading(false)
+    }
   }
 
   async function handleRemoveSaldo() {
     if (!user) return
     const valor = parseFloat(removeSaldoValor)
-    if (!valor || valor <= 0 || valor > user.saldo_carteira || !removeSaldoData) return
+    if (!valor || valor <= 0 || !removeSaldoData) return
     setRemoveSaldoSaving(true)
-    const [updatedUser] = await Promise.all([
-      debitarCarteira(user.id, valor),
-      createTituloPagar({
-        tipo: 'outros',
-        favorecido: user.nome,
-        descricao: `Remoção de saldo da carteira`,
-        num_parcela: 1,
-        total_parcelas: 1,
-        valor,
-        multa: 0,
-        data_emissao: removeSaldoData,
-        data_vencimento: removeSaldoData,
-        status: 'baixado',
-        valor_pago: valor,
-        data_pagamento: removeSaldoData,
-        recorrente: false
-      }),
-    ])
-    setUser(updatedUser)
-    await reloadMovimentacoes(updatedUser.nome)
-    setRemoveSaldoOpen(false)
-    setRemoveSaldoValor('')
-    setRemoveSaldoSaving(false)
+    try {
+      await removerSaldoCarteira(user.id, valor)
+      setRemoveSaldoOpen(false)
+      setRemoveSaldoValor('')
+    } finally {
+      setRemoveSaldoSaving(false)
+    }
   }
 
   async function handleBaixa() {
@@ -377,8 +521,6 @@ export default function UsuarioPerfilPage() {
   const removeSaldoError = (() => {
     if (!removeSaldoValor) return null
     if (isNaN(removeSaldoNum) || removeSaldoNum <= 0) return 'O valor deve ser maior que zero'
-    if (removeSaldoNum > user.saldo_carteira)
-      return `Saldo insuficiente (máximo: ${fmt(user.saldo_carteira)})`
     return null
   })()
 
@@ -386,7 +528,7 @@ export default function UsuarioPerfilPage() {
     <div className="pt-2 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon-sm" onClick={() => navigate('/usuarios')}>
+        <Button variant="ghost" size="icon-sm" onClick={() => navigate(isAdmin ? '/usuarios' : '/dashboard')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
@@ -402,10 +544,24 @@ export default function UsuarioPerfilPage() {
           <CardHeader className="border-b pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold">Dados do Usuário</CardTitle>
-              <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-                <Pencil className="h-3.5 w-3.5" />
-                Editar
-              </Button>
+              <div className="flex gap-2">
+                {isAdmin && (
+                  <Button variant="outline" size="sm" onClick={() => setResetDialogOpen(true)}>
+                    <KeyRound className="h-3.5 w-3.5" />
+                    Resetar Senha
+                  </Button>
+                )}
+                {String(currentUser?.id ?? '') === String(user.id) && (
+                  <Button variant="outline" size="sm" onClick={() => setAlterarSenhaOpen(true)}>
+                    <KeyRound className="h-3.5 w-3.5" />
+                    Alterar Senha
+                  </Button>
+                )}
+                <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                  <Pencil className="h-3.5 w-3.5" />
+                  Editar
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="pt-5 pb-5">
@@ -465,9 +621,14 @@ export default function UsuarioPerfilPage() {
         {/* Carteira */}
         <Card className="lg:col-span-1">
           <CardHeader className="border-b pb-3">
-            <div className="flex items-center gap-2">
-              <Wallet className="h-4 w-4 text-muted-foreground" />
-              <CardTitle className="text-base font-semibold">Carteira</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Wallet className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-base font-semibold">Carteira</CardTitle>
+              </div>
+              <Button variant="ghost" size="icon-sm" onClick={handleOpenHistorico} title="Histórico de créditos">
+                <History className="h-4 w-4 text-muted-foreground" />
+              </Button>
             </div>
           </CardHeader>
           <CardContent className="pt-5 pb-5 space-y-5">
@@ -494,30 +655,114 @@ export default function UsuarioPerfilPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => { setAddSaldoValor(''); setAddSaldoData(todayStr()); setAddSaldoOpen(true) }}
-              >
-                <Plus className="h-4 w-4" />
-                Adicionar
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => { setRemoveSaldoValor(''); setRemoveSaldoData(todayStr()); setRemoveSaldoOpen(true) }}
-                disabled={user.saldo_carteira <= 0}
-              >
-                <Minus className="h-4 w-4" />
-                Remover
-              </Button>
+              {isAdmin && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={openAddSaldo}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Adicionar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => { setRemoveSaldoValor(''); setRemoveSaldoData(todayStr()); setRemoveSaldoOpen(true) }}
+                  >
+                    <Minus className="h-4 w-4" />
+                    Remover
+                  </Button>
+                </>
+              )}
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Movimentações */}
+      {/* Dados Bancários */}
       <Card>
+        <CardHeader className="border-b pb-3">
+          <div className="flex items-center gap-2">
+            <Landmark className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-base font-semibold">Dados Bancários</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-5 pb-5">
+          {dadosBancariosLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+            </div>
+          ) : (() => {
+            const selectCls = 'h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
+            const setField = <K extends keyof DadosBancarios>(k: K, v: DadosBancarios[K]) =>
+              setDadosBancarios(p => ({ ...p, [k]: v }))
+            return (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Banco</label>
+                    <Input value={dadosBancarios.banco} onChange={e => setField('banco', e.target.value)} placeholder="Ex: Sicoob" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Código do Banco</label>
+                    <Input value={dadosBancarios.codigo_banco} onChange={e => setField('codigo_banco', e.target.value)} placeholder="Ex: 756" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-[2fr_1fr_2fr_1fr] gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Agência</label>
+                    <Input value={dadosBancarios.agencia} onChange={e => setField('agencia', e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">DV</label>
+                    <Input value={dadosBancarios.agencia_dv} onChange={e => setField('agencia_dv', e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Conta</label>
+                    <Input value={dadosBancarios.conta} onChange={e => setField('conta', e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">DV</label>
+                    <Input value={dadosBancarios.conta_dv} onChange={e => setField('conta_dv', e.target.value)} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Tipo de Conta</label>
+                    <select className={selectCls} value={dadosBancarios.tipo_conta} onChange={e => setField('tipo_conta', e.target.value as DadosBancarios['tipo_conta'])}>
+                      <option value="corrente">Conta Corrente</option>
+                      <option value="poupanca">Conta Poupança</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Chave Pix</label>
+                    <Input value={dadosBancarios.chave_pix} onChange={e => setField('chave_pix', e.target.value)} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Titular</label>
+                    <Input value={dadosBancarios.titular} onChange={e => setField('titular', e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">CPF/CNPJ do Titular</label>
+                    <Input value={dadosBancarios.cpf_cnpj_titular} onChange={e => setField('cpf_cnpj_titular', e.target.value)} />
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <Button onClick={handleSaveDadosBancarios} disabled={dadosBancariosSaving}>
+                    {dadosBancariosSaving ? 'Salvando...' : 'Salvar Dados Bancários'}
+                  </Button>
+                </div>
+              </div>
+            )
+          })()}
+        </CardContent>
+      </Card>
+
+      {/* Movimentações — visível apenas para admin */}
+      {isAdmin && <Card>
         <CardHeader className="border-b pb-3">
           <div className="flex items-center gap-2">
             <Receipt className="h-4 w-4 text-muted-foreground" />
@@ -563,18 +808,16 @@ export default function UsuarioPerfilPage() {
                         <p className="truncate font-medium">{m.descricao}</p>
                       </td>
                       <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
-                        <span className={
-                          m.tipo === 'entrada'
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : m.tipo === 'carteira'
-                            ? 'text-teal-600 dark:text-teal-400'
-                            : 'text-rose-600 dark:text-rose-400'
-                        }>
-                          {m.tipo === 'entrada' ? '+' : m.tipo === 'carteira' ? (m.carteira_debito ? '−' : '+') : '−'}{fmt(m.valor)}
-                        </span>
+                        {m.tipo === 'carteira' ? (
+                          <span className="text-teal-600 dark:text-teal-400">{fmt(m.valor)}</span>
+                        ) : (
+                          <span className={m.tipo === 'entrada' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                            {m.tipo === 'entrada' ? '+' : '−'}{fmt(m.valor)}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell whitespace-nowrap">
-                        {m.valor_pago > 0 ? fmt(m.valor_pago) : '—'}
+                        {m.tipo === 'carteira' ? '—' : m.valor_pago > 0 ? fmt(m.valor_pago) : '—'}
                       </td>
                       <td className="px-4 py-3">
                         {m.status === 'baixado'
@@ -592,10 +835,10 @@ export default function UsuarioPerfilPage() {
           )}
           <TablePagination page={movPage} totalPages={movTotalPages} onPageChange={setMovPage} />
         </CardContent>
-      </Card>
+      </Card>}
 
-      {/* Títulos a Receber */}
-      <Card>
+      {/* Títulos a Receber — visível apenas para admin */}
+      {isAdmin && <Card>
         <CardHeader className="border-b pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -686,55 +929,159 @@ export default function UsuarioPerfilPage() {
           )}
           <TablePagination page={titulosPage} totalPages={titulosTotalPages} onPageChange={setTitulosPage} />
         </CardContent>
-      </Card>
+      </Card>}
 
       {/* Modal de edição */}
-      <UserFormModal user={user} open={editOpen} onClose={() => setEditOpen(false)} onSave={handleSaveUser} />
+      <UserFormModal user={user} open={editOpen} onClose={() => setEditOpen(false)} onSave={handleSaveUser} restrictedFields={!isAdmin} />
 
-      {/* Dialog: Adicionar Saldo */}
+      <AlterarSenhaModal open={alterarSenhaOpen} onClose={() => setAlterarSenhaOpen(false)} />
+
+      {/* Dialog: Adicionar Saldo (Por Valor ou Por Horas) */}
       <Dialog open={addSaldoOpen} onOpenChange={o => !o && setAddSaldoOpen(false)}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Adicionar Saldo</DialogTitle>
             <DialogDescription>
-              Um título baixado será gerado como comprovante do crédito adicionado.
+              Uma Receita pendente será criada. O saldo é creditado somente após faturar e baixar o título.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-1">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Valor a adicionar (R$)</label>
-              <Input
-                type="number"
-                min={0.01}
-                step={0.01}
-                placeholder="0,00"
-                value={addSaldoValor}
-                onChange={e => setAddSaldoValor(e.target.value)}
-                hasError={!!addSaldoError}
-                helper={addSaldoError ?? undefined}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Data</label>
-              <Input
-                type="date"
-                value={addSaldoData}
-                onChange={e => setAddSaldoData(e.target.value)}
-              />
-            </div>
-            <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm">
-              <span className="text-muted-foreground">Saldo atual: </span>
-              <span className="font-medium">{fmt(user.saldo_carteira)}</span>
-              {addSaldoValor && !addSaldoError && parseFloat(addSaldoValor) > 0 && (
-                <>
-                  <span className="text-muted-foreground mx-1.5">→</span>
-                  <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                    {fmt(user.saldo_carteira + parseFloat(addSaldoValor))}
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
+
+          <Tabs value={addSaldoTab} onValueChange={v => setAddSaldoTab(v as 'valor' | 'horas')}>
+            <TabsList className="w-full">
+              <TabsTrigger value="valor" className="flex-1">Por Valor</TabsTrigger>
+              <TabsTrigger value="horas" className="flex-1">Por Horas</TabsTrigger>
+            </TabsList>
+
+            {/* ABA: Por Valor */}
+            <TabsContent value="valor" className="space-y-3 pt-2">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Valor a adicionar (R$)</label>
+                <Input
+                  type="number"
+                  min={0.01}
+                  step={0.01}
+                  placeholder="0,00"
+                  value={addSaldoValor}
+                  onChange={e => setAddSaldoValor(e.target.value)}
+                  hasError={!!addSaldoError}
+                  helper={addSaldoError ?? undefined}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium">Data de vencimento</label>
+                <Input
+                  type="date"
+                  value={addSaldoData}
+                  onChange={e => setAddSaldoData(e.target.value)}
+                />
+              </div>
+              <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm text-muted-foreground">
+                Saldo atual: <span className="font-medium text-foreground">{fmt(user.saldo_carteira)}</span>
+                {' '}— o crédito ocorre ao baixar o título gerado.
+              </div>
+            </TabsContent>
+
+            {/* ABA: Por Horas */}
+            <TabsContent value="horas" className="space-y-3 pt-2">
+              {(() => {
+                const selectCls = 'h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
+                const selectedAeronave = aeronaves.find(a => a.id === horasAeronaveId)
+                const tarifa = getHorasTarifa()
+                const horasLabel = selectedAeronave?.tipo === 'planador' ? 'Sessões' : 'Horas de voo'
+
+                return (
+                  <>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Aeronave</label>
+                        <select
+                          className={selectCls}
+                          value={horasAeronaveId}
+                          onChange={e => {
+                            setHorasAeronaveId(e.target.value)
+                            setHorasQtd('')
+                            setHorasValorInput('')
+                          }}
+                        >
+                          <option value="">Selecione</option>
+                          {aeronaves.map(a => (
+                            <option key={a.id} value={a.id}>{a.nome}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {selectedAeronave?.tipo === 'aviao' && (
+                        <div className="space-y-1.5">
+                          <label className="text-sm font-medium">Tipo de voo</label>
+                          <select
+                            className={selectCls}
+                            value={horasTipoVoo}
+                            onChange={e => {
+                              setHorasTipoVoo(e.target.value as 'solo' | 'duplo')
+                              setHorasQtd('')
+                              setHorasValorInput('')
+                            }}
+                          >
+                            <option value="solo">Solo</option>
+                            <option value="duplo">Duplo Comando</option>
+                          </select>
+                        </div>
+                      )}
+                    </div>
+
+                    {selectedAeronave && tarifa > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        Tarifa vigente: {fmt(tarifa)}/{selectedAeronave.tipo === 'planador' ? 'sessão' : 'hora'}
+                      </p>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">{horasLabel}</label>
+                        <Input
+                          type="number"
+                          min={0.1}
+                          step={0.1}
+                          placeholder="0,0"
+                          value={horasQtd}
+                          onChange={e => handleHorasQtdChange(e.target.value)}
+                          disabled={!horasAeronaveId}
+                        />
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-sm font-medium">Valor R$</label>
+                        <Input
+                          type="number"
+                          min={0.01}
+                          step={0.01}
+                          placeholder="0,00"
+                          value={horasValorInput}
+                          onChange={e => handleHorasValorChange(e.target.value)}
+                          disabled={!horasAeronaveId}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-medium">Data de vencimento</label>
+                      <Input
+                        type="date"
+                        value={addSaldoData}
+                        onChange={e => setAddSaldoData(e.target.value)}
+                      />
+                    </div>
+
+                    {horasValorInput && parseFloat(horasValorInput) > 0 && (
+                      <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm text-muted-foreground">
+                        O crédito de <span className="font-medium text-foreground">{fmt(parseFloat(horasValorInput))}</span> ocorre ao baixar o título gerado.
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
+            </TabsContent>
+          </Tabs>
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddSaldoOpen(false)} disabled={addSaldoSaving}>
               Cancelar
@@ -743,10 +1090,9 @@ export default function UsuarioPerfilPage() {
               onClick={handleAddSaldo}
               disabled={
                 addSaldoSaving ||
-                !addSaldoValor ||
-                !!addSaldoError ||
-                parseFloat(addSaldoValor) <= 0 ||
-                !addSaldoData
+                !addSaldoData ||
+                (addSaldoTab === 'valor' && (!addSaldoValor || !!addSaldoError || parseFloat(addSaldoValor) <= 0)) ||
+                (addSaldoTab === 'horas' && (!horasAeronaveId || !horasValorInput || parseFloat(horasValorInput) <= 0))
               }
             >
               {addSaldoSaving ? 'Salvando...' : 'Confirmar'}
@@ -761,7 +1107,7 @@ export default function UsuarioPerfilPage() {
           <DialogHeader>
             <DialogTitle>Remover Saldo</DialogTitle>
             <DialogDescription>
-              O valor será debitado da carteira e registrado como saída nas movimentações.
+              Um Custo pendente será criado. O saldo é debitado somente após faturar e baixar o título.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-1">
@@ -787,17 +1133,9 @@ export default function UsuarioPerfilPage() {
                 onChange={e => setRemoveSaldoData(e.target.value)}
               />
             </div>
-            <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm">
-              <span className="text-muted-foreground">Saldo atual: </span>
-              <span className="font-medium">{fmt(user.saldo_carteira)}</span>
-              {removeSaldoValor && !removeSaldoError && parseFloat(removeSaldoValor) > 0 && (
-                <>
-                  <span className="text-muted-foreground mx-1.5">→</span>
-                  <span className="font-semibold text-rose-600 dark:text-rose-400">
-                    {fmt(user.saldo_carteira - parseFloat(removeSaldoValor))}
-                  </span>
-                </>
-              )}
+            <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm text-muted-foreground">
+              Saldo atual: <span className="font-medium text-foreground">{fmt(user.saldo_carteira)}</span>
+              {' '}— o débito ocorre ao baixar o título gerado.
             </div>
           </div>
           <DialogFooter>
@@ -911,6 +1249,162 @@ export default function UsuarioPerfilPage() {
             <Button onClick={handleBatchBaixa} disabled={batchBaixando || !batchData}>
               {batchBaixando ? 'Processando...' : `Confirmar ${selectedTitulos.length} título${selectedTitulos.length !== 1 ? 's' : ''}`}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Histórico da Carteira */}
+      <Dialog open={historicoOpen} onOpenChange={o => { if (!o) { setHistoricoOpen(false); setExpandedEquiv(new Set()) } }}>
+        <DialogContent className="sm:max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Histórico de Créditos — {user.nome}</DialogTitle>
+            <DialogDescription>
+              Créditos adicionados à carteira com equivalência em horas por aeronave.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1">
+            {historicoLoading ? (
+              <div className="space-y-2 p-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : historicoData.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                <Wallet className="h-8 w-8 mb-2 opacity-30" />
+                <p className="text-sm">Nenhum crédito registrado</p>
+              </div>
+            ) : (() => {
+              const hoje = new Date().toISOString().split('T')[0]
+              const totalVencido = historicoData
+                .filter(m => m.data_vencimento && m.data_vencimento < hoje)
+                .reduce((acc, m) => acc + m.valor, 0)
+              return (
+                <>
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b bg-muted/30">
+                        <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Data</th>
+                        <th className="text-right px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Valor R$</th>
+                        <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Vencimento</th>
+                        <th className="text-left px-4 py-2 font-medium text-muted-foreground">Equivalência</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {historicoData.map(m => {
+                        const vencido = !!(m.data_vencimento && m.data_vencimento < hoje)
+                        const expanded = expandedEquiv.has(m.id)
+                        return (
+                          <tr key={m.id} className={cn('hover:bg-muted/20', vencido && 'opacity-60')}>
+                            <td className="px-4 py-2 whitespace-nowrap text-muted-foreground">
+                              {fmtDate(m.data_transacao.split('T')[0])}
+                            </td>
+                            <td className="px-4 py-2 text-right whitespace-nowrap">
+                              <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                                +{fmt(m.valor)}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2 whitespace-nowrap">
+                              {m.data_vencimento ? (
+                                <span className={cn('text-sm', vencido ? 'text-rose-500' : '')}>
+                                  {fmtDate(m.data_vencimento)}
+                                  {vencido && <span className="ml-1 text-xs">(expirado)</span>}
+                                </span>
+                              ) : '—'}
+                            </td>
+                            <td className="px-4 py-2">
+                              <button
+                                type="button"
+                                onClick={() => setExpandedEquiv(prev => {
+                                  const next = new Set(prev)
+                                  next.has(m.id) ? next.delete(m.id) : next.add(m.id)
+                                  return next
+                                })}
+                                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                Ver equivalência
+                                <ChevronDown className={cn('h-3 w-3 transition-transform', expanded && 'rotate-180')} />
+                              </button>
+                              {expanded && (
+                                <div className="flex flex-col gap-0.5 text-xs text-muted-foreground mt-1.5">
+                                  {historicoAeronaves.map(a => {
+                                    if (a.tipo === 'aviao') {
+                                      const solo = a.valor_solo > 0 ? `${(m.valor / a.valor_solo).toFixed(1)}h solo` : null
+                                      const duplo = a.valor_duplo > 0 ? `${(m.valor / a.valor_duplo).toFixed(1)}h duplo` : null
+                                      const eq = [solo, duplo].filter(Boolean).join(' / ')
+                                      return <span key={a.id}><span className="font-medium text-foreground">{a.nome}:</span> {eq}</span>
+                                    } else {
+                                      const sessoes = a.valor_fixo_inicial > 0
+                                        ? `${(m.valor / a.valor_fixo_inicial).toFixed(1)} sessões`
+                                        : '—'
+                                      return <span key={a.id}><span className="font-medium text-foreground">{a.nome}:</span> {sessoes}</span>
+                                    }
+                                  })}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                  {totalVencido > 0 && (
+                    <div className="mx-4 my-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm dark:border-rose-900 dark:bg-rose-950/30">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-rose-700 dark:text-rose-400 font-semibold">Saldo vencido</span>
+                        <span className="text-rose-700 dark:text-rose-400 font-bold">{fmt(totalVencido)}</span>
+                      </div>
+                      <div className="flex flex-col gap-0.5 text-xs text-rose-600 dark:text-rose-400">
+                        {historicoAeronaves.map(a => {
+                          if (a.tipo === 'aviao') {
+                            const solo = a.valor_solo > 0 ? `${(totalVencido / a.valor_solo).toFixed(1)}h solo` : null
+                            const duplo = a.valor_duplo > 0 ? `${(totalVencido / a.valor_duplo).toFixed(1)}h duplo` : null
+                            const eq = [solo, duplo].filter(Boolean).join(' / ')
+                            return <span key={a.id}><span className="font-medium">{a.nome}:</span> {eq}</span>
+                          } else {
+                            const sessoes = a.valor_fixo_inicial > 0
+                              ? `${(totalVencido / a.valor_fixo_inicial).toFixed(1)} sessões`
+                              : '—'
+                            return <span key={a.id}><span className="font-medium">{a.nome}:</span> {sessoes}</span>
+                          }
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )
+            })()}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => { setHistoricoOpen(false); setExpandedEquiv(new Set()) }}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: Resetar Senha (admin only) */}
+      <Dialog open={resetDialogOpen} onOpenChange={o => !o && closeResetDialog()}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Resetar Senha</DialogTitle>
+            <DialogDescription>
+              {resetSuccess
+                ? `Senha de ${user.nome} resetada com sucesso. A nova senha é: aero + 5 primeiros dígitos do CPF.`
+                : `A senha de ${user.nome} será resetada para: aero + 5 primeiros dígitos do CPF. O usuário deverá trocar a senha no próximo acesso.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            {resetSuccess ? (
+              <Button onClick={closeResetDialog}>Fechar</Button>
+            ) : (
+              <>
+                <Button variant="outline" onClick={closeResetDialog} disabled={resetting}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleResetPassword} disabled={resetting}>
+                  {resetting ? 'Resetando...' : 'Resetar Senha'}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

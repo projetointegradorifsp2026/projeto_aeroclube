@@ -1,0 +1,489 @@
+================================================================================
+  AEROCLUBE — MODELOS DO BANCO DE DADOS
+  Todos os models Django / tabelas do banco (MariaDB)
+================================================================================
+
+Total de modelos customizados: 16
+Apps: users | aeronaves | pessoas | voos | financeiro (4 sub-apps)
+
+As relações entre tabelas são indicadas com:
+  FK  = ForeignKey (chave estrangeira)
+  1:1 = OneToOneField
+  M2M = ManyToManyField (gerada automaticamente pelo Django)
+  ↑   = herança multi-tabela (Multi-Table Inheritance)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+APP: users
+  Tabelas: users_usuario | users_usuarioperfil
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+────────────────────────────────────────────────────────────────────────────────
+MODEL: Usuario                         (tabela: users_usuario)
+────────────────────────────────────────────────────────────────────────────────
+Estende AbstractUser do Django. Login feito por e-mail (sem username).
+Campos herdados do AbstractUser: id, password, last_login, is_superuser,
+is_staff, is_active, date_joined.
+
+  CAMPO              TIPO              DESCRIÇÃO
+  ─────────────────────────────────────────────────────────────────────────────
+  id                 AutoField (PK)    Identificador único
+  nome               CharField(200)    Nome completo
+  email              EmailField        Login único (sem username)
+  cpf_cnpj           CharField(18)     CPF ou CNPJ — único, opcional
+  perfil_ativo       CharField(20)     Perfil atual do usuário
+                                       Opções: aluno | socio | instrutor |
+                                               externo | admin | funcionario
+  updated_at         DateTimeField     Última atualização (auto)
+  password           CharField         Hash da senha (herdado)
+  is_active          BooleanField      Conta ativa? (herdado)
+  is_staff           BooleanField      Acesso ao admin Django? (herdado)
+  is_superuser       BooleanField      Superusuário? (herdado)
+  last_login         DateTimeField     Último login (herdado)
+  date_joined        DateTimeField     Data de criação (herdado)
+
+  RELAÇÕES:
+  - UsuarioPerfil   (1:N) → lista de perfis deste usuário
+  - Voo             (1:N) → voos onde é participante
+  - Voo             (1:N) → voos onde é instrutor
+  - TituloReceber   (1:N) → títulos que deve ao aeroclube
+  - Carteira        (1:1) → saldo pré-pago
+  - EntidadePagar   (1:1) → vínculo como entidade externa (opcional)
+
+────────────────────────────────────────────────────────────────────────────────
+MODEL: UsuarioPerfil                   (tabela: users_usuarioperfil)
+────────────────────────────────────────────────────────────────────────────────
+Tabela intermediária — um usuário pode ter múltiplos perfis simultâneos.
+Ex: um usuário pode ser ao mesmo tempo "aluno" e "instrutor".
+
+  CAMPO              TIPO              DESCRIÇÃO
+  ─────────────────────────────────────────────────────────────────────────────
+  id                 AutoField (PK)
+  usuario            FK → Usuario      Usuário ao qual o perfil pertence
+  perfil             CharField(20)     Perfil atribuído (mesmas opções do campo
+                                       perfil_ativo de Usuario)
+
+  RESTRIÇÃO: (usuario, perfil) deve ser único — não repete o mesmo perfil.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+APP: aeronaves
+  Tabelas: aeronaves_aeronave | aeronaves_aviao | aeronaves_planador
+           aeronaves_historicotarifaaronave
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Usa Multi-Table Inheritance (MTI) do Django:
+  Aeronave (base)
+  ├── Aviao    — estende com campos de tarifa por hora
+  └── Planador — estende com campos de franquia e valor por minuto
+
+────────────────────────────────────────────────────────────────────────────────
+MODEL: Aeronave                        (tabela: aeronaves_aeronave)
+────────────────────────────────────────────────────────────────────────────────
+Tabela base de todas as aeronaves. Registros de Aviao e Planador também
+têm uma linha aqui (MTI gera um JOIN automático).
+
+  CAMPO              TIPO              DESCRIÇÃO
+  ─────────────────────────────────────────────────────────────────────────────
+  id                 AutoField (PK)
+  nome               CharField(100)    Nome ou prefixo (ex: PT-ABC) — único
+  tipo               CharField(10)     "aviao" ou "planador"
+  foto               CharField(500)    Caminho ou URL da imagem (opcional)
+  is_active          BooleanField      Aeronave ativa no sistema?
+  created_at         DateTimeField     Data de criação (auto)
+  updated_at         DateTimeField     Última atualização (auto)
+
+  RELAÇÕES:
+  - Aviao    (1:1 ↑) → extensão para aviões
+  - Planador (1:1 ↑) → extensão para planadores
+  - Voo      (1:N)   → voos realizados com esta aeronave
+  - HistoricoTarifaAeronave (1:N) → histórico de tarifas
+
+────────────────────────────────────────────────────────────────────────────────
+MODEL: Aviao                           (tabela: aeronaves_aviao)
+────────────────────────────────────────────────────────────────────────────────
+Estende Aeronave. Cobrança por hora de voo.
+
+  CAMPO              TIPO              DESCRIÇÃO
+  ─────────────────────────────────────────────────────────────────────────────
+  aeronave_ptr       1:1 → Aeronave    Chave de herança (PK desta tabela)
+  tarifa_solo        DecimalField(8,2) Valor em R$ por hora — voo solo
+  tarifa_duplo_cmd   DecimalField(8,2) Valor em R$ por hora — duplo comando
+
+  REGRA DE CÁLCULO: valor_voo = tempo_decimal × tarifa_aplicada
+
+────────────────────────────────────────────────────────────────────────────────
+MODEL: Planador                        (tabela: aeronaves_planador)
+────────────────────────────────────────────────────────────────────────────────
+Estende Aeronave. Cobrança híbrida: franquia fixa + minuto excedente.
+
+  CAMPO                 TIPO              DESCRIÇÃO
+  ─────────────────────────────────────────────────────────────────────────────
+  aeronave_ptr          1:1 → Aeronave    Chave de herança (PK desta tabela)
+  minutos_franquia      PositiveInt       Tempo coberto pelo valor fixo (ex: 45)
+  valor_fixo_inicial    DecimalField(8,2) Valor R$ até atingir a franquia
+  valor_minuto_adic     DecimalField(6,2) Valor R$ por minuto além da franquia
+  valor_fixo_duplo      DecimalField(8,2) Valor fixo p/ duplo comando (opcional;
+                                          se vazio usa valor_fixo_inicial)
+  valor_minuto_duplo    DecimalField(6,2) Valor/min p/ duplo (opcional;
+                                          se vazio usa valor_minuto_adicional)
+
+  REGRA DE CÁLCULO:
+    ≤ franquia  → valor_fixo_inicial
+    > franquia  → valor_fixo_inicial + (excedente × valor_minuto_adicional)
+
+────────────────────────────────────────────────────────────────────────────────
+MODEL: HistoricoTarifaAeronave         (tabela: aeronaves_historicotarifaaronave)
+────────────────────────────────────────────────────────────────────────────────
+Auditoria de alterações de tarifa. Toda vez que a tarifa de uma aeronave
+é alterada, os valores anteriores são registrados aqui.
+
+  CAMPO                 TIPO              DESCRIÇÃO
+  ─────────────────────────────────────────────────────────────────────────────
+  id                    AutoField (PK)
+  aeronave              FK → Aeronave     Aeronave cuja tarifa foi alterada
+  descricao_alteracao   TextField         Texto descritivo (ex: "tarifa_solo:
+                                          300 → 320")
+  valores_anteriores    JSONField         Snapshot dos valores antes da mudança
+  alterado_em           DateTimeField     Timestamp da alteração (auto)
+  alterado_por          FK → Usuario      Quem fez a alteração (pode ser nulo)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+APP: pessoas
+  Tabelas: pessoas_entidadepagar | pessoas_fornecedor | pessoas_funcionario
+           pessoas_favorecido
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Representa entidades externas ao sistema de usuários (fornecedores,
+funcionários) e o conceito de Favorecido usado nos títulos a pagar.
+
+Usa MTI:
+  EntidadePagar (base)
+  ├── Fornecedor  — acrescenta produto/serviço principal
+  └── Funcionario — acrescenta função, flag instrutor e salário
+
+────────────────────────────────────────────────────────────────────────────────
+MODEL: EntidadePagar                   (tabela: pessoas_entidadepagar)
+────────────────────────────────────────────────────────────────────────────────
+Base de toda entidade que pode receber pagamentos do aeroclube ou ser
+devedora (clientes externos em títulos a receber).
+
+  CAMPO              TIPO              DESCRIÇÃO
+  ─────────────────────────────────────────────────────────────────────────────
+  id                 AutoField (PK)
+  nome               CharField(200)    Nome ou razão social
+  cpf_cnpj           CharField(18)     CPF ou CNPJ (opcional)
+  email              EmailField        E-mail de contato (opcional)
+  contato            CharField(20)     Telefone (opcional)
+  tipo               CharField(20)     fornecedor | funcionario | instrutor |
+                                       cliente
+  is_active          BooleanField      Entidade ativa?
+  usuario            1:1 → Usuario     Vínculo com usuário do sistema (opcional)
+  created_at         DateTimeField     Data de criação (auto)
+  updated_at         DateTimeField     Última atualização (auto)
+
+────────────────────────────────────────────────────────────────────────────────
+MODEL: Fornecedor                      (tabela: pessoas_fornecedor)
+────────────────────────────────────────────────────────────────────────────────
+Estende EntidadePagar. Fornecedor de produtos ou serviços.
+
+  CAMPO              TIPO              DESCRIÇÃO
+  ─────────────────────────────────────────────────────────────────────────────
+  entidadepagar_ptr  1:1 → EntidPagar  Chave de herança (PK)
+  produto_servico    CharField(200)    Produto ou serviço principal (opcional)
+
+────────────────────────────────────────────────────────────────────────────────
+MODEL: Funcionario                     (tabela: pessoas_funcionario)
+────────────────────────────────────────────────────────────────────────────────
+Estende EntidadePagar. Funcionário ou instrutor do aeroclube.
+O tipo no pai (EntidadePagar.tipo) é definido automaticamente:
+  is_instrutor=True  → tipo = "instrutor"
+  is_instrutor=False → tipo = "funcionario"
+
+  CAMPO              TIPO              DESCRIÇÃO
+  ─────────────────────────────────────────────────────────────────────────────
+  entidadepagar_ptr  1:1 → EntidPagar  Chave de herança (PK)
+  funcao             CharField(100)    Cargo / função (opcional)
+  is_instrutor       BooleanField      É instrutor de voo?
+  salario_base       DecimalField(10,2) Salário base mensal (opcional)
+
+────────────────────────────────────────────────────────────────────────────────
+MODEL: Favorecido                      (tabela: pessoas_favorecido)
+────────────────────────────────────────────────────────────────────────────────
+Intermediário que representa quem vai receber o valor em um TituloPagar.
+Aponta para UM dos dois: usuário do sistema OU entidade externa.
+
+  CAMPO              TIPO              DESCRIÇÃO
+  ─────────────────────────────────────────────────────────────────────────────
+  id                 AutoField (PK)
+  usuario            FK → Usuario      Favorecido é um usuário do sistema
+                                       (ex: instrutor cadastrado como usuário)
+  entidade           FK → EntidPagar   Favorecido é uma entidade externa
+                                       (ex: fornecedor, funcionário externo)
+
+  RESTRIÇÃO: exatamente um dos dois deve estar preenchido.
+
+  RELAÇÕES:
+  - TituloPagar (1:N) → títulos que este favorecido deve receber
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+APP: voos
+  Tabela: voos_voo
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+────────────────────────────────────────────────────────────────────────────────
+MODEL: Voo                             (tabela: voos_voo)
+────────────────────────────────────────────────────────────────────────────────
+Diário de bordo. Cada registro é um voo realizado. O valor é calculado
+e congelado no momento do registro (RF11 — preservação de histórico).
+
+  CAMPO                   TIPO              DESCRIÇÃO
+  ─────────────────────────────────────────────────────────────────────────────
+  id                      AutoField (PK)
+  participante            FK → Usuario      Aluno, sócio ou cliente do voo
+  instrutor               FK → Usuario      Instrutor (obrigatório se duplo
+                                            comando ou externo; opcional senão)
+  aeronave                FK → Aeronave     Aeronave utilizada
+  tipo_voo                CharField(20)     instrucao_solo | instrucao_duplo |
+                                            socio_solo | socio_duplo | externo
+  data_voo                DateField         Data do voo
+  hora_inicio             TimeField         Horário de decolagem
+  hora_fim                TimeField         Horário de pouso
+  duracao_minutos         PositiveInt       Duração em minutos (calculado auto)
+  tempo_decimal           DecimalField(4,1) Tempo em horas decimais (calculado
+                                            auto pela regra dos 6 min)
+  origem                  CharField(10)     Código ICAO ou nome (opcional)
+  destino                 CharField(10)     Código ICAO ou nome (opcional)
+  valor_tarifa_snapshot   DecimalField(8,2) Tarifa vigente no momento do voo
+                                            (congelada para o histórico)
+  valor_total             DecimalField(10,2) Valor total do voo (calculado auto)
+  valor_repasse_instr     DecimalField(8,2) Repasse ao instrutor de planador
+                                            (10% do valor_total; 0 se avião)
+  detalhe_cobranca        JSONField         Breakdown do cálculo (tipo aeronave,
+                                            tempo, tarifa, franquia, excedente)
+  created_at              DateTimeField     Data de registro (auto)
+
+  RELAÇÕES:
+  - TituloReceber (1:1 opt) → título a receber gerado por este voo
+  - MovimentacaoCarteira (1:N) → movimentações de carteira deste voo
+
+  REGRAS NO SAVE (automático):
+    1. Calcula duracao_minutos = hora_fim − hora_inicio
+    2. Calcula tempo_decimal pela regra dos 6 min com tolerância -2/+3
+    3. Calcula valor_total e valor_repasse_instrutor conforme tipo de aeronave
+    4. Salva detalhe_cobranca com todo o breakdown
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+APP: financeiro / titulos_receber
+  Tabela: titulos_receber_tituloreceber
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+────────────────────────────────────────────────────────────────────────────────
+MODEL: TituloReceber          (tabela: financeiro_titulos_receber_tituloreceber)
+────────────────────────────────────────────────────────────────────────────────
+Representa qualquer cobrança que o aeroclube tem a receber de um participante
+ou cliente externo.
+
+  CAMPO                   TIPO              DESCRIÇÃO
+  ─────────────────────────────────────────────────────────────────────────────
+  id                      AutoField (PK)
+  participante            FK → Usuario      Devedor que é usuário do sistema
+                                            (nulo se for cliente externo)
+  cliente_externo         FK → EntidPagar   Devedor externo (nulo se for usuário)
+  tipo                    CharField(20)     mensalidade | voo | horas_pre_pagas |
+                                            servico | outros
+  descricao               CharField(300)    Descrição da cobrança
+  voo                     1:1 → Voo         Voo que originou este título (opt)
+  num_parcela             PositiveSmallInt  Número desta parcela (ex: 1)
+  total_parcelas          PositiveSmallInt  Total de parcelas (ex: 3)
+  valor_original          DecimalField(10,2) Valor bruto cobrado
+  multa                   DecimalField(8,2) Multa/juros acumulados (0 no início)
+  valor_pago              DecimalField(10,2) Total já recebido (0 no início)
+  valor_via_carteira      DecimalField(10,2) Parcela paga via saldo de carteira
+  data_emissao            DateField         Data de emissão do título
+  data_vencimento         DateField         Data de vencimento
+  data_pagamento          DateField         Data do último pagamento (opt)
+  status                  CharField(10)     aberto | baixado
+  created_at              DateTimeField     Data de criação (auto)
+  updated_at              DateTimeField     Última atualização (auto)
+
+  CAMPOS CALCULADOS (properties — não são colunas no banco):
+    saldo_devedor         = valor_original + multa − valor_pago
+    valor_total_com_juros = valor_original + multa
+    esta_atrasado         = status==aberto AND data_vencimento < hoje
+
+  RESTRIÇÃO: exatamente um de (participante, cliente_externo) deve ser preenchido.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+APP: financeiro / titulos_pagar
+  Tabela: titulos_pagar_titulopagar
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+────────────────────────────────────────────────────────────────────────────────
+MODEL: TituloPagar             (tabela: financeiro_titulos_pagar_titulopagar)
+────────────────────────────────────────────────────────────────────────────────
+Representa qualquer saída financeira do aeroclube: pagamento a fornecedor,
+folha de pagamento, conta fixa ou outros.
+
+  CAMPO                   TIPO              DESCRIÇÃO
+  ─────────────────────────────────────────────────────────────────────────────
+  id                      AutoField (PK)
+  tipo                    CharField(20)     fornecedor | folha_pagamento |
+                                            conta_fixa | outros
+  favorecido              FK → Favorecido   Quem vai receber o pagamento
+  descricao               CharField(300)    Descrição da despesa
+  num_parcela             PositiveSmallInt  Número desta parcela
+  total_parcelas          PositiveSmallInt  Total de parcelas
+  valor                   DecimalField(10,2) Valor original a pagar
+  data_emissao            DateField         Data de emissão
+  data_vencimento         DateField         Data de vencimento
+  status                  CharField(10)     aberto | baixado
+  multa                   DecimalField(8,2) Multa cobrada (preenchido na baixa)
+  valor_pago              DecimalField(10,2) Valor efetivamente pago (na baixa)
+  data_pagamento          DateField         Data do pagamento (na baixa)
+  is_recorrente           BooleanField      É um título que se repete?
+  periodicidade_dias      PositiveInt       Intervalo de repetição (ex: 30 dias)
+  created_at              DateTimeField     Data de criação (auto)
+  updated_at              DateTimeField     Última atualização (auto)
+
+  CAMPO CALCULADO (property):
+    esta_atrasado = status==aberto AND data_vencimento < hoje
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+APP: financeiro / carteira
+  Tabelas: carteira_carteira | carteira_movimentacaocarteira
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+────────────────────────────────────────────────────────────────────────────────
+MODEL: Carteira                        (tabela: carteira_carteira)
+────────────────────────────────────────────────────────────────────────────────
+Saldo pré-pago de um participante. Cada usuário tem exatamente uma carteira
+(criada na primeira vez que o operador adiciona saldo).
+
+  CAMPO              TIPO              DESCRIÇÃO
+  ─────────────────────────────────────────────────────────────────────────────
+  id                 AutoField (PK)
+  participante       1:1 → Usuario     Dono da carteira (único por usuário)
+  saldo              DecimalField(10,2) Saldo atual em R$
+  updated_at         DateTimeField     Última atualização (auto)
+
+  RELAÇÕES:
+  - MovimentacaoCarteira (1:N) → extrato completo de créditos e débitos
+
+────────────────────────────────────────────────────────────────────────────────
+MODEL: MovimentacaoCarteira      (tabela: carteira_movimentacaocarteira)
+────────────────────────────────────────────────────────────────────────────────
+Extrato da carteira. Cada crédito ou débito gera uma linha aqui.
+
+  CAMPO              TIPO              DESCRIÇÃO
+  ─────────────────────────────────────────────────────────────────────────────
+  id                 AutoField (PK)
+  carteira           FK → Carteira     Carteira à qual pertence esta movimentação
+  tipo               CharField(10)     credito | debito | ajuste
+  valor              DecimalField(10,2) Valor movimentado em R$
+  descricao          CharField(300)    Descrição da movimentação
+  data_transacao     DateTimeField     Data e hora da transação (auto: now)
+  data_vencimento    DateField         Validade do crédito (apenas créditos;
+                                       em branco para débitos/ajustes)
+  voo                FK → Voo          Voo que gerou o débito (opcional)
+  metadados          JSONField         Price freeze: aeronave_id, aeronave_nome,
+                                       aeronave_tipo, tipo_voo, tarifa, horas
+                                       (preenchido apenas em compra de horas)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+APP: financeiro / conta_fixa
+  Tabela: conta_fixa_contafixa
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+────────────────────────────────────────────────────────────────────────────────
+MODEL: ContaFixa                       (tabela: conta_fixa_contafixa)
+────────────────────────────────────────────────────────────────────────────────
+Cadastro de despesas mensais fixas (aluguel, energia, internet etc.).
+NÃO gera TituloPagar automaticamente — serve como referência para o
+operador criar os títulos manualmente no vencimento de cada mês.
+
+  CAMPO              TIPO              DESCRIÇÃO
+  ─────────────────────────────────────────────────────────────────────────────
+  id                 AutoField (PK)
+  nome               CharField(200)    Nome da conta (ex: "Aluguel Hangar")
+  descricao          TextField         Observações adicionais (opcional)
+  favorecido         CharField(200)    Nome do beneficiário (texto livre)
+  valor              DecimalField(10,2) Valor mensal em R$
+  dia_vencimento     PositiveSmallInt  Dia do mês em que vence (ex: 10)
+  is_active          BooleanField      Conta ativa? (inativas não aparecem na
+                                       listagem padrão)
+  created_at         DateTimeField     Data de criação (auto)
+  updated_at         DateTimeField     Última atualização (auto)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TABELAS DO DJANGO (geradas automaticamente — não são models customizados)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  auth_group                  Grupos de permissão do Django Admin
+  auth_permission             Permissões individuais (add/change/delete/view)
+  auth_group_permissions      M2M: grupo ↔ permissão
+  users_usuario_groups        M2M: usuário ↔ grupo
+  users_usuario_user_perms    M2M: usuário ↔ permissão individual
+  django_content_type         Registro dos models para o sistema de permissões
+  django_migrations           Histórico de migrações aplicadas
+  django_session              Sessões de usuários autenticados
+  django_admin_log            Log de ações no Django Admin
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DIAGRAMA DE RELAÇÕES (simplificado)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Usuario ─────────────────────┬──────────────── UsuarioPerfil
+     │                         │
+     │ (participante)           │ (1:1)
+     │ (instrutor)             Carteira ──────── MovimentacaoCarteira
+     │                              │                    │
+     ▼                              │ (débito voo)       │
+    Voo ──────────────────────────────────────────────────
+     │ (aeronave)
+     ▼
+   Aeronave ◄── Aviao
+        └────── Planador
+        └────── HistoricoTarifaAeronave
+
+  Voo ──────────────────────── TituloReceber ◄── Usuario
+                                               ◄── EntidadePagar (cliente ext.)
+
+  TituloPagar ─────────────── Favorecido ──┬── Usuario
+                                            └── EntidadePagar ◄── Fornecedor
+                                                              ◄── Funcionario
+
+  ContaFixa  (cadastro isolado — referência para gerar TituloPagar manual)
+
+================================================================================
+  RESUMO: 16 MODELOS CUSTOMIZADOS
+================================================================================
+
+  MÓDULO          MODEL                     TABELA
+  ──────────────────────────────────────────────────────────────────────────────
+  users           Usuario                   users_usuario
+  users           UsuarioPerfil             users_usuarioperfil
+  aeronaves       Aeronave                  aeronaves_aeronave
+  aeronaves       Aviao                     aeronaves_aviao
+  aeronaves       Planador                  aeronaves_planador
+  aeronaves       HistoricoTarifaAeronave   aeronaves_historicotarifaaronave
+  pessoas         EntidadePagar             pessoas_entidadepagar
+  pessoas         Fornecedor                pessoas_fornecedor
+  pessoas         Funcionario               pessoas_funcionario
+  pessoas         Favorecido                pessoas_favorecido
+  voos            Voo                       voos_voo
+  fin/receber     TituloReceber             financeiro_titulos_receber_...
+  fin/pagar       TituloPagar               financeiro_titulos_pagar_...
+  fin/carteira    Carteira                  carteira_carteira
+  fin/carteira    MovimentacaoCarteira      carteira_movimentacaocarteira
+  fin/conta_fixa  ContaFixa                 conta_fixa_contafixa
+
+================================================================================

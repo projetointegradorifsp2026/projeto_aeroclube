@@ -1,0 +1,60 @@
+from rest_framework import serializers
+from .models import Cliente, EntidadePagar, Fornecedor, Funcionario, Favorecido
+from .validators import validar_cpf_cnpj
+
+
+class ClienteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cliente
+        fields = [
+            "id", "nome", "cpf_cnpj", "email", "contato",
+            "cep", "logradouro", "numero", "bairro", "cidade", "uf",
+            "is_active", "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+    def validate_cpf_cnpj(self, value):
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        try:
+            return validar_cpf_cnpj(value)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(e.messages[0])
+
+
+class EntidadePagarSerializer(serializers.ModelSerializer):
+    tipo_display = serializers.CharField(source="get_tipo_display", read_only=True)
+
+    class Meta:
+        model = EntidadePagar
+        fields = ["id", "nome", "cpf_cnpj", "email", "contato", "tipo", "tipo_display", "is_active", "usuario"]
+
+
+class FornecedorSerializer(serializers.ModelSerializer):
+    tipo_display = serializers.CharField(source="get_tipo_display", read_only=True)
+
+    class Meta:
+        model = Fornecedor
+        fields = ["id", "nome", "cpf_cnpj", "email", "contato", "produto_servico", "tipo_display", "is_active"]
+
+
+class FuncionarioSerializer(serializers.ModelSerializer):
+    tipo_display = serializers.CharField(source="get_tipo_display", read_only=True)
+
+    class Meta:
+        model = Funcionario
+        fields = ["id", "nome", "cpf_cnpj", "email", "contato", "funcao", "is_instrutor", "salario_base", "tipo_display", "is_active", "usuario"]
+
+
+class FavorecidoSerializer(serializers.ModelSerializer):
+    nome = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Favorecido
+        fields = ["id", "usuario", "entidade", "nome"]
+
+    def get_nome(self, obj):
+        if obj.usuario:
+            return obj.usuario.nome
+        if obj.entidade:
+            return obj.entidade.nome
+        return None

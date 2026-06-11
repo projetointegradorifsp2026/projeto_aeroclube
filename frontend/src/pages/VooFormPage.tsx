@@ -23,11 +23,10 @@ import {
 } from '@/mocks/voos'
 import { type TipoAeronave, type Aeronave } from '@/mocks/aeronaves'
 import { getAeronaves } from '@/services/aeronavesService'
-import { getEntidades, type Entidade } from '@/services/entidadesService'
 import { getUsers, type User } from '@/services/usersService'
 import { createVoo, updateVoo, deleteVoo } from '@/services/voosService'
-import { createTituloReceber } from '@/services/titulosReceberService'
-import { createTituloPagar } from '@/services/titulosPagarService'
+import { createReceita } from '@/services/receitasService'
+import { createCusto } from '@/services/custosService'
 import { debitarCarteira } from '@/services/usersService'
 import { cn } from '@/lib/utils'
 
@@ -62,19 +61,21 @@ function calcMinutosPlanador(inicio: string, fim: string): number {
   return Math.max(0, h2 * 60 + m2 - (h1 * 60 + m1))
 }
 
-function calcValorPlanador(inicio: string, fim: string, aeronave: Aeronave): number {
+function calcValorPlanador(inicio: string, fim: string, aeronave: Aeronave, duplo = false): number {
   const totalMin = calcMinutosPlanador(inicio, fim)
   if (totalMin <= 0) return 0
-  if (totalMin <= aeronave.tempo_limite) return aeronave.valor_fixo_inicial
-  return aeronave.valor_fixo_inicial + (totalMin - aeronave.tempo_limite) * aeronave.valor_por_minuto
+  const valorFixo = (duplo && aeronave.valor_fixo_duplo != null) ? aeronave.valor_fixo_duplo : aeronave.valor_fixo_inicial
+  const valorMinuto = (duplo && aeronave.valor_minuto_duplo != null) ? aeronave.valor_minuto_duplo : aeronave.valor_por_minuto
+  if (totalMin <= aeronave.tempo_limite) return valorFixo
+  return valorFixo + (totalMin - aeronave.tempo_limite) * valorMinuto
 }
 
-const PERFIL_POR_TIPO: Record<TipoVoo, 'aluno' | 'socio' | 'cliente_externo'> = {
+const PERFIL_POR_TIPO: Record<TipoVoo, 'aluno' | 'socio' | 'externo'> = {
   instrucao_solo: 'aluno',
   instrucao_duplo: 'aluno',
   socio_solo: 'socio',
   socio_duplo: 'socio',
-  externo: 'cliente_externo',
+  externo: 'externo',
 }
 
 // ─── Form state ───────────────────────────────────────────────────────────────
@@ -149,19 +150,18 @@ export default function VooFormPage() {
 
   const [aeronaves, setAeronaves] = useState<Aeronave[]>([])
   const [usuarios, setUsuarios] = useState<User[]>([])
-  const [instrutores, setInstrutores] = useState<Entidade[]>([])
 
   const [usarCarteira, setUsarCarteira] = useState(false)
   const [carteiraValor, setCarteiraValor] = useState('')
+  const [gerarTitulo, setGerarTitulo] = useState(false)
 
   const autoVencimento = useRef<string>('')
 
   useEffect(() => {
-    Promise.all([getAeronaves(), getUsers(), getEntidades('instrutor')]).then(
-      ([avs, us, insts]) => {
+    Promise.all([getAeronaves(), getUsers()]).then(
+      ([avs, us]) => {
         setAeronaves(avs)
         setUsuarios(us)
-        setInstrutores(insts)
 
         if (isEdit) {
           const vooFromState = location.state?.voo as Voo | undefined
@@ -236,10 +236,11 @@ export default function VooFormPage() {
   const valorVoo = useMemo(() => {
     if (!selectedAeronave) return 0
     if (selectedAeronave.tipo === 'planador') {
-      return calcValorPlanador(form.inicio, form.fim, selectedAeronave)
+      const isDuplo = TIPOS_VOO_COM_INSTRUTOR.includes(form.tipo_voo)
+      return calcValorPlanador(form.inicio, form.fim, selectedAeronave, isDuplo)
     }
     return form.tempo_decimal * form.valor_hora
-  }, [selectedAeronave, form.inicio, form.fim, form.tempo_decimal, form.valor_hora])
+  }, [selectedAeronave, form.inicio, form.fim, form.tempo_decimal, form.valor_hora, form.tipo_voo])
 
   const minutosPlanador = useMemo(
     () => calcMinutosPlanador(form.inicio, form.fim),
@@ -262,8 +263,11 @@ export default function VooFormPage() {
   }, [form.tipo_voo, usuarios])
 
   const instrutorOptions = useMemo(
-    () => instrutores.filter(i => i.is_active).map(i => ({ value: i.id, label: i.nome })),
-    [instrutores],
+    () =>
+      usuarios
+        .filter(u => u.is_active && u.perfis.includes('instrutor'))
+        .map(u => ({ value: u.id, label: u.nome })),
+    [usuarios],
   )
 
   const precisaInstrutor = TIPOS_VOO_COM_INSTRUTOR.includes(form.tipo_voo)
@@ -310,7 +314,7 @@ export default function VooFormPage() {
   }
 
   function handleInstrutorChange(instId: string) {
-    const inst = instrutores.find(i => i.id === instId)
+    const inst = usuarios.find(u => u.id === instId)
     setForm(p => ({
       ...p,
       instrutor_id: instId || null,
@@ -362,80 +366,41 @@ export default function VooFormPage() {
         // Debit wallet if used
         if (carteiraUsadaNum > 0) {
           await debitarCarteira(voo.participante_id, carteiraUsadaNum)
-          await createTituloReceber({
-            usuario_id: voo.participante_id,
-            usuario_nome: voo.participante_nome,
-            tipo: 'carteira',
-            descricao: `Débito carteira – ${descricaoVoo}`,
-            num_parcela: 1,
-            total_parcelas: 1,
-            valor: carteiraUsadaNum,
-            valor_pago: carteiraUsadaNum,
-            juros_aplicado: 0,
-            data_emissao: voo.data,
-            data_vencimento: voo.data,
-            data_pagamento: voo.data,
-            status: 'baixado',
-            carteira_debito: true,
-          })
         }
 
         if (valorTitulo > 0) {
-          // Partial wallet or no wallet — pending título for remaining amount
+          // Parte/total via carteira → gera uma RECEITA pendente do valor restante.
+          // O operador decide depois se ela vira título a receber (faturar).
           const descricaoFinal =
             carteiraUsadaNum > 0
               ? `${descricaoVoo} (${fmt(carteiraUsadaNum)} via carteira)`
               : descricaoVoo
-          await createTituloReceber({
-            usuario_id: voo.participante_id,
-            usuario_nome: voo.participante_nome,
+          await createReceita({
+            participante_id: voo.participante_id,
             tipo: 'voo',
             descricao: descricaoFinal,
-            num_parcela: 1,
-            total_parcelas: 1,
             valor: valorTitulo,
-            valor_pago: 0,
-            juros_aplicado: 0,
-            valor_carteira: carteiraUsadaNum > 0 ? carteiraUsadaNum : undefined,
             data_emissao: voo.data,
             data_vencimento: voo.data_vencimento,
-            data_pagamento: null,
-            status: 'em_aberto',
-          })
-        } else if (carteiraUsadaNum > 0) {
-          // Full wallet coverage — create a baixado título as record
-          await createTituloReceber({
-            usuario_id: voo.participante_id,
-            usuario_nome: voo.participante_nome,
-            tipo: 'voo',
-            descricao: `${descricaoVoo} (pago via carteira)`,
-            num_parcela: 1,
-            total_parcelas: 1,
-            valor: voo.valor_voo,
-            valor_pago: voo.valor_voo,
-            juros_aplicado: 0,
-            valor_carteira: voo.valor_voo,
-            data_emissao: voo.data,
-            data_vencimento: voo.data_vencimento,
-            data_pagamento: voo.data,
-            status: 'baixado',
+            gerar_titulo: gerarTitulo,
           })
         }
+        // Se valorTitulo <= 0, pagamento coberto pela carteira — nenhuma receita necessária.
 
-        if (voo.instrutor_id && voo.instrutor_nome && voo.taxa_instrutor && voo.taxa_instrutor > 0) {
-          await createTituloPagar({
-            tipo: 'instrutor',
-            favorecido: voo.instrutor_nome,
+        // Custo do instrutor: para PLANADOR o backend já gera o repasse (Custo + título);
+        // aqui tratamos apenas AVIÃO, evitando duplicidade.
+        if (
+          voo.tipo_aeronave === 'aviao' &&
+          voo.instrutor_id && voo.instrutor_nome &&
+          voo.taxa_instrutor && voo.taxa_instrutor > 0
+        ) {
+          await createCusto({
+            tipo: 'folha_pagamento',
+            favorecido: voo.instrutor_id,
             descricao: `Instrução – ${descricaoVoo}`,
-            num_parcela: 1,
-            total_parcelas: 1,
             valor: voo.valor_voo * (voo.taxa_instrutor / 100),
             data_emissao: voo.data,
             data_vencimento: voo.data_vencimento,
-            status: 'em_aberto',
-            valor_pago: null,
-            data_pagamento: null,
-            recorrente: false,
           })
         }
       }
@@ -498,8 +463,8 @@ export default function VooFormPage() {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* ── Aeronave ─────────────────────────────────────────────────────── */}
-        <Card>
-          <CardContent className="p-6 space-y-4">
+        <Card className="overflow-visible">
+          <CardContent className="p-6 space-y-4 overflow-visible">
             <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               Aeronave
             </p>
@@ -544,7 +509,17 @@ export default function VooFormPage() {
 
             {/* Pricing preview */}
             {selectedAeronave && (
-              <div className="rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm">
+              <div className="rounded-lg border border-border bg-muted/30 overflow-hidden text-sm">
+                {selectedAeronave.foto && (
+                  <img
+                    src={selectedAeronave.foto}
+                    alt={selectedAeronave.nome}
+                    loading="lazy"
+                    className="w-full h-36 object-cover border-b border-border"
+                    onError={e => { e.currentTarget.style.display = 'none' }}
+                  />
+                )}
+                <div className="px-4 py-3">
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2.5">
                   Tarifação — {selectedAeronave.nome}
                 </p>
@@ -584,6 +559,7 @@ export default function VooFormPage() {
                     </div>
                   </div>
                 )}
+                </div>
               </div>
             )}
           </CardContent>
@@ -884,6 +860,28 @@ export default function VooFormPage() {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── Título a Receber ─────────────────────────────────────────────── */}
+        {!isEdit && valorTitulo > 0 && (
+          <Card>
+            <CardContent className="px-6 py-4">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={gerarTitulo}
+                  onChange={e => setGerarTitulo(e.target.checked)}
+                  className="h-4 w-4 rounded border-input accent-primary"
+                />
+                <div>
+                  <span className="text-sm font-medium">Gerar título a receber diretamente</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Se marcado, cria o título em aberto ({fmt(valorTitulo)}) agora. Caso contrário, cria uma receita pendente para faturar depois.
+                  </p>
+                </div>
+              </label>
             </CardContent>
           </Card>
         )}

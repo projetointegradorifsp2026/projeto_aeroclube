@@ -17,10 +17,11 @@ BASE     = docker-compose.yml
 DEV      = docker-compose.dev.yml
 TEST     = docker-compose.test.yml
 PROD     = docker-compose.prod.yml
+APPS = users relatorios pessoas carteira titulos_pagar titulos_receber aeronaves voos conta_fixa
 
 # .PHONY declara que estes alvos não são arquivos reais
 .PHONY: help dev-up dev-down dev-logs test test-down prod-up prod-down \
-        migrate makemigrations shell createsuperuser logs-be logs-fe ps clean
+        migrate makemigrations shell createsuperuser loaddata logs-be logs-fe ps clean
 
 # -----------------------------------------------------------------------------
 # Ajuda — lista todos os comandos disponíveis
@@ -47,6 +48,7 @@ help:
 	@echo "    make makemigrations  Gera novas migrations"
 	@echo "    make shell           Shell interativo do Django"
 	@echo "    make createsuperuser Cria superusuário admin"
+	@echo "    make loaddata        Popula o banco com entidades de exemplo (seed_data.json)"
 	@echo ""
 	@echo "  Utilitários:"
 	@echo "    make logs-be         Logs do backend (dev)"
@@ -58,8 +60,11 @@ help:
 # -----------------------------------------------------------------------------
 # Desenvolvimento
 # -----------------------------------------------------------------------------
-dev-up:
+dev-up-build:
 	docker compose -f $(BASE) -f $(DEV) up --build
+
+dev-up:
+	docker compose -f $(BASE) -f $(DEV) up
 
 dev-down:
 	docker compose -f $(BASE) -f $(DEV) down
@@ -97,14 +102,23 @@ prod-down:
 migrate:
 	docker compose -f $(BASE) -f $(DEV) exec backend python manage.py migrate
 
+
 makemigrations:
 	docker compose -f $(BASE) -f $(DEV) exec backend python manage.py makemigrations
+	@for app in $(APPS); do \
+		docker compose exec backend python manage.py makemigrations $$app; \
+	done
 
 shell:
 	docker compose -f $(BASE) -f $(DEV) exec backend python manage.py shell
 
 createsuperuser:
 	docker compose -f $(BASE) -f $(DEV) exec backend python manage.py createsuperuser
+
+# Popula o banco com entidades de exemplo (clientes, alunos, sócios, instrutores,
+# fornecedores, funcionários, contas fixas) a partir de backend/seed_data.json.
+loaddata:
+	docker compose -f $(BASE) -f $(DEV) exec backend python manage.py loaddata seed_data.json
 
 # -----------------------------------------------------------------------------
 # Logs individuais (desenvolvimento)
@@ -125,3 +139,4 @@ ps:
 clean:
 	docker compose -f $(BASE) -f $(DEV) down -v --rmi local
 	@echo "Containers, volumes e imagens locais removidos."
+	docker compose down -v

@@ -9,7 +9,6 @@ services:
   frontend:
     build:
       context: ./frontend
-      target: dev
     networks:
       - aeroclube_network
 
@@ -18,7 +17,6 @@ services:
   backend:
     build:
       context: ./backend
-      target: dev
     networks:
       - aeroclube_network
     depends_on:
@@ -59,8 +57,3 @@ networks:
   aeroclube_network:
     driver: bridge
 
-# -----------------------------------------------------------------------------
-# VOLUMES NOMEADOS
-# Dados do banco persistem entre restarts do container.
-volumes:
-  db_data:

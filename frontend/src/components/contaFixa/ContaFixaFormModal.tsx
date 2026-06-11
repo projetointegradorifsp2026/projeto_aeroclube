@@ -10,7 +10,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { type ContaFixa } from '@/mocks/contaFixa'
+import { type ContaFixa } from '@/services/contaFixaService'
 
 export interface ContaFixaFormData {
   nome: string
@@ -59,11 +59,13 @@ export function ContaFixaFormModal({
 }: ContaFixaFormModalProps) {
   const [form, setForm] = useState<ContaFixaFormData>(makeEmpty)
   const [errors, setErrors] = useState<FormErrors>({})
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const isEdit = !!contaFixa
 
   useEffect(() => {
     if (open) {
+      setSaveError(null)
       setForm(
         contaFixa
           ? {
@@ -94,9 +96,19 @@ export function ContaFixaFormModal({
     e.preventDefault()
     if (!validate()) return
     setSaving(true)
+    setSaveError(null)
     try {
       await onSave(form)
       onClose()
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : String(err)
+      let msg = raw
+      try {
+        const parsed = JSON.parse(raw)
+        const first = Object.values(parsed)[0]
+        msg = Array.isArray(first) ? first[0] : String(first)
+      } catch { /* use raw message */ }
+      setSaveError(msg)
     } finally {
       setSaving(false)
     }
@@ -189,6 +201,12 @@ export function ContaFixaFormModal({
             />
             <span className="text-sm">Conta ativa (gera título mensalmente)</span>
           </label>
+
+          {saveError && (
+            <p className="text-sm text-destructive rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">
+              {saveError}
+            </p>
+          )}
 
           <DialogFooter>
             <div className="flex w-full items-center gap-2">

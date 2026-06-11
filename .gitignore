@@ -1,4 +1,9 @@
 .env
 migrations/
+__pycache__/
+*.pyc
+*.pyo
+docs/
+WORKLOG.md
 
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Pencil, CircleDollarSign, Trash2, Eye } from 'lucide-react'
+import { Pencil, CircleDollarSign, Trash2, Eye, QrCode } from 'lucide-react'
+import { PixPagamentoDialog } from './PixPagamentoDialog'
 import {
   Dialog,
   DialogContent,
@@ -48,6 +49,7 @@ interface Props {
   onEdit: (t: TituloReceber) => void
   onBaixa: (t: TituloReceber) => void
   onDeleteRequest: (t: TituloReceber) => void
+  canEdit?: boolean
 }
 
 export function TituloReceberDetailModal({
@@ -58,8 +60,10 @@ export function TituloReceberDetailModal({
   onEdit,
   onBaixa,
   onDeleteRequest,
+  canEdit = true,
 }: Props) {
   const [current, setCurrent] = useState<TituloReceber | null>(titulo)
+  const [pixOpen, setPixOpen] = useState(false)
 
   useEffect(() => {
     if (titulo) setCurrent(titulo)
@@ -251,11 +255,37 @@ export function TituloReceberDetailModal({
               </div>
             </div>
           )}
+
+          {current.baixas && current.baixas.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Histórico de pagamentos
+              </p>
+              <div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+                {current.baixas.map(b => (
+                  <div key={b.id} className="flex items-center gap-3 px-3 py-2 text-sm">
+                    <span className="text-muted-foreground whitespace-nowrap">{fmtDate(b.data)}</span>
+                    <span className="flex-1">
+                      <span className="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs font-medium">
+                        {b.forma_pagamento_display}
+                      </span>
+                      {b.valor_via_carteira > 0 && (
+                        <span className="ml-1.5 text-xs text-teal-600">
+                          (carteira {fmt(b.valor_via_carteira)})
+                        </span>
+                      )}
+                    </span>
+                    <span className="font-medium whitespace-nowrap">{fmt(b.valor)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
           <div className="flex w-full items-center gap-2">
-            {!isCarteira && (
+            {canEdit && !isCarteira && (
               <Button
                 variant="ghost"
                 className="text-destructive hover:text-destructive hover:bg-destructive/10 mr-auto"
@@ -269,13 +299,19 @@ export function TituloReceberDetailModal({
               <Button variant="outline" onClick={onClose}>
                 Fechar
               </Button>
-              {!isCarteira && (
+              {current.status !== 'baixado' && !isCarteira && (
+                <Button variant="outline" onClick={() => setPixOpen(true)}>
+                  <QrCode className="h-3.5 w-3.5" />
+                  Pagar com PIX
+                </Button>
+              )}
+              {canEdit && !isCarteira && (
                 <Button variant="outline" onClick={() => onEdit(current)}>
                   <Pencil className="h-3.5 w-3.5" />
                   Editar
                 </Button>
               )}
-              {current.status !== 'baixado' && !isCarteira && (
+              {canEdit && current.status !== 'baixado' && !isCarteira && (
                 <Button onClick={() => onBaixa(current)}>
                   <CircleDollarSign className="h-3.5 w-3.5" />
                   Dar baixa
@@ -285,6 +321,14 @@ export function TituloReceberDetailModal({
           </div>
         </DialogFooter>
       </DialogContent>
+
+      <PixPagamentoDialog
+        open={pixOpen}
+        onClose={() => setPixOpen(false)}
+        valor={restante}
+        descricao={current.descricao}
+        referencia={current.id}
+      />
     </Dialog>
   )
 }
