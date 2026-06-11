@@ -85,6 +85,20 @@ class ConfiguracaoBancaria(models.Model):
             if c.strip()
         }
 
+    # Dados PIX do recebedor (usados para gerar o BR Code / "copia e cola" do título).
+    chave_pix = models.CharField(
+        "Chave PIX do recebedor", max_length=77, blank=True, default="",
+        help_text="Chave PIX (CPF/CNPJ, e-mail, telefone ou aleatória) que recebe os pagamentos.",
+    )
+    nome_recebedor = models.CharField(
+        "Nome do recebedor (PIX)", max_length=25, blank=True, default="",
+        help_text="Nome do beneficiário no QR PIX (máx. 25 caracteres).",
+    )
+    cidade_recebedor = models.CharField(
+        "Cidade do recebedor (PIX)", max_length=15, blank=True, default="",
+        help_text="Cidade do beneficiário no QR PIX (máx. 15 caracteres).",
+    )
+
     # Controle do sequencial de remessa (NSA)
     proximo_nsa = models.PositiveIntegerField("Próximo Nº Sequencial de Remessa (NSA)", default=1)
     # Sequencial do "Nosso Número" (quando a emissão é a cargo do Beneficiário)

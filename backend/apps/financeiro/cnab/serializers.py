@@ -21,6 +21,7 @@ class ConfiguracaoBancariaSerializer(serializers.ModelSerializer):
             "conta_corrente", "dv_conta",
             "carteira", "modalidade", "convenio",
             "emissao", "tipo_formulario", "codigos_liquidacao",
+            "chave_pix", "nome_recebedor", "cidade_recebedor",
             "proximo_nsa", "proximo_nosso_numero", "is_active",
             "created_at", "updated_at",
         ]
