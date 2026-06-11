@@ -93,14 +93,46 @@ class TituloPagar(models.Model):
         """RF02: Título em aberto e vencido."""
         return self.status == self.STATUS_ABERTO and self.data_vencimento < timezone.now().date()
 
-    def baixar(self, valor_pago, data_pagamento=None, multa=Decimal("0.00")):
-        """RF03: Registra a baixa total do título. Debita carteira se for remoção de saldo."""
+    def baixar(self, valor_pago, data_pagamento=None, multa=Decimal("0.00"),
+               forma_pagamento=None, criado_por=None):
+        """
+        RF03: Registra a baixa total do título. Debita carteira se for remoção de saldo.
+        Cada baixa registra uma BaixaTituloPagar (extrato de como o título foi pago),
+        simétrica à BaixaTituloReceber do contas a receber.
+        """
         self.multa = multa
         self.valor_pago = valor_pago
         self.data_pagamento = data_pagamento or timezone.now().date()
         self.status = self.STATUS_BAIXADO
         self.save()
+        BaixaTituloPagar.objects.create(
+            titulo_pagar=self,
+            data=self.data_pagamento,
+            valor=valor_pago,
+            multa=multa,
+            forma_pagamento=forma_pagamento or BaixaTituloPagar.FORMA_DINHEIRO,
+            criado_por=criado_por,
+        )
         self._debitar_carteira_se_necessario()
+        self._quitar_custos_se_completos()
+
+    def _quitar_custos_se_completos(self):
+        """
+        Marca como QUITADO cada custo de origem cujos títulos estejam todos
+        baixados. Um custo pode estar dividido em vários títulos (split 1→N);
+        só é quitado quando o último deles é pago.
+        """
+        from apps.financeiro.custos.models import Custo as CustoModel
+
+        for custo in self.custos.all():
+            if custo.status == CustoModel.STATUS_QUITADO:
+                continue
+            titulos = custo.titulos.all()
+            if titulos.exists() and all(
+                t.status == self.STATUS_BAIXADO for t in titulos
+            ):
+                custo.status = CustoModel.STATUS_QUITADO
+                custo.save(update_fields=["status", "updated_at"])
 
     def _debitar_carteira_se_necessario(self):
         """Debita a carteira quando o custo é de remoção de saldo."""
@@ -128,3 +160,58 @@ class TituloPagar(models.Model):
         # Marca o custo como quitado
         custo.status = CustoModel.STATUS_QUITADO
         custo.save(update_fields=["status", "updated_at"])
+
+
+class BaixaTituloPagar(models.Model):
+    """
+    Extrato de pagamentos de um TituloPagar: cada baixa registra o valor pago e a
+    forma de pagamento usada. Espelha a BaixaTituloReceber do contas a receber.
+
+    Diferente do a receber, o pagamento a fornecedor é integral (só baixa total),
+    então normalmente há uma única BaixaTituloPagar por título.
+    """
+    FORMA_DINHEIRO = "dinheiro"
+    FORMA_PIX = "pix"
+    FORMA_TRANSFERENCIA = "transferencia"
+    FORMA_CARTAO = "cartao"
+    FORMA_BOLETO = "boleto"
+    FORMA_OUTROS = "outros"
+
+    FORMA_CHOICES = [
+        (FORMA_DINHEIRO, "Dinheiro"),
+        (FORMA_PIX, "PIX"),
+        (FORMA_TRANSFERENCIA, "Transferência"),
+        (FORMA_CARTAO, "Cartão"),
+        (FORMA_BOLETO, "Boleto"),
+        (FORMA_OUTROS, "Outros"),
+    ]
+
+    titulo_pagar = models.ForeignKey(
+        TituloPagar,
+        on_delete=models.CASCADE,
+        related_name="baixas",
+        verbose_name="Título a Pagar",
+    )
+    data = models.DateField("Data do pagamento", default=timezone.localdate)
+    valor = models.DecimalField("Valor pago (R$)", max_digits=10, decimal_places=2)
+    multa = models.DecimalField("Multa/Juros (R$)", max_digits=8, decimal_places=2, default=Decimal("0.00"))
+    forma_pagamento = models.CharField(
+        "Forma de pagamento", max_length=15, choices=FORMA_CHOICES, default=FORMA_DINHEIRO
+    )
+    criado_por = models.ForeignKey(
+        "users.Usuario",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="baixas_pagar_registradas",
+        verbose_name="Registrado por",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Baixa de Título a Pagar"
+        verbose_name_plural = "Baixas de Títulos a Pagar"
+        ordering = ["data", "id"]
+
+    def __str__(self):
+        return f"Baixa de R$ {self.valor} ({self.get_forma_pagamento_display()}) — Título #{self.titulo_pagar_id}"

@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 
 from .models import TituloPagar
-from .serializers import TituloPagarSerializer, TituloPagarWriteSerializer, BaixaTituloPagarSerializer
+from .serializers import TituloPagarSerializer, TituloPagarWriteSerializer, BaixaPagarInputSerializer
 
 
 class TituloPagarViewSet(viewsets.ModelViewSet):
@@ -48,7 +48,8 @@ class TituloPagarViewSet(viewsets.ModelViewSet):
         titulo = self.get_object()
         if titulo.status == TituloPagar.STATUS_BAIXADO:
             return Response({"detail": "Título já está baixado."}, status=status.HTTP_400_BAD_REQUEST)
-        ser = BaixaTituloPagarSerializer(data=request.data)
+        ser = BaixaPagarInputSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        titulo.baixar(**ser.validated_data)
+        criado_por = request.user if request.user.is_authenticated else None
+        titulo.baixar(**ser.validated_data, criado_por=criado_por)
         return Response(TituloPagarSerializer(titulo).data)

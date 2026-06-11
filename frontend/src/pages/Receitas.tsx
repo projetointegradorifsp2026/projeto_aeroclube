@@ -293,6 +293,31 @@ function FaturarModal({ receita, open, onClose, onConfirm }: FaturarModalProps) 
 
 // ── Modal de agrupamento ──────────────────────────────────────────────────────
 
+// Identidade do devedor de uma receita (usuário OU cliente). Receitas só podem ser
+// agrupadas num título se compartilharem o mesmo devedor.
+function devedorKey(r: Receita): string {
+  if (r.participante_id) return `u:${r.participante_id}`
+  if (r.cliente_id) return `c:${r.cliente_id}`
+  return 'none'
+}
+
+// Extrai a mensagem de erro do backend (o client lança Error(JSON.stringify(err))).
+function msgErro(e: unknown): string {
+  const raw = e instanceof Error ? e.message : String(e)
+  try {
+    const o = JSON.parse(raw)
+    if (o && typeof o === 'object') {
+      if (typeof o.detail === 'string') return o.detail
+      const first = Object.values(o)[0]
+      if (Array.isArray(first)) return String(first[0])
+      if (typeof first === 'string') return first
+    }
+  } catch {
+    /* não era JSON */
+  }
+  return raw
+}
+
 interface AgrupamentoModalProps {
   receitas: Receita[]
   open: boolean
@@ -303,20 +328,25 @@ interface AgrupamentoModalProps {
 function AgrupamentoModal({ receitas, open, onClose, onConfirm }: AgrupamentoModalProps) {
   const [dataVenc, setDataVenc] = useState(todayStr())
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
   const total = receitas.reduce((s, r) => s + r.valor, 0)
 
   useEffect(() => {
     if (open && receitas.length > 0) {
       const maxDate = receitas.map(r => r.data_vencimento).sort().at(-1) ?? todayStr()
       setDataVenc(maxDate)
+      setError('')
     }
   }, [open, receitas])
 
   async function handleConfirm() {
     setSaving(true)
+    setError('')
     try {
       await onConfirm(dataVenc)
       onClose()
+    } catch (e) {
+      setError(msgErro(e) || 'Não foi possível agrupar as receitas.')
     } finally {
       setSaving(false)
     }
@@ -350,6 +380,11 @@ function AgrupamentoModal({ receitas, open, onClose, onConfirm }: AgrupamentoMod
             <label className="text-sm font-medium">Data de vencimento</label>
             <input type="date" className={selectCls} value={dataVenc} onChange={e => setDataVenc(e.target.value)} />
           </div>
+          {error && (
+            <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-950/30 dark:text-rose-400">
+              {error}
+            </p>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
@@ -399,8 +434,21 @@ export default function Receitas() {
   function toggleSelect(id: string) {
     setSelected(prev => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+        return next
+      }
+      // Ao adicionar, garante que toda a seleção seja do MESMO devedor.
+      // Se o devedor for diferente do que já está selecionado, recomeça a seleção
+      // com esta receita (um título a receber tem um único devedor).
+      const alvo = receitas.find(r => r.id === id)
+      if (alvo && next.size > 0) {
+        const algumSelecionado = receitas.find(r => next.has(r.id))
+        if (algumSelecionado && devedorKey(alvo) !== devedorKey(algumSelecionado)) {
+          return new Set([id])
+        }
+      }
+      next.add(id)
       return next
     })
   }
@@ -423,6 +471,7 @@ export default function Receitas() {
 
   async function handleAgrupamentoConfirm(data_vencimento?: string) {
     const ids = [...selected]
+    // Erros (ex.: 400 de devedores diferentes) são propagados para o modal exibir.
     await faturarReceitasAgrupadas(ids, data_vencimento)
     const refreshed = await getReceitas()
     setReceitas(refreshed)

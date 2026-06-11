@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Pencil, CircleDollarSign, Trash2, Eye } from 'lucide-react'
+import { Pencil, CircleDollarSign, Trash2, Eye, QrCode } from 'lucide-react'
+import { PixPagamentoDialog } from './PixPagamentoDialog'
 import {
   Dialog,
   DialogContent,
@@ -62,6 +63,7 @@ export function TituloReceberDetailModal({
   canEdit = true,
 }: Props) {
   const [current, setCurrent] = useState<TituloReceber | null>(titulo)
+  const [pixOpen, setPixOpen] = useState(false)
 
   useEffect(() => {
     if (titulo) setCurrent(titulo)
@@ -297,6 +299,12 @@ export function TituloReceberDetailModal({
               <Button variant="outline" onClick={onClose}>
                 Fechar
               </Button>
+              {current.status !== 'baixado' && !isCarteira && (
+                <Button variant="outline" onClick={() => setPixOpen(true)}>
+                  <QrCode className="h-3.5 w-3.5" />
+                  Pagar com PIX
+                </Button>
+              )}
               {canEdit && !isCarteira && (
                 <Button variant="outline" onClick={() => onEdit(current)}>
                   <Pencil className="h-3.5 w-3.5" />
@@ -313,6 +321,14 @@ export function TituloReceberDetailModal({
           </div>
         </DialogFooter>
       </DialogContent>
+
+      <PixPagamentoDialog
+        open={pixOpen}
+        onClose={() => setPixOpen(false)}
+        valor={restante}
+        descricao={current.descricao}
+        referencia={current.id}
+      />
     </Dialog>
   )
 }

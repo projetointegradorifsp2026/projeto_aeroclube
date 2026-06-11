@@ -69,6 +69,36 @@ class ConfiguracaoBancaria(models.Model):
     )
     tipo_formulario = models.CharField("Tipo de Formulário", max_length=1, default="1")
 
+    # Códigos de ocorrência do retorno (.RET) que representam LIQUIDAÇÃO e, portanto,
+    # geram baixa automática do título. Lista separada por vírgula, editável no admin.
+    # Padrão Sicoob: 06 = Liquidação, 17 = Liquidação após baixa.
+    codigos_liquidacao = models.CharField(
+        "Códigos de liquidação (retorno)", max_length=60, default="06,17",
+        help_text="Códigos de ocorrência do .RET que dão baixa automática, separados por vírgula.",
+    )
+
+    def codigos_liquidacao_set(self) -> set:
+        """Retorna os códigos de liquidação normalizados (zero-padded, 2 dígitos)."""
+        return {
+            c.strip().zfill(2)
+            for c in (self.codigos_liquidacao or "").split(",")
+            if c.strip()
+        }
+
+    # Dados PIX do recebedor (usados para gerar o BR Code / "copia e cola" do título).
+    chave_pix = models.CharField(
+        "Chave PIX do recebedor", max_length=77, blank=True, default="",
+        help_text="Chave PIX (CPF/CNPJ, e-mail, telefone ou aleatória) que recebe os pagamentos.",
+    )
+    nome_recebedor = models.CharField(
+        "Nome do recebedor (PIX)", max_length=25, blank=True, default="",
+        help_text="Nome do beneficiário no QR PIX (máx. 25 caracteres).",
+    )
+    cidade_recebedor = models.CharField(
+        "Cidade do recebedor (PIX)", max_length=15, blank=True, default="",
+        help_text="Cidade do beneficiário no QR PIX (máx. 15 caracteres).",
+    )
+
     # Controle do sequencial de remessa (NSA)
     proximo_nsa = models.PositiveIntegerField("Próximo Nº Sequencial de Remessa (NSA)", default=1)
     # Sequencial do "Nosso Número" (quando a emissão é a cargo do Beneficiário)

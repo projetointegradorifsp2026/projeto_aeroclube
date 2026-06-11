@@ -33,6 +33,10 @@ function defaults(): Config {
     convenio: '',
     emissao: '2',
     tipo_formulario: '1',
+    codigos_liquidacao: '06,17',
+    chave_pix: '',
+    nome_recebedor: '',
+    cidade_recebedor: '',
     proximo_nsa: 1,
     proximo_nosso_numero: 1,
     is_active: true,
@@ -173,6 +177,46 @@ export default function ConfiguracaoBancaria() {
             </div>
           </div>
 
+          <div className="space-y-1.5">
+            <label className={labelCls}>Códigos de liquidação (retorno)</label>
+            <Input
+              value={config.codigos_liquidacao ?? ''}
+              placeholder="06,17"
+              onChange={e => set('codigos_liquidacao', e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Códigos de ocorrência do arquivo de retorno (.RET) que dão baixa automática no título,
+              separados por vírgula. Padrão Sicoob: <strong>06</strong> = liquidação,{' '}
+              <strong>17</strong> = liquidação após baixa.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3 pt-2">
+            <Button onClick={handleSave} disabled={saving}>
+              <Save className="h-4 w-4" />
+              {saving ? 'Salvando...' : 'Salvar configuração'}
+            </Button>
+            {savedMsg && <span className="text-sm text-muted-foreground">{savedMsg}</span>}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="border-b pb-3">
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Recebimento via PIX (QR Code)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-6 space-y-5">
+          <p className="text-sm text-muted-foreground">
+            Estes dados geram o QR Code / "copia e cola" no botão <strong>Pagar com PIX</strong> dos
+            títulos a receber. Para a apresentação, use uma chave sua.
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            {field('Chave PIX', 'chave_pix', 'CPF/CNPJ, e-mail, telefone ou chave aleatória')}
+            {field('Nome do recebedor', 'nome_recebedor', 'máx. 25 caracteres')}
+            {field('Cidade do recebedor', 'cidade_recebedor', 'máx. 15 caracteres')}
+          </div>
           <div className="flex items-center gap-3 pt-2">
             <Button onClick={handleSave} disabled={saving}>
               <Save className="h-4 w-4" />

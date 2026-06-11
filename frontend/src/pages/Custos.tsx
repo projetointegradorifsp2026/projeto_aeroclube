@@ -292,6 +292,31 @@ function FaturarModal({ custo, open, onClose, onConfirm }: FaturarModalProps) {
 
 // ── Modal de agrupamento ──────────────────────────────────────────────────────
 
+// Identidade do favorecido de um custo. Custos só podem ser agrupados num título
+// a pagar se compartilharem o mesmo favorecido (por id, ou pelo nome livre em "outros").
+function favorecidoKey(c: Custo): string {
+  if (c.favorecido_id) return `id:${c.favorecido_id}`
+  if (c.favorecido_nome) return `nome:${c.favorecido_nome.trim().toLowerCase()}`
+  return 'none'
+}
+
+// Extrai a mensagem de erro do backend (o client lança Error(JSON.stringify(err))).
+function msgErro(e: unknown): string {
+  const raw = e instanceof Error ? e.message : String(e)
+  try {
+    const o = JSON.parse(raw)
+    if (o && typeof o === 'object') {
+      if (typeof o.detail === 'string') return o.detail
+      const first = Object.values(o)[0]
+      if (Array.isArray(first)) return String(first[0])
+      if (typeof first === 'string') return first
+    }
+  } catch {
+    /* não era JSON */
+  }
+  return raw
+}
+
 interface AgrupamentoModalProps {
   custos: Custo[]
   open: boolean
@@ -302,20 +327,25 @@ interface AgrupamentoModalProps {
 function AgrupamentoModal({ custos, open, onClose, onConfirm }: AgrupamentoModalProps) {
   const [dataVenc, setDataVenc] = useState(todayStr())
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
   const total = custos.reduce((s, c) => s + c.valor, 0)
 
   useEffect(() => {
     if (open && custos.length > 0) {
       const maxDate = custos.map(c => c.data_vencimento).sort().at(-1) ?? todayStr()
       setDataVenc(maxDate)
+      setError('')
     }
   }, [open, custos])
 
   async function handleConfirm() {
     setSaving(true)
+    setError('')
     try {
       await onConfirm(dataVenc)
       onClose()
+    } catch (e) {
+      setError(msgErro(e) || 'Não foi possível agrupar os custos.')
     } finally {
       setSaving(false)
     }
@@ -349,6 +379,11 @@ function AgrupamentoModal({ custos, open, onClose, onConfirm }: AgrupamentoModal
             <label className="text-sm font-medium">Data de vencimento</label>
             <input type="date" className={selectCls} value={dataVenc} onChange={e => setDataVenc(e.target.value)} />
           </div>
+          {error && (
+            <p className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:bg-rose-950/30 dark:text-rose-400">
+              {error}
+            </p>
+          )}
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancelar</Button>
@@ -398,8 +433,21 @@ export default function Custos() {
   function toggleSelect(id: string) {
     setSelected(prev => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      if (next.has(id)) {
+        next.delete(id)
+        return next
+      }
+      // Ao adicionar, garante que toda a seleção seja do MESMO favorecido.
+      // Se for diferente do já selecionado, recomeça a seleção com este custo
+      // (um título a pagar tem um único favorecido).
+      const alvo = custos.find(c => c.id === id)
+      if (alvo && next.size > 0) {
+        const algumSelecionado = custos.find(c => next.has(c.id))
+        if (algumSelecionado && favorecidoKey(alvo) !== favorecidoKey(algumSelecionado)) {
+          return new Set([id])
+        }
+      }
+      next.add(id)
       return next
     })
   }

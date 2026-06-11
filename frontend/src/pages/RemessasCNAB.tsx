@@ -1,5 +1,14 @@
-import { useEffect, useState, useMemo } from 'react'
-import { FileText, FileUp, ChevronDown, ChevronRight, AlertCircle, Download } from 'lucide-react'
+import { useEffect, useState, useMemo, useRef } from 'react'
+import {
+  FileText,
+  FileUp,
+  ChevronDown,
+  ChevronRight,
+  AlertCircle,
+  Download,
+  Upload,
+  CheckCircle2,
+} from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -11,10 +20,12 @@ import {
   getRetornos,
   gerarRemessa,
   baixarRemessa,
+  processarRetorno,
   type ConfiguracaoBancaria,
   type TituloAberto,
   type RemessaCNAB,
   type RetornoCNAB,
+  type ProcessarRetornoResp,
 } from '@/services/cnabService'
 import { cn } from '@/lib/utils'
 
@@ -40,6 +51,45 @@ export default function RemessasCNAB() {
   const [gerando, setGerando] = useState(false)
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [erro, setErro] = useState('')
+
+  // Importação do retorno (.RET)
+  const retFileRef = useRef<HTMLInputElement>(null)
+  const [processando, setProcessando] = useState(false)
+  const [retErro, setRetErro] = useState('')
+  const [retResultado, setRetResultado] = useState<ProcessarRetornoResp | null>(null)
+
+  async function handleProcessarRetorno(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (!config?.id) {
+      setRetErro('Cadastre a configuração bancária antes de importar o retorno.')
+      return
+    }
+    setProcessando(true)
+    setRetErro('')
+    setRetResultado(null)
+    try {
+      const resp = await processarRetorno(config.id, file)
+      setRetResultado(resp)
+      const rets = await getRetornos()
+      setRetornos(rets)
+      // títulos liquidados saem da lista de abertos → recarrega
+      setTitulos(await getTitulosAbertosParaRemessa())
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : String(err)
+      let msg = raw
+      try {
+        const o = JSON.parse(raw)
+        if (o && typeof o === 'object' && typeof o.detail === 'string') msg = o.detail
+      } catch {
+        /* não era JSON */
+      }
+      setRetErro(msg || 'Erro ao processar o arquivo de retorno.')
+    } finally {
+      setProcessando(false)
+    }
+  }
 
   async function reload() {
     const [cfgs, tits, rems, rets] = await Promise.all([
@@ -238,7 +288,90 @@ export default function RemessasCNAB() {
         </TabsContent>
 
         {/* RETORNOS */}
-        <TabsContent value="retornos">
+        <TabsContent value="retornos" className="space-y-4">
+          {/* Importar arquivo de retorno (.RET) */}
+          <Card>
+            <CardHeader className="border-b pb-3">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Importar retorno do banco (.RET)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-4 space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Envie o arquivo de retorno do Sicoob. As ocorrências de liquidação dão{' '}
+                <strong>baixa automática</strong> nos títulos correspondentes.
+              </p>
+              <input
+                ref={retFileRef}
+                type="file"
+                accept=".ret,.RET,.txt,text/plain"
+                className="hidden"
+                onChange={handleProcessarRetorno}
+              />
+              <Button
+                onClick={() => retFileRef.current?.click()}
+                disabled={processando || !config?.id}
+              >
+                <Upload className="h-4 w-4" />
+                {processando ? 'Processando...' : 'Selecionar arquivo .RET'}
+              </Button>
+              {retErro && <p className="text-sm text-rose-600">{retErro}</p>}
+
+              {retResultado && (
+                <div className="space-y-3 pt-1">
+                  <div className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Retorno processado ({retResultado.nome_arquivo || 'arquivo'}).
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {[
+                      { label: 'Ocorrências', value: retResultado.resumo.itens, cls: 'text-foreground' },
+                      { label: 'Baixados', value: retResultado.resumo.baixados, cls: 'text-emerald-600' },
+                      { label: 'Sem título', value: retResultado.resumo.sem_titulo, cls: 'text-amber-600' },
+                      { label: 'Ignorados', value: retResultado.resumo.ignorados, cls: 'text-muted-foreground' },
+                    ].map(c => (
+                      <div key={c.label} className="rounded-lg border border-border px-3 py-2">
+                        <p className="text-xs text-muted-foreground">{c.label}</p>
+                        <p className={cn('text-xl font-bold', c.cls)}>{c.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                  {retResultado.itens.length > 0 && (
+                    <div className="rounded-lg border border-border overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b bg-muted/30">
+                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Nosso número</th>
+                            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Ocorrência</th>
+                            <th className="text-left px-3 py-2 font-medium text-muted-foreground whitespace-nowrap">Pago em</th>
+                            <th className="text-right px-3 py-2 font-medium text-muted-foreground">Valor</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-border">
+                          {retResultado.itens.map(it => (
+                            <tr key={it.id}>
+                              <td className="px-3 py-2 font-mono text-xs">{it.nosso_numero || '—'}</td>
+                              <td className="px-3 py-2">
+                                <span className="text-muted-foreground">{it.codigo_ocorrencia}</span>{' '}
+                                {it.descricao_ocorrencia}
+                              </td>
+                              <td className="px-3 py-2 whitespace-nowrap">
+                                {it.data_pagamento ? fmtDate(it.data_pagamento) : '—'}
+                              </td>
+                              <td className="px-3 py-2 text-right font-medium whitespace-nowrap">
+                                {it.valor_pago ? fmt(parseFloat(it.valor_pago)) : '—'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <Card>
             <CardContent className="p-0">
               {retornos.length === 0 ? (

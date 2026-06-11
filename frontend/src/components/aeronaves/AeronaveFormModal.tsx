@@ -1,5 +1,5 @@
-import { useState, useEffect, type FormEvent } from 'react'
-import { Trash2 } from 'lucide-react'
+import { useState, useEffect, useRef, type FormEvent } from 'react'
+import { Trash2, Upload, Image as ImageIcon } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -44,6 +44,33 @@ type FormErrors = {
   valor_por_minuto?: string
 }
 
+// Lê um arquivo de imagem, redimensiona (lado máx. ~800px) e comprime em JPEG,
+// retornando uma data URL base64 que é salva no próprio campo `foto` (sem mídia/volume).
+async function fileParaDataUrl(file: File, maxLado = 800, qualidade = 0.82): Promise<string> {
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => reject(new Error('Falha ao ler o arquivo'))
+    reader.readAsDataURL(file)
+  })
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const im = new Image()
+    im.onload = () => resolve(im)
+    im.onerror = () => reject(new Error('Imagem inválida'))
+    im.src = dataUrl
+  })
+  const escala = Math.min(1, maxLado / Math.max(img.width, img.height))
+  const w = Math.round(img.width * escala)
+  const h = Math.round(img.height * escala)
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return dataUrl
+  ctx.drawImage(img, 0, 0, w, h)
+  return canvas.toDataURL('image/jpeg', qualidade)
+}
+
 function makeEmpty(): AeronaveFormData {
   return {
     nome: '',
@@ -70,7 +97,22 @@ export function AeronaveFormModal({
   const [form, setForm] = useState<AeronaveFormData>(makeEmpty)
   const [errors, setErrors] = useState<FormErrors>({})
   const [saving, setSaving] = useState(false)
+  const [fotoErro, setFotoErro] = useState('')
+  const fileRef = useRef<HTMLInputElement>(null)
   const isEdit = !!aeronave
+
+  async function handleFotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setFotoErro('')
+    try {
+      const dataUrl = await fileParaDataUrl(file)
+      setForm(p => ({ ...p, foto: dataUrl }))
+    } catch {
+      setFotoErro('Não foi possível carregar a imagem.')
+    }
+  }
 
   useEffect(() => {
     if (open) {
@@ -92,6 +134,7 @@ export function AeronaveFormModal({
           : makeEmpty(),
       )
       setErrors({})
+      setFotoErro('')
     }
   }, [aeronave, open])
 
@@ -170,6 +213,46 @@ export function AeronaveFormModal({
               hasError={!!errors.nome}
               helper={errors.nome}
             />
+          </div>
+
+          {/* Foto (upload com resize client-side, salva como data URL no campo foto) */}
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Foto (opcional)</label>
+            <div className="flex items-center gap-3">
+              <div className="h-16 w-24 shrink-0 overflow-hidden rounded-md border border-border bg-muted flex items-center justify-center">
+                {form.foto ? (
+                  <img src={form.foto} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex flex-col items-start gap-1.5">
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFotoChange}
+                />
+                <Button type="button" variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
+                  <Upload className="h-3.5 w-3.5" />
+                  {form.foto ? 'Trocar foto' : 'Enviar foto'}
+                </Button>
+                {form.foto && (
+                  <button
+                    type="button"
+                    onClick={() => setForm(p => ({ ...p, foto: '' }))}
+                    className="text-left text-xs text-destructive hover:underline"
+                  >
+                    Remover foto
+                  </button>
+                )}
+              </div>
+            </div>
+            {fotoErro && <p className="text-xs text-destructive">{fotoErro}</p>}
+            <p className="text-xs text-muted-foreground">
+              A imagem é redimensionada e salva junto da aeronave.
+            </p>
           </div>
 
           {/* Avião: tarifas horárias */}
