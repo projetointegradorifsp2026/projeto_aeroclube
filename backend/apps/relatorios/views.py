@@ -484,8 +484,8 @@ class RelatorioTitulosView(APIView):
             if campo == 'participante_nome':
                 if obj.participante:
                     return obj.participante.nome
-                if obj.cliente_externo:
-                    return obj.cliente_externo.nome
+                if obj.cliente:
+                    return obj.cliente.nome
                 return '—'
             if campo == 'tipo':
                 return obj.get_tipo_display()
@@ -527,7 +527,7 @@ class RelatorioTitulosView(APIView):
     def _build_qs_receber(self, params):
         qs = (
             TituloReceber.objects
-            .select_related('participante', 'cliente_externo')
+            .select_related('participante', 'cliente')
         )
         data_field = params.get('data_field', 'data_vencimento')
         if data_field not in ('data_emissao', 'data_vencimento', 'data_pagamento'):

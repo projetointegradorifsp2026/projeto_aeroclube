@@ -15,6 +15,7 @@ import {
   KeyRound,
   History,
   ChevronDown,
+  Landmark,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -35,7 +36,7 @@ import {
   getUsers,
   updateUser,
   addSaldoCarteira,
-  debitarCarteira,
+  removerSaldoCarteira,
   resetPassword,
   getMovimentacoesCarteira,
   type User,
@@ -44,13 +45,17 @@ import {
 } from '@/services/usersService'
 import { getAeronaves, type Aeronave } from '@/services/aeronavesService'
 import { UserFormModal, type UserFormData } from '@/components/users/UserFormModal'
+import {
+  getDadosBancariosUsuario, salvarDadosBancarios, emptyDadosBancarios, type DadosBancarios,
+} from '@/services/cnabService'
+import { AlterarSenhaModal } from '@/components/users/AlterarSenhaModal'
 import { getCurrentUser } from '@/services/api/auth'
 import {
   getTitulosReceber,
   baixarTituloReceber,
   type TituloReceber,
 } from '@/services/titulosReceberService'
-import { getTitulosPagar, createTituloPagar } from '@/services/titulosPagarService'
+import { getTitulosPagar } from '@/services/titulosPagarService'
 import { PROFILE_LABELS, type UserProfile } from '@/mocks/users'
 import { TITULO_RECEBER_TIPO_LABELS, type TituloReceberStatus } from '@/mocks/titulos'
 import { cn } from '@/lib/utils'
@@ -104,6 +109,10 @@ export default function UsuarioPerfilPage() {
   const [loadingUser, setLoadingUser] = useState(true)
   const [editOpen, setEditOpen] = useState(false)
 
+  const [alterarSenhaOpen, setAlterarSenhaOpen] = useState(false)
+  const [dadosBancarios, setDadosBancarios] = useState<DadosBancarios>(emptyDadosBancarios())
+  const [dadosBancariosLoading, setDadosBancariosLoading] = useState(false)
+  const [dadosBancariosSaving, setDadosBancariosSaving] = useState(false)
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [resetSuccess, setResetSuccess] = useState(false)
@@ -149,9 +158,12 @@ export default function UsuarioPerfilPage() {
   const [batchBaixando, setBatchBaixando] = useState(false)
 
   async function reloadMovimentacoes(nomeUsuario: string) {
-    const [allReceber, allPagar] = await Promise.all([getTitulosReceber(), getTitulosPagar()])
-    const userReceber = allReceber.filter(t => t.usuario_id === id && t.status === 'baixado' && t.tipo !== 'carteira' && !(t.valor_carteira && t.valor_carteira >= t.valor))
-    const userCarteira = allReceber.filter(t => t.usuario_id === id && t.tipo === 'carteira')
+    const [allReceber, allPagar, movCarteira] = await Promise.all([
+      getTitulosReceber(),
+      getTitulosPagar(),
+      getMovimentacoesCarteira(id!),
+    ])
+    const userReceber = allReceber.filter(t => t.usuario_id === id && t.valor_pago > 0)
     const userPagar = allPagar.filter(t => t.favorecido === nomeUsuario && t.status === 'baixado')
     const entradas: MovRow[] = userReceber.map(t => ({
       id: `r-${t.id}`,
@@ -162,15 +174,14 @@ export default function UsuarioPerfilPage() {
       valor_pago: t.valor_pago,
       status: t.status,
     }))
-    const carteiraRows: MovRow[] = userCarteira.map(t => ({
-      id: `c-${t.id}`,
+    const carteiraRows: MovRow[] = movCarteira.filter(m => m.tipo === 'debito').map(m => ({
+      id: `mv-${m.id}`,
       tipo: 'carteira' as const,
-      data: t.data_emissao,
-      descricao: t.descricao,
-      valor: t.valor,
-      valor_pago: t.valor_pago,
-      status: t.status,
-      carteira_debito: t.carteira_debito,
+      data: m.data_transacao,
+      descricao: m.descricao,
+      valor: m.valor,
+      valor_pago: 0,
+      status: 'baixado' as const,
     }))
     const saidas: MovRow[] = userPagar.map(t => ({
       id: `p-${t.id}`,
@@ -188,13 +199,12 @@ export default function UsuarioPerfilPage() {
   useEffect(() => {
     if (!id) return
     if (isAdmin) {
-      Promise.all([getUsers(), getTitulosReceber(), getTitulosPagar()]).then(
-        ([users, allReceber, allPagar]) => {
+      Promise.all([getUsers(), getTitulosReceber(), getTitulosPagar(), getMovimentacoesCarteira(id)]).then(
+        ([users, allReceber, allPagar, movCarteira]) => {
           const found = users.find(u => u.id === id)
           if (!found) { navigate('/usuarios'); return }
 
-          const userReceber = allReceber.filter(t => t.usuario_id === id && t.status === 'baixado' && t.tipo !== 'carteira' && !(t.valor_carteira && t.valor_carteira >= t.valor))
-          const userCarteira = allReceber.filter(t => t.usuario_id === id && t.tipo === 'carteira')
+          const userReceber = allReceber.filter(t => t.usuario_id === id && t.valor_pago > 0)
           const userPagar = allPagar.filter(t => t.favorecido === found.nome && t.status === 'baixado')
 
           const entradas: MovRow[] = userReceber.map(t => ({
@@ -206,15 +216,14 @@ export default function UsuarioPerfilPage() {
             valor_pago: t.valor_pago,
             status: t.status,
           }))
-          const carteiraRows: MovRow[] = userCarteira.map(t => ({
-            id: `c-${t.id}`,
+          const carteiraRows: MovRow[] = movCarteira.filter(m => m.tipo === 'debito').map(m => ({
+            id: `mv-${m.id}`,
             tipo: 'carteira' as const,
-            data: t.data_emissao,
-            descricao: t.descricao,
-            valor: t.valor,
-            valor_pago: t.valor_pago,
-            status: t.status,
-            carteira_debito: t.carteira_debito,
+            data: m.data_transacao,
+            descricao: m.descricao,
+            valor: m.valor,
+            valor_pago: 0,
+            status: 'baixado' as const,
           }))
           const saidas: MovRow[] = userPagar.map(t => ({
             id: `p-${t.id}`,
@@ -238,6 +247,12 @@ export default function UsuarioPerfilPage() {
           setLoadingUser(false)
         },
       )
+      // Carrega dados bancários em paralelo
+      setDadosBancariosLoading(true)
+      getDadosBancariosUsuario(id)
+        .then(d => setDadosBancarios(d ?? emptyDadosBancarios()))
+        .catch(() => {})
+        .finally(() => setDadosBancariosLoading(false))
     } else {
       getUsers().then(users => {
         const found = users.find(u => u.id === id)
@@ -245,6 +260,12 @@ export default function UsuarioPerfilPage() {
         setUser(found)
         setLoadingUser(false)
       })
+      // Carrega dados bancários para o próprio usuário
+      setDadosBancariosLoading(true)
+      getDadosBancariosUsuario(id)
+        .then(d => setDadosBancarios(d ?? emptyDadosBancarios()))
+        .catch(() => {})
+        .finally(() => setDadosBancariosLoading(false))
     }
   }, [id, navigate, isAdmin])
 
@@ -278,6 +299,16 @@ export default function UsuarioPerfilPage() {
       setSelectedIds(new Set())
     } else {
       setSelectedIds(new Set(selectableTitulos.map(t => t.id)))
+    }
+  }
+
+  async function handleSaveDadosBancarios() {
+    if (!user) return
+    setDadosBancariosSaving(true)
+    try {
+      await salvarDadosBancarios({ ...dadosBancarios, usuario: parseInt(user.id, 10), entidade: null })
+    } finally {
+      setDadosBancariosSaving(false)
     }
   }
 
@@ -404,31 +435,15 @@ export default function UsuarioPerfilPage() {
   async function handleRemoveSaldo() {
     if (!user) return
     const valor = parseFloat(removeSaldoValor)
-    if (!valor || valor <= 0 || valor > user.saldo_carteira || !removeSaldoData) return
+    if (!valor || valor <= 0 || !removeSaldoData) return
     setRemoveSaldoSaving(true)
-    const [updatedUser] = await Promise.all([
-      debitarCarteira(user.id, valor),
-      createTituloPagar({
-        tipo: 'outros',
-        favorecido: user.nome,
-        descricao: `Remoção de saldo da carteira`,
-        num_parcela: 1,
-        total_parcelas: 1,
-        valor,
-        multa: 0,
-        data_emissao: removeSaldoData,
-        data_vencimento: removeSaldoData,
-        status: 'baixado',
-        valor_pago: valor,
-        data_pagamento: removeSaldoData,
-        recorrente: false
-      }),
-    ])
-    if (updatedUser) setUser(updatedUser)
-    await reloadMovimentacoes(updatedUser?.nome ?? user.nome)
-    setRemoveSaldoOpen(false)
-    setRemoveSaldoValor('')
-    setRemoveSaldoSaving(false)
+    try {
+      await removerSaldoCarteira(user.id, valor)
+      setRemoveSaldoOpen(false)
+      setRemoveSaldoValor('')
+    } finally {
+      setRemoveSaldoSaving(false)
+    }
   }
 
   async function handleBaixa() {
@@ -506,8 +521,6 @@ export default function UsuarioPerfilPage() {
   const removeSaldoError = (() => {
     if (!removeSaldoValor) return null
     if (isNaN(removeSaldoNum) || removeSaldoNum <= 0) return 'O valor deve ser maior que zero'
-    if (removeSaldoNum > user.saldo_carteira)
-      return `Saldo insuficiente (máximo: ${fmt(user.saldo_carteira)})`
     return null
   })()
 
@@ -536,6 +549,12 @@ export default function UsuarioPerfilPage() {
                   <Button variant="outline" size="sm" onClick={() => setResetDialogOpen(true)}>
                     <KeyRound className="h-3.5 w-3.5" />
                     Resetar Senha
+                  </Button>
+                )}
+                {String(currentUser?.id ?? '') === String(user.id) && (
+                  <Button variant="outline" size="sm" onClick={() => setAlterarSenhaOpen(true)}>
+                    <KeyRound className="h-3.5 w-3.5" />
+                    Alterar Senha
                   </Button>
                 )}
                 <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
@@ -650,7 +669,6 @@ export default function UsuarioPerfilPage() {
                     variant="outline"
                     size="sm"
                     onClick={() => { setRemoveSaldoValor(''); setRemoveSaldoData(todayStr()); setRemoveSaldoOpen(true) }}
-                    disabled={user.saldo_carteira <= 0}
                   >
                     <Minus className="h-4 w-4" />
                     Remover
@@ -661,6 +679,87 @@ export default function UsuarioPerfilPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Dados Bancários */}
+      <Card>
+        <CardHeader className="border-b pb-3">
+          <div className="flex items-center gap-2">
+            <Landmark className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-base font-semibold">Dados Bancários</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-5 pb-5">
+          {dadosBancariosLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
+            </div>
+          ) : (() => {
+            const selectCls = 'h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
+            const setField = <K extends keyof DadosBancarios>(k: K, v: DadosBancarios[K]) =>
+              setDadosBancarios(p => ({ ...p, [k]: v }))
+            return (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Banco</label>
+                    <Input value={dadosBancarios.banco} onChange={e => setField('banco', e.target.value)} placeholder="Ex: Sicoob" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Código do Banco</label>
+                    <Input value={dadosBancarios.codigo_banco} onChange={e => setField('codigo_banco', e.target.value)} placeholder="Ex: 756" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-[2fr_1fr_2fr_1fr] gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Agência</label>
+                    <Input value={dadosBancarios.agencia} onChange={e => setField('agencia', e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">DV</label>
+                    <Input value={dadosBancarios.agencia_dv} onChange={e => setField('agencia_dv', e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Conta</label>
+                    <Input value={dadosBancarios.conta} onChange={e => setField('conta', e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">DV</label>
+                    <Input value={dadosBancarios.conta_dv} onChange={e => setField('conta_dv', e.target.value)} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Tipo de Conta</label>
+                    <select className={selectCls} value={dadosBancarios.tipo_conta} onChange={e => setField('tipo_conta', e.target.value as DadosBancarios['tipo_conta'])}>
+                      <option value="corrente">Conta Corrente</option>
+                      <option value="poupanca">Conta Poupança</option>
+                    </select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Chave Pix</label>
+                    <Input value={dadosBancarios.chave_pix} onChange={e => setField('chave_pix', e.target.value)} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Titular</label>
+                    <Input value={dadosBancarios.titular} onChange={e => setField('titular', e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">CPF/CNPJ do Titular</label>
+                    <Input value={dadosBancarios.cpf_cnpj_titular} onChange={e => setField('cpf_cnpj_titular', e.target.value)} />
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <Button onClick={handleSaveDadosBancarios} disabled={dadosBancariosSaving}>
+                    {dadosBancariosSaving ? 'Salvando...' : 'Salvar Dados Bancários'}
+                  </Button>
+                </div>
+              </div>
+            )
+          })()}
+        </CardContent>
+      </Card>
 
       {/* Movimentações — visível apenas para admin */}
       {isAdmin && <Card>
@@ -709,18 +808,16 @@ export default function UsuarioPerfilPage() {
                         <p className="truncate font-medium">{m.descricao}</p>
                       </td>
                       <td className="px-4 py-3 text-right font-medium whitespace-nowrap">
-                        <span className={
-                          m.tipo === 'entrada'
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : m.tipo === 'carteira'
-                            ? 'text-teal-600 dark:text-teal-400'
-                            : 'text-rose-600 dark:text-rose-400'
-                        }>
-                          {m.tipo === 'entrada' ? '+' : m.tipo === 'carteira' ? (m.carteira_debito ? '−' : '+') : '−'}{fmt(m.valor)}
-                        </span>
+                        {m.tipo === 'carteira' ? (
+                          <span className="text-teal-600 dark:text-teal-400">{fmt(m.valor)}</span>
+                        ) : (
+                          <span className={m.tipo === 'entrada' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                            {m.tipo === 'entrada' ? '+' : '−'}{fmt(m.valor)}
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell whitespace-nowrap">
-                        {m.valor_pago > 0 ? fmt(m.valor_pago) : '—'}
+                        {m.tipo === 'carteira' ? '—' : m.valor_pago > 0 ? fmt(m.valor_pago) : '—'}
                       </td>
                       <td className="px-4 py-3">
                         {m.status === 'baixado'
@@ -837,13 +934,15 @@ export default function UsuarioPerfilPage() {
       {/* Modal de edição */}
       <UserFormModal user={user} open={editOpen} onClose={() => setEditOpen(false)} onSave={handleSaveUser} restrictedFields={!isAdmin} />
 
+      <AlterarSenhaModal open={alterarSenhaOpen} onClose={() => setAlterarSenhaOpen(false)} />
+
       {/* Dialog: Adicionar Saldo (Por Valor ou Por Horas) */}
       <Dialog open={addSaldoOpen} onOpenChange={o => !o && setAddSaldoOpen(false)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Adicionar Saldo</DialogTitle>
             <DialogDescription>
-              Um título baixado será gerado como comprovante do crédito adicionado.
+              Uma Receita pendente será criada. O saldo é creditado somente após faturar e baixar o título.
             </DialogDescription>
           </DialogHeader>
 
@@ -876,17 +975,9 @@ export default function UsuarioPerfilPage() {
                   onChange={e => setAddSaldoData(e.target.value)}
                 />
               </div>
-              <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm">
-                <span className="text-muted-foreground">Saldo atual: </span>
-                <span className="font-medium">{fmt(user.saldo_carteira)}</span>
-                {addSaldoValor && !addSaldoError && parseFloat(addSaldoValor) > 0 && (
-                  <>
-                    <span className="text-muted-foreground mx-1.5">→</span>
-                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                      {fmt(user.saldo_carteira + parseFloat(addSaldoValor))}
-                    </span>
-                  </>
-                )}
+              <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm text-muted-foreground">
+                Saldo atual: <span className="font-medium text-foreground">{fmt(user.saldo_carteira)}</span>
+                {' '}— o crédito ocorre ao baixar o título gerado.
               </div>
             </TabsContent>
 
@@ -981,13 +1072,8 @@ export default function UsuarioPerfilPage() {
                     </div>
 
                     {horasValorInput && parseFloat(horasValorInput) > 0 && (
-                      <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm">
-                        <span className="text-muted-foreground">Saldo atual: </span>
-                        <span className="font-medium">{fmt(user.saldo_carteira)}</span>
-                        <span className="text-muted-foreground mx-1.5">→</span>
-                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                          {fmt(user.saldo_carteira + parseFloat(horasValorInput))}
-                        </span>
+                      <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm text-muted-foreground">
+                        O crédito de <span className="font-medium text-foreground">{fmt(parseFloat(horasValorInput))}</span> ocorre ao baixar o título gerado.
                       </div>
                     )}
                   </>
@@ -1021,7 +1107,7 @@ export default function UsuarioPerfilPage() {
           <DialogHeader>
             <DialogTitle>Remover Saldo</DialogTitle>
             <DialogDescription>
-              O valor será debitado da carteira e registrado como saída nas movimentações.
+              Um Custo pendente será criado. O saldo é debitado somente após faturar e baixar o título.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-1">
@@ -1047,17 +1133,9 @@ export default function UsuarioPerfilPage() {
                 onChange={e => setRemoveSaldoData(e.target.value)}
               />
             </div>
-            <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm">
-              <span className="text-muted-foreground">Saldo atual: </span>
-              <span className="font-medium">{fmt(user.saldo_carteira)}</span>
-              {removeSaldoValor && !removeSaldoError && parseFloat(removeSaldoValor) > 0 && (
-                <>
-                  <span className="text-muted-foreground mx-1.5">→</span>
-                  <span className="font-semibold text-rose-600 dark:text-rose-400">
-                    {fmt(user.saldo_carteira - parseFloat(removeSaldoValor))}
-                  </span>
-                </>
-              )}
+            <div className="rounded-lg bg-muted/40 border border-border px-3 py-2 text-sm text-muted-foreground">
+              Saldo atual: <span className="font-medium text-foreground">{fmt(user.saldo_carteira)}</span>
+              {' '}— o débito ocorre ao baixar o título gerado.
             </div>
           </div>
           <DialogFooter>

@@ -25,8 +25,8 @@ import { type TipoAeronave, type Aeronave } from '@/mocks/aeronaves'
 import { getAeronaves } from '@/services/aeronavesService'
 import { getUsers, type User } from '@/services/usersService'
 import { createVoo, updateVoo, deleteVoo } from '@/services/voosService'
-import { createTituloReceber } from '@/services/titulosReceberService'
-import { createTituloPagar } from '@/services/titulosPagarService'
+import { createReceita } from '@/services/receitasService'
+import { createCusto } from '@/services/custosService'
 import { debitarCarteira } from '@/services/usersService'
 import { cn } from '@/lib/utils'
 
@@ -153,6 +153,7 @@ export default function VooFormPage() {
 
   const [usarCarteira, setUsarCarteira] = useState(false)
   const [carteiraValor, setCarteiraValor] = useState('')
+  const [gerarTitulo, setGerarTitulo] = useState(false)
 
   const autoVencimento = useRef<string>('')
 
@@ -368,46 +369,38 @@ export default function VooFormPage() {
         }
 
         if (valorTitulo > 0) {
-          // Partial wallet or no wallet — pending título for remaining amount
+          // Parte/total via carteira → gera uma RECEITA pendente do valor restante.
+          // O operador decide depois se ela vira título a receber (faturar).
           const descricaoFinal =
             carteiraUsadaNum > 0
               ? `${descricaoVoo} (${fmt(carteiraUsadaNum)} via carteira)`
               : descricaoVoo
-          await createTituloReceber({
-            usuario_id: voo.participante_id,
-            usuario_nome: voo.participante_nome,
+          await createReceita({
+            participante_id: voo.participante_id,
             tipo: 'voo',
             descricao: descricaoFinal,
-            num_parcela: 1,
-            total_parcelas: 1,
             valor: valorTitulo,
-            valor_pago: 0,
-            juros_aplicado: 0,
-            multa: 0,
-            valor_carteira: carteiraUsadaNum > 0 ? carteiraUsadaNum : undefined,
             data_emissao: voo.data,
             data_vencimento: voo.data_vencimento,
-            data_pagamento: null,
-            status: 'em_aberto',
+            gerar_titulo: gerarTitulo,
           })
         }
-        // If valorTitulo <= 0, payment was fully covered by wallet — no título needed
+        // Se valorTitulo <= 0, pagamento coberto pela carteira — nenhuma receita necessária.
 
-        if (voo.instrutor_id && voo.instrutor_nome && voo.taxa_instrutor && voo.taxa_instrutor > 0) {
-          await createTituloPagar({
-            tipo: 'instrutor',
+        // Custo do instrutor: para PLANADOR o backend já gera o repasse (Custo + título);
+        // aqui tratamos apenas AVIÃO, evitando duplicidade.
+        if (
+          voo.tipo_aeronave === 'aviao' &&
+          voo.instrutor_id && voo.instrutor_nome &&
+          voo.taxa_instrutor && voo.taxa_instrutor > 0
+        ) {
+          await createCusto({
+            tipo: 'folha_pagamento',
             favorecido: voo.instrutor_id,
             descricao: `Instrução – ${descricaoVoo}`,
-            num_parcela: 1,
-            total_parcelas: 1,
             valor: voo.valor_voo * (voo.taxa_instrutor / 100),
-            multa: 0,
             data_emissao: voo.data,
             data_vencimento: voo.data_vencimento,
-            status: 'em_aberto',
-            valor_pago: null,
-            data_pagamento: null,
-            recorrente: false,
           })
         }
       }
@@ -856,6 +849,28 @@ export default function VooFormPage() {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* ── Título a Receber ─────────────────────────────────────────────── */}
+        {!isEdit && valorTitulo > 0 && (
+          <Card>
+            <CardContent className="px-6 py-4">
+              <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={gerarTitulo}
+                  onChange={e => setGerarTitulo(e.target.checked)}
+                  className="h-4 w-4 rounded border-input accent-primary"
+                />
+                <div>
+                  <span className="text-sm font-medium">Gerar título a receber diretamente</span>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Se marcado, cria o título em aberto ({fmt(valorTitulo)}) agora. Caso contrário, cria uma receita pendente para faturar depois.
+                  </p>
+                </div>
+              </label>
             </CardContent>
           </Card>
         )}

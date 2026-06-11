@@ -1,5 +1,24 @@
 from rest_framework import serializers
-from .models import EntidadePagar, Fornecedor, Funcionario, Favorecido
+from .models import Cliente, EntidadePagar, Fornecedor, Funcionario, Favorecido
+from .validators import validar_cpf_cnpj
+
+
+class ClienteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cliente
+        fields = [
+            "id", "nome", "cpf_cnpj", "email", "contato",
+            "cep", "logradouro", "numero", "bairro", "cidade", "uf",
+            "is_active", "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+    def validate_cpf_cnpj(self, value):
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        try:
+            return validar_cpf_cnpj(value)
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(e.messages[0])
 
 
 class EntidadePagarSerializer(serializers.ModelSerializer):

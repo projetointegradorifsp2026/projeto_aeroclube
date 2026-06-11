@@ -42,6 +42,14 @@ class TituloPagar(models.Model):
         verbose_name="Favorecido",
     )
 
+    # Vínculos com Custos de origem (M2M: suporta split 1→N e agrupamento N→1)
+    custos = models.ManyToManyField(
+        "custos.Custo",
+        blank=True,
+        related_name="titulos",
+        verbose_name="Custos de origem",
+    )
+
     descricao = models.CharField("Descrição", max_length=300)
 
     # Parcelamento
@@ -86,9 +94,37 @@ class TituloPagar(models.Model):
         return self.status == self.STATUS_ABERTO and self.data_vencimento < timezone.now().date()
 
     def baixar(self, valor_pago, data_pagamento=None, multa=Decimal("0.00")):
-        """RF03: Registra a baixa total do título."""
+        """RF03: Registra a baixa total do título. Debita carteira se for remoção de saldo."""
         self.multa = multa
         self.valor_pago = valor_pago
         self.data_pagamento = data_pagamento or timezone.now().date()
         self.status = self.STATUS_BAIXADO
         self.save()
+        self._debitar_carteira_se_necessario()
+
+    def _debitar_carteira_se_necessario(self):
+        """Debita a carteira quando o custo é de remoção de saldo."""
+        from apps.financeiro.custos.models import Custo as CustoModel
+        from apps.financeiro.carteira.models import Carteira
+
+        custos_remocao = self.custos.filter(tipo=CustoModel.TIPO_REMOCAO_SALDO)
+        if not custos_remocao.exists():
+            return
+
+        custo = custos_remocao.first()
+        participante_id = (custo.metadados or {}).get("participante_id")
+        if not participante_id:
+            return
+
+        try:
+            carteira = Carteira.objects.get(participante_id=participante_id)
+        except Carteira.DoesNotExist:
+            return
+
+        if not carteira.tem_saldo_suficiente(self.valor_pago):
+            return
+
+        carteira.debitar(valor=self.valor_pago, descricao=self.descricao)
+        # Marca o custo como quitado
+        custo.status = CustoModel.STATUS_QUITADO
+        custo.save(update_fields=["status", "updated_at"])

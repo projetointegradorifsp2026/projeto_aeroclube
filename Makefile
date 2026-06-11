@@ -21,7 +21,7 @@ APPS = users relatorios pessoas carteira titulos_pagar titulos_receber aeronaves
 
 # .PHONY declara que estes alvos não são arquivos reais
 .PHONY: help dev-up dev-down dev-logs test test-down prod-up prod-down \
-        migrate makemigrations shell createsuperuser logs-be logs-fe ps clean
+        migrate makemigrations shell createsuperuser loaddata logs-be logs-fe ps clean
 
 # -----------------------------------------------------------------------------
 # Ajuda — lista todos os comandos disponíveis
@@ -48,6 +48,7 @@ help:
 	@echo "    make makemigrations  Gera novas migrations"
 	@echo "    make shell           Shell interativo do Django"
 	@echo "    make createsuperuser Cria superusuário admin"
+	@echo "    make loaddata        Popula o banco com entidades de exemplo (seed_data.json)"
 	@echo ""
 	@echo "  Utilitários:"
 	@echo "    make logs-be         Logs do backend (dev)"
@@ -113,6 +114,11 @@ shell:
 
 createsuperuser:
 	docker compose -f $(BASE) -f $(DEV) exec backend python manage.py createsuperuser
+
+# Popula o banco com entidades de exemplo (clientes, alunos, sócios, instrutores,
+# fornecedores, funcionários, contas fixas) a partir de backend/seed_data.json.
+loaddata:
+	docker compose -f $(BASE) -f $(DEV) exec backend python manage.py loaddata seed_data.json
 
 # -----------------------------------------------------------------------------
 # Logs individuais (desenvolvimento)

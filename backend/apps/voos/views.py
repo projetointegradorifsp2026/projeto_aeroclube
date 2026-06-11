@@ -12,8 +12,12 @@ from .serializers import VooSerializer, SimulacaoTempoDecimalSerializer
 class VooViewSet(viewsets.ModelViewSet):
     """
     CRUD /api/v1/voos/
-    POST cria o voo, calcula tempo decimal e valor automaticamente.
-    Ao criar voo de planador com instrutor, gera TituloPagar de repasse.
+
+    Para PLANADOR com instrutor: gera automaticamente Custo pendente de repasse
+    (o TituloPagar era criado antes; agora é pendente, sem gerar título).
+
+    Para participante e instrutor AVIÃO: a Receita e o Custo são criados pelo frontend
+    (que conhece o valor correto após abatimento de carteira).
     """
     queryset = Voo.objects.select_related("participante", "instrutor", "aeronave").order_by("-data_voo")
     serializer_class = VooSerializer
@@ -24,23 +28,37 @@ class VooViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         with transaction.atomic():
             voo = serializer.save()
-            if voo.instrutor and voo.valor_repasse_instrutor > Decimal("0.00"):
-                self._gerar_titulo_pagar_instrutor(voo)
+            self._gerar_custo_instrutor_planador(voo)
         return Response(VooSerializer(voo).data, status=status.HTTP_201_CREATED)
 
-    def _gerar_titulo_pagar_instrutor(self, voo: Voo):
-        from apps.financeiro.titulos_pagar.models import TituloPagar
+    def _gerar_custo_instrutor_planador(self, voo: Voo):
+        """
+        Cria Custo (pendente) de repasse para instrutores de PLANADOR.
+        Para aviões, o frontend cria o Custo diretamente.
+        """
+        if not (voo.instrutor and voo.valor_repasse_instrutor > Decimal("0.00")):
+            return
+
+        from apps.aeronaves.models import Aeronave
+        if voo.aeronave.tipo != Aeronave.TIPO_PLANADOR:
+            return
+
+        from apps.financeiro.custos.models import Custo
         from apps.pessoas.models import Favorecido
+
         fav, _ = Favorecido.objects.get_or_create(usuario=voo.instrutor)
-        TituloPagar.objects.create(
-            tipo=TituloPagar.TIPO_FOLHA,
+        descricao = f"Repasse instrução planador – {voo.data_voo} – {voo.aeronave.nome}"
+
+        Custo.objects.create(
+            tipo=Custo.TIPO_FOLHA,
             favorecido=fav,
-            descricao=f"Repasse instrução planador – {voo.data_voo} – {voo.aeronave.nome}",
+            descricao=descricao,
             num_parcela=1,
             total_parcelas=1,
             valor=voo.valor_repasse_instrutor,
             data_emissao=voo.data_voo,
             data_vencimento=voo.data_voo,
+            status=Custo.STATUS_PENDENTE,
         )
 
     def get_queryset(self):
@@ -60,10 +78,7 @@ class VooViewSet(viewsets.ModelViewSet):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def simular_tempo_decimal(request):
-    """
-    GET /api/v1/voos/simular-decimal/?minutos=47
-    Retorna o tempo decimal calculado para o número de minutos informado.
-    """
+    """GET /api/v1/voos/simular-decimal/?minutos=47"""
     minutos = request.query_params.get("minutos")
     if not minutos or not minutos.isdigit():
         return Response({"detail": "Parâmetro 'minutos' é obrigatório e deve ser inteiro."}, status=400)

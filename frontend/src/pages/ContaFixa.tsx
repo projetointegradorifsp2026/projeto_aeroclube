@@ -25,10 +25,6 @@ import {
   deleteContaFixa,
   type ContaFixa,
 } from '@/services/contaFixaService'
-import { cn } from '@/lib/utils'
-
-const inputCls =
-  'h-10 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 

@@ -253,6 +253,32 @@ export function TituloReceberDetailModal({
               </div>
             </div>
           )}
+
+          {current.baixas && current.baixas.length > 0 && (
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Histórico de pagamentos
+              </p>
+              <div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
+                {current.baixas.map(b => (
+                  <div key={b.id} className="flex items-center gap-3 px-3 py-2 text-sm">
+                    <span className="text-muted-foreground whitespace-nowrap">{fmtDate(b.data)}</span>
+                    <span className="flex-1">
+                      <span className="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs font-medium">
+                        {b.forma_pagamento_display}
+                      </span>
+                      {b.valor_via_carteira > 0 && (
+                        <span className="ml-1.5 text-xs text-teal-600">
+                          (carteira {fmt(b.valor_via_carteira)})
+                        </span>
+                      )}
+                    </span>
+                    <span className="font-medium whitespace-nowrap">{fmt(b.valor)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>

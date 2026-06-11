@@ -2,13 +2,39 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
-from .models import EntidadePagar, Fornecedor, Funcionario, Favorecido
+from .models import Cliente, EntidadePagar, Fornecedor, Funcionario, Favorecido
 from .serializers import (
+    ClienteSerializer,
     EntidadePagarSerializer,
     FornecedorSerializer,
     FuncionarioSerializer,
     FavorecidoSerializer,
 )
+
+
+class ClienteViewSet(viewsets.ModelViewSet):
+    """GET/POST/PATCH/DELETE /api/v1/clientes/"""
+    queryset = Cliente.objects.all().order_by("nome")
+    serializer_class = ClienteSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if self.action == "list":
+            ativo = self.request.query_params.get("ativo")
+            if ativo is None:
+                qs = qs.filter(is_active=True)
+            elif ativo.lower() == "false":
+                qs = qs.filter(is_active=False)
+            elif ativo.lower() == "all":
+                pass  # retorna ativos e inativos (a página filtra no cliente)
+        return qs
+
+    def destroy(self, request, *args, **kwargs):
+        obj = self.get_object()
+        obj.is_active = False
+        obj.save()
+        return Response({"detail": "Cliente desativado."}, status=status.HTTP_200_OK)
 
 
 class EntidadePagarViewSet(viewsets.ModelViewSet):

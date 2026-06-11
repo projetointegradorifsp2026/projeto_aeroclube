@@ -17,13 +17,13 @@ import {
   TITULO_RECEBER_TIPO_LABELS,
 } from '@/mocks/titulos'
 import { getUsers, type User } from '@/services/usersService'
-import { getEntidades, type Entidade } from '@/services/entidadesService'
+import { getClientes, type Cliente } from '@/services/clientesService'
 import { cn } from '@/lib/utils'
 
 export interface TituloReceberFormData {
   usuario_id: string
   usuario_nome: string
-  cliente_externo_id?: string
+  cliente_id?: string
   tipo: TituloReceberTipo
   descricao: string
   total_parcelas: number
@@ -118,19 +118,15 @@ export function TituloReceberFormModal({
     if (open) {
       Promise.all([
         getUsers(),
-        getEntidades('cliente'),
-      ]).then(([users, clientes]: [User[], Entidade[]]) => {
+        getClientes(),
+      ]).then(([users, clientes]: [User[], Cliente[]]) => {
         // value = ID (string), label = nome — para resolver o participante no backend
         setUsuariosOptions(
           users
             .filter(u => u.is_active && u.perfis.some(p => CLIENTE_PERFIS.includes(p as typeof CLIENTE_PERFIS[number])))
             .map(u => ({ value: u.id, label: u.nome })),
         )
-        setClientesOptions(
-          clientes
-            .filter(e => e.is_active)
-            .map(e => ({ value: e.id, label: e.nome })),
-        )
+        setClientesOptions(clientes.map(c => ({ value: c.id, label: c.nome })))
       }).catch(() => {})
     }
   }, [open])
@@ -146,7 +142,7 @@ export function TituloReceberFormModal({
       setForm(
         titulo
           ? {
-              usuario_id: titulo.usuario_id,
+              usuario_id: titulo.usuario_id ?? '',
               usuario_nome: titulo.usuario_nome,
               tipo: titulo.tipo,
               descricao: titulo.descricao,
@@ -164,7 +160,7 @@ export function TituloReceberFormModal({
   }, [titulo, open])
 
   function handleTipoChange(newTipo: TituloReceberTipo) {
-    setForm(p => ({ ...p, tipo: newTipo, usuario_id: '', usuario_nome: '', cliente_externo_id: undefined }))
+    setForm(p => ({ ...p, tipo: newTipo, usuario_id: '', usuario_nome: '', cliente_id: undefined }))
   }
 
   function handleValorChange(val: number) {
@@ -249,10 +245,10 @@ export function TituloReceberFormModal({
       return (
         <SearchSelect
           options={clientesOptions}
-          value={form.cliente_externo_id ?? ''}
+          value={form.cliente_id ?? ''}
           onChange={v => {
             const found = clientesOptions.find(o => o.value === v)
-            setForm(p => ({ ...p, cliente_externo_id: v, usuario_id: '', usuario_nome: found?.label ?? v }))
+            setForm(p => ({ ...p, cliente_id: v, usuario_id: '', usuario_nome: found?.label ?? v }))
           }}
           placeholder="Selecione o cliente"
           hasError={!!errors.usuario_nome}

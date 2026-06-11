@@ -17,7 +17,7 @@ class TituloPagarSerializer(serializers.ModelSerializer):
         model = TituloPagar
         fields = [
             "id", "tipo", "tipo_display",
-            "favorecido", "favorecido_nome",
+            "favorecido", "favorecido_nome", "custos",
             "descricao",
             "num_parcela", "total_parcelas",
             "valor",

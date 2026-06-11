@@ -44,7 +44,7 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import {
     ChevronsUpDown, LogOut, User, Users, ChevronDown, ChartSpline, FileInput, FileOutput,
     Plane, ChartNoAxesColumnIncreasing, FolderPlus, FileUser, Truck, DollarSign,
-    RefreshCw, BarChart2
+    RefreshCw, BarChart2, TrendingUp, TrendingDown, Landmark, FileText
 } from "lucide-react"
 
 import { Link, useLocation, useNavigate } from "react-router-dom"
@@ -246,6 +246,67 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, currentUse
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
                                 )}
+                                {canAccess(perfil, '/receitas') && (
+                                    <SidebarMenuItem>
+                                        <SidebarMenuButton
+                                            asChild
+                                            isActive={pathname.startsWith("/receitas")}
+                                            tooltip="Receitas"
+                                        >
+                                            <Link to="/receitas">
+                                                <TrendingUp />
+                                                <span className="group-data-[collapsible=icon]:hidden">Receitas</span>
+                                            </Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                )}
+                                {canAccess(perfil, '/custos') && (
+                                    <SidebarMenuItem>
+                                        <SidebarMenuButton
+                                            asChild
+                                            isActive={pathname.startsWith("/custos")}
+                                            tooltip="Custos"
+                                        >
+                                            <Link to="/custos">
+                                                <TrendingDown />
+                                                <span className="group-data-[collapsible=icon]:hidden">Custos</span>
+                                            </Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                )}
+                            </SidebarMenu>
+                        </SidebarGroup>
+                    )}
+
+                    {/* GRUPO COBRANÇA BANCÁRIA (admin) */}
+                    {canAccess(perfil, '/remessas-cnab') && (
+                        <SidebarGroup>
+                            <SidebarGroupLabel>Cobrança Bancária</SidebarGroupLabel>
+                            <SidebarMenu>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={pathname.startsWith("/remessas-cnab")}
+                                        tooltip="Remessas CNAB"
+                                    >
+                                        <Link to="/remessas-cnab">
+                                            <FileText />
+                                            <span className="group-data-[collapsible=icon]:hidden">Remessas CNAB</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={pathname.startsWith("/config-bancaria")}
+                                        tooltip="Config. Bancária"
+                                    >
+                                        <Link to="/config-bancaria">
+                                            <Landmark />
+                                            <span className="group-data-[collapsible=icon]:hidden">Config. Bancária</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
                             </SidebarMenu>
                         </SidebarGroup>
                     )}

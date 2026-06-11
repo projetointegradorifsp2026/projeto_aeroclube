@@ -4,7 +4,6 @@ import { Plus, Eye, CircleDollarSign, CircleAlert, Wallet } from 'lucide-react'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -29,7 +28,7 @@ import {
   type TituloReceber,
 } from '@/services/titulosReceberService'
 import { getUsers, debitarCarteira } from '@/services/usersService'
-import { TITULO_RECEBER_TIPO_LABELS, type TituloReceberTipo } from '@/mocks/titulos'
+import { TITULO_RECEBER_TIPO_LABELS, FORMA_PAGAMENTO_LABELS, FORMAS_PAGAMENTO_MANUAIS, type TituloReceberTipo, type FormaPagamento } from '@/mocks/titulos'
 import { getCurrentUser } from '@/services/api/auth'
 import { cn } from '@/lib/utils'
 
@@ -56,9 +55,6 @@ function TipoBadge({ tipo }: { tipo: TituloReceberTipo }) {
     </span>
   )
 }
-
-const inputCls =
-  'h-8 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
 
 // ─── Table ────────────────────────────────────────────────────────────────────
 
@@ -226,6 +222,7 @@ export default function TitulosReceber() {
   const [baixaUsarCarteira, setBaixaUsarCarteira] = useState(false)
   const [baixaCarteiraValor, setBaixaCarteiraValor] = useState('')
   const [baixaUserSaldo, setBaixaUserSaldo] = useState<number | null>(null)
+  const [baixaForma, setBaixaForma] = useState<FormaPagamento>('dinheiro')
 
   const [viewTitulo, setViewTitulo] = useState<TituloReceber | null>(null)
 
@@ -279,7 +276,7 @@ export default function TitulosReceber() {
           createTituloReceber({
             usuario_id: data.usuario_id,
             usuario_nome: data.usuario_nome,
-            cliente_externo_id: data.cliente_externo_id,
+            cliente_id: data.cliente_id,
             tipo: data.tipo,
             descricao: data.descricao,
             num_parcela: i + 1,
@@ -333,8 +330,9 @@ export default function TitulosReceber() {
     setBaixaUsarCarteira(false)
     setBaixaCarteiraValor('')
     setBaixaUserSaldo(null)
+    setBaixaForma('dinheiro')
     // Bug 3: só busca saldo de carteira para participantes (não para clientes externos)
-    if (t.usuario_id && !t.is_cliente_externo) {
+    if (t.usuario_id && !t.is_cliente) {
       getUsers().then(users => {
         const user = users.find(u => u.id === t.usuario_id)
         setBaixaUserSaldo(user?.saldo_carteira ?? 0)
@@ -373,13 +371,17 @@ export default function TitulosReceber() {
       await debitarCarteira(baixaTarget.usuario_id, carteiraAmount)
     }
 
-    const totalPayment = (parseFloat(baixaValor) || 0) + multa + carteiraAmount
+    const cashAmount = parseFloat(baixaValor) || 0
+    const totalPayment = cashAmount + multa + carteiraAmount
+    // Se a baixa foi inteiramente via carteira (sem dinheiro externo), registra "carteira".
+    const forma: FormaPagamento = cashAmount <= 0 && carteiraAmount > 0 ? 'carteira' : baixaForma
     const updated = await baixarTituloReceber(
       baixaTarget.id,
       totalPayment,
       baixaData,
       multa,
       carteiraAmount,
+      forma,
     )
     setTitulos(prev => prev.map(t => (t.id === baixaTarget.id ? updated : t)))
     setBaixaTarget(null)
@@ -738,6 +740,21 @@ export default function TitulosReceber() {
                     )
                   )}
                 </div>
+
+                {(parseFloat(baixaValor) || 0) > 0 && (
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-medium">Forma de pagamento</label>
+                    <select
+                      className="h-10 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
+                      value={baixaForma}
+                      onChange={e => setBaixaForma(e.target.value as FormaPagamento)}
+                    >
+                      {FORMAS_PAGAMENTO_MANUAIS.map(f => (
+                        <option key={f} value={f}>{FORMA_PAGAMENTO_LABELS[f]}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">Data de recebimento</label>

@@ -1,35 +1,62 @@
 """
 Módulo Pessoas / Entidades.
 
-Representa as entidades que NÃO são usuários do sistema (ou podem ser
-complementares), como fornecedores, funcionários e instrutores cadastrados
-apenas para fins de vínculo financeiro (títulos a pagar, registro de voos).
-
-Hierarquia:
-    EntidadePagar (base)
+EntidadePagar — quem o aeroclube PAGA (fornecedores, funcionários, instrutores)
     ├── Fornecedor
     └── Funcionario  ← Instrutor é um Funcionario com is_instrutor=True
+
+Cliente — quem PAGA o aeroclube por serviços (não é usuário do sistema)
 """
 from django.db import models
 from apps.users.models import Usuario
 
 
+class Cliente(models.Model):
+    """
+    Cliente de serviço do aeroclube.
+    Pessoa física ou jurídica que contrata serviços, mas não é usuário do sistema.
+    """
+
+    nome = models.CharField("Nome / Razão Social", max_length=200)
+    cpf_cnpj = models.CharField("CPF/CNPJ", max_length=18, blank=True, null=True)
+    email = models.EmailField("E-mail", blank=True, null=True)
+    contato = models.CharField("Contato (telefone)", max_length=20, blank=True, null=True)
+
+    # Endereço — obrigatório para o sacado na remessa CNAB (segmento Q)
+    cep = models.CharField("CEP", max_length=9, blank=True, default="")
+    logradouro = models.CharField("Logradouro", max_length=100, blank=True, default="")
+    numero = models.CharField("Número", max_length=10, blank=True, default="")
+    bairro = models.CharField("Bairro", max_length=50, blank=True, default="")
+    cidade = models.CharField("Cidade", max_length=60, blank=True, default="")
+    uf = models.CharField("UF", max_length=2, blank=True, default="")
+
+    is_active = models.BooleanField("Ativo", default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Cliente"
+        verbose_name_plural = "Clientes"
+        ordering = ["nome"]
+
+    def __str__(self):
+        return self.nome
+
+
 class EntidadePagar(models.Model):
     """
     Entidade para vínculo nos títulos a pagar.
-    Pode ser fornecedor, funcionário ou instrutor.
+    Representa quem o aeroclube paga: fornecedores, funcionários ou instrutores.
     """
 
     TIPO_FORNECEDOR = "fornecedor"
     TIPO_FUNCIONARIO = "funcionario"
     TIPO_INSTRUTOR = "instrutor"
-    TIPO_CLIENTE = "cliente"
 
     TIPO_CHOICES = [
         (TIPO_FORNECEDOR, "Fornecedor"),
         (TIPO_FUNCIONARIO, "Funcionário"),
         (TIPO_INSTRUTOR, "Instrutor"),
-        (TIPO_CLIENTE, "Cliente"),
     ]
 
     nome = models.CharField("Nome / Razão Social", max_length=200)

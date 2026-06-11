@@ -1,10 +1,21 @@
 import { apiList, apiPost, apiDelete } from '@/services/api/client'
-import { type TituloReceber, type TituloReceberTipo, type TituloReceberStatus } from '@/mocks/titulos'
+import { type TituloReceber, type TituloReceberTipo, type TituloReceberStatus, type FormaPagamento, type BaixaTitulo } from '@/mocks/titulos'
+
+interface BackendBaixaTitulo {
+  id: number
+  data: string
+  valor: string
+  juros: string
+  valor_via_carteira: string
+  forma_pagamento: string
+  forma_pagamento_display: string
+  criado_por_nome: string | null
+}
 
 interface BackendTituloReceber {
   id: number
   participante: number | null
-  cliente_externo: number | null
+  cliente: number | null
   participante_nome: string
   tipo: string
   descricao: string
@@ -22,6 +33,7 @@ interface BackendTituloReceber {
   data_vencimento: string
   data_pagamento: string | null
   status: string
+  baixas?: BackendBaixaTitulo[]
 }
 
 const TIPO_BACKEND_TO_FRONTEND: Record<string, TituloReceberTipo> = {
@@ -56,9 +68,9 @@ function adaptTitulo(t: BackendTituloReceber): TituloReceber {
   const valorViaCarteira = parseFloat(t.valor_via_carteira || '0')
   return {
     id: String(t.id),
-    usuario_id: t.participante ? String(t.participante) : String(t.cliente_externo ?? ''),
+    usuario_id: t.participante ? String(t.participante) : String(t.cliente ?? ''),
     usuario_nome: t.participante_nome,
-    is_cliente_externo: t.cliente_externo !== null && t.participante === null,
+    is_cliente: t.cliente !== null && t.participante === null,
     tipo: (TIPO_BACKEND_TO_FRONTEND[t.tipo] ?? 'pontual') as TituloReceberTipo,
     descricao: t.descricao,
     num_parcela: t.num_parcela,
@@ -72,6 +84,16 @@ function adaptTitulo(t: BackendTituloReceber): TituloReceber {
     data_vencimento: t.data_vencimento,
     data_pagamento: t.data_pagamento,
     status,
+    baixas: (t.baixas ?? []).map(b => ({
+      id: String(b.id),
+      data: b.data,
+      valor: parseFloat(b.valor),
+      juros: parseFloat(b.juros),
+      valor_via_carteira: parseFloat(b.valor_via_carteira),
+      forma_pagamento: b.forma_pagamento as FormaPagamento,
+      forma_pagamento_display: b.forma_pagamento_display,
+      criado_por_nome: b.criado_por_nome,
+    })) as BaixaTitulo[],
   }
 }
 
@@ -81,12 +103,12 @@ export async function getTitulosReceber(): Promise<TituloReceber[]> {
 }
 
 export async function createTituloReceber(
-  data: Omit<TituloReceber, 'id'> & { cliente_externo_id?: string },
+  data: Omit<TituloReceber, 'id'> & { cliente_id?: string },
 ): Promise<TituloReceber> {
-  const isExternal = !!data.cliente_externo_id
+  const isCliente = !!data.cliente_id
   const payload = {
-    participante: isExternal ? undefined : (data.usuario_id ? parseInt(data.usuario_id) : undefined),
-    cliente_externo: isExternal ? parseInt(data.cliente_externo_id!) : undefined,
+    participante: isCliente ? undefined : (data.usuario_id ? parseInt(data.usuario_id) : undefined),
+    cliente: isCliente ? parseInt(data.cliente_id!) : undefined,
     tipo: TIPO_FRONTEND_TO_BACKEND[data.tipo] ?? 'outros',
     descricao: data.descricao,
     num_parcela: data.num_parcela,
@@ -135,6 +157,7 @@ export async function baixarTituloReceber(
   dataPagamento: string,
   multa = 0,
   valorCarteira = 0,
+  formaPagamento: FormaPagamento = 'dinheiro',
 ): Promise<TituloReceber> {
   const updated = await apiPost<BackendTituloReceber>(
     `/api/v1/titulos-receber/${id}/baixa-parcial/`,
@@ -143,9 +166,10 @@ export async function baixarTituloReceber(
       multa: multa.toFixed(2),
       data_pagamento: dataPagamento,
       valor_via_carteira: valorCarteira.toFixed(2),
+      forma_pagamento: formaPagamento,
     },
   )
   return adaptTitulo(updated)
 }
 
-export type { TituloReceber, TituloReceberTipo, TituloReceberStatus }
+export type { TituloReceber, TituloReceberTipo, TituloReceberStatus, FormaPagamento, BaixaTitulo }

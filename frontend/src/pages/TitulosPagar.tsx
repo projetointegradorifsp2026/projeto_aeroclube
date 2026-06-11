@@ -4,7 +4,6 @@ import { Plus, Eye, ArrowDownToLine, CircleAlert, CircleDollarSign } from 'lucid
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -55,9 +54,6 @@ function TipoBadge({ tipo }: { tipo: TituloPagarTipo }) {
     </span>
   )
 }
-
-const inputCls =
-  'h-8 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow'
 
 // ─── Table ────────────────────────────────────────────────────────────────────
 

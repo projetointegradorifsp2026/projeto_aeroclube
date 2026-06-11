@@ -1,7 +1,13 @@
 from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
+
+from django.conf import settings
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.utils.encoding import force_bytes, force_str
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 
 from .models import Usuario, UsuarioPerfil
 from .serializers import UsuarioSerializer, UsuarioCreateSerializer, UsuarioPerfilSerializer
@@ -69,6 +75,28 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         usuario.save()
         return Response(UsuarioSerializer(usuario).data)
 
+    @action(detail=False, methods=["post"], url_path="alterar-minha-senha", permission_classes=[IsAuthenticated])
+    def alterar_minha_senha(self, request):
+        """POST /api/v1/usuarios/alterar-minha-senha/ — o próprio usuário troca a senha."""
+        user = request.user
+        senha_atual = request.data.get("senha_atual") or ""
+        nova_senha = request.data.get("nova_senha") or ""
+        if not senha_atual or not nova_senha:
+            return Response(
+                {"detail": "Informe a senha atual e a nova senha."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not user.check_password(senha_atual):
+            return Response({"detail": "Senha atual incorreta."}, status=status.HTTP_400_BAD_REQUEST)
+        if len(nova_senha) < 6:
+            return Response(
+                {"detail": "A nova senha deve ter ao menos 6 caracteres."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        user.set_password(nova_senha)
+        user.save()
+        return Response({"detail": "Senha alterada com sucesso."})
+
     @action(detail=True, methods=["post"], url_path="resetar-senha", permission_classes=[IsAdminUser])
     def resetar_senha(self, request, pk=None):
         """POST /api/v1/usuarios/{id}/resetar-senha/ — reseta a senha para aero + 5 primeiros dígitos do CPF."""
@@ -114,3 +142,60 @@ class UsuarioViewSet(viewsets.ModelViewSet):
                 usuario.perfil_ativo = primeiro.perfil
                 usuario.save()
         return Response({"detail": "Perfil removido."}, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def solicitar_reset_senha(request):
+    """
+    POST /api/v1/auth/solicitar-reset-senha/  { "email": "..." }
+    Envia um e-mail com link de redefinição. Sempre responde 200 (não revela
+    se o e-mail existe).
+    """
+    email = (request.data.get("email") or "").strip().lower()
+    user = Usuario.objects.filter(email__iexact=email, is_active=True).first()
+    if user:
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        token = default_token_generator.make_token(user)
+        link = f"{settings.FRONTEND_URL}/resetar-senha?uid={uid}&token={token}"
+        send_mail(
+            subject="Redefinição de senha — Aeroclube",
+            message=(
+                f"Olá {user.nome},\n\n"
+                f"Recebemos uma solicitação para redefinir sua senha. "
+                f"Acesse o link abaixo para criar uma nova senha:\n\n{link}\n\n"
+                f"Se você não solicitou, ignore este e-mail."
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=True,
+        )
+    return Response({"detail": "Se o e-mail estiver cadastrado, enviaremos as instruções de redefinição."})
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def confirmar_reset_senha(request):
+    """
+    POST /api/v1/auth/confirmar-reset-senha/  { "uid": "...", "token": "...", "nova_senha": "..." }
+    Valida o token e define a nova senha.
+    """
+    uid = request.data.get("uid")
+    token = request.data.get("token")
+    nova_senha = request.data.get("nova_senha") or ""
+    if not uid or not token or not nova_senha:
+        return Response({"detail": "Dados incompletos."}, status=status.HTTP_400_BAD_REQUEST)
+    try:
+        user = Usuario.objects.get(pk=force_str(urlsafe_base64_decode(uid)))
+    except (Usuario.DoesNotExist, ValueError, TypeError, OverflowError):
+        return Response({"detail": "Link inválido."}, status=status.HTTP_400_BAD_REQUEST)
+    if not default_token_generator.check_token(user, token):
+        return Response({"detail": "Link inválido ou expirado."}, status=status.HTTP_400_BAD_REQUEST)
+    if len(nova_senha) < 6:
+        return Response(
+            {"detail": "A nova senha deve ter ao menos 6 caracteres."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+    user.set_password(nova_senha)
+    user.save()
+    return Response({"detail": "Senha redefinida com sucesso."})
