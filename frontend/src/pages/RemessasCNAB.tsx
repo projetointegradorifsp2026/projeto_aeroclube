@@ -149,11 +149,17 @@ export default function RemessasCNAB() {
     }
   }
 
+  const [activeTab, setActiveTab] = useState<'gerar' | 'remessas' | 'retornos'>('gerar')
   const noTitulos = !loading && titulos.length === 0
   const noRemessas = !loading && remessas.length === 0
+  const noRetornos = !loading && retornos.length === 0
+  const hasNoData =
+    (activeTab === 'gerar' && noTitulos) ||
+    (activeTab === 'remessas' && noRemessas) ||
+    (activeTab === 'retornos' && noRetornos)
 
   return (
-    <div className={cn("pt-2 flex flex-col gap-6", (noTitulos || noRemessas) && "flex-1")}>
+    <div className={cn("pt-2 flex flex-col gap-6", hasNoData && "flex-1")}>
       <div>
         <h1 className="text-2xl font-bold text-foreground">Remessas CNAB</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
@@ -170,7 +176,7 @@ export default function RemessasCNAB() {
         </Card>
       )}
 
-      <Tabs defaultValue="gerar" className="flex-1">
+      <Tabs defaultValue="gerar" className="flex-1" onValueChange={v => setActiveTab(v as 'gerar' | 'remessas' | 'retornos')}>
         <TabsList>
           <TabsTrigger value="gerar">Gerar remessa</TabsTrigger>
           <TabsTrigger value="remessas">
@@ -182,7 +188,7 @@ export default function RemessasCNAB() {
         </TabsList>
 
         {/* GERAR */}
-        <TabsContent value="gerar">
+        <TabsContent value="gerar" className={cn(noTitulos && "flex flex-col")}>
           <Card className={cn("flex flex-col", noTitulos && "flex-1")}>
             <CardHeader className="border-b pb-3 flex-row items-center justify-between">
               <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -247,7 +253,7 @@ export default function RemessasCNAB() {
         </TabsContent>
 
         {/* REMESSAS */}
-        <TabsContent value="remessas">
+        <TabsContent value="remessas" className={cn(noRemessas && "flex flex-col")}>
           <Card className={cn("flex flex-col", noRemessas && "flex-1")}>
             <CardContent className={cn("p-0 flex flex-col", noRemessas && "flex-1")}>
               {remessas.length === 0 ? (
@@ -298,7 +304,7 @@ export default function RemessasCNAB() {
         </TabsContent>
 
         {/* RETORNOS */}
-        <TabsContent value="retornos" className="space-y-4">
+        <TabsContent value="retornos" className={cn(noRetornos ? "flex flex-col gap-4" : "space-y-4")}>
           {/* Importar arquivo de retorno (.RET) */}
           <Card>
             <CardHeader className="border-b pb-3">
@@ -382,8 +388,8 @@ export default function RemessasCNAB() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-0">
+          <Card className={cn("flex flex-col", noRetornos && "flex-1")}>
+            <CardContent className={cn("p-0 flex flex-col", noRetornos && "flex-1")}>
               {retornos.length === 0 ? (
                 <Empty className="py-14">
                   <EmptyHeader>

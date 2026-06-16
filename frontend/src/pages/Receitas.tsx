@@ -502,7 +502,8 @@ export default function Receitas() {
     { value: 'quitada', label: 'Quitadas', items: byStatus('quitada'), badge: 'bg-emerald-100 text-emerald-700' },
   ]
 
-  const hasNoData = !loading && receitas.length === 0
+  const [activeTab, setActiveTab] = useState<ReceitaStatus>('pendente')
+  const hasNoData = !loading && byStatus(activeTab).length === 0
 
   return (
     <div className={cn("pt-2 flex flex-col gap-6", hasNoData && "flex-1")}>
@@ -532,7 +533,7 @@ export default function Receitas() {
           {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
         </CardContent></Card>
       ) : (
-        <Tabs defaultValue="pendente" className="flex-1">
+        <Tabs defaultValue="pendente" className="flex-1" onValueChange={v => setActiveTab(v as ReceitaStatus)}>
           <div className="flex items-center justify-between">
             <TabsList>
               {tabConfig.map(t => (
@@ -552,7 +553,7 @@ export default function Receitas() {
             )}
           </div>
           {tabConfig.map(t => (
-            <TabsContent key={t.value} value={t.value}>
+            <TabsContent key={t.value} value={t.value} className={cn(hasNoData && "flex flex-col")}>
               <Card className={cn("flex flex-col", hasNoData && "flex-1")}>
                 <CardHeader className="border-b pb-3">
                   <CardTitle className="text-sm font-medium text-muted-foreground">

@@ -180,7 +180,7 @@ export default function Clientes() {
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('active')
   const [editItem, setEditItem] = useState<Cliente | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Cliente | null>(null)
@@ -221,12 +221,12 @@ export default function Clientes() {
     if (!deleteTarget) return
     setDeleting(true)
     await deleteCliente(deleteTarget.id)
-    setClientes(prev => prev.filter(c => c.id !== deleteTarget.id))
+    setClientes(prev => prev.map(c => c.id === deleteTarget.id ? { ...c, is_active: false } : c))
     setDeleteTarget(null)
     setDeleting(false)
   }
 
-  const hasNoData = !loading && clientes.length === 0
+  const hasNoData = !loading && filtered.length === 0
 
   return (
     <div className={cn("pt-2 flex flex-col gap-6", hasNoData && "flex-1")}>

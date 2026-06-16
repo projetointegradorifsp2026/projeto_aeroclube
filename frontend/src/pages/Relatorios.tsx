@@ -16,6 +16,7 @@ import {
     FileOutput,
 } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { FilterSelect, FilterInput } from '@/components/ui/filter-controls'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
@@ -182,10 +183,13 @@ function PreviewTable({
 
     if (!resultado || resultado.count === 0) {
         return (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-2">
-                <FileSpreadsheet className="h-10 w-10 opacity-20" />
-                <p className="text-sm">Nenhum resultado para os filtros aplicados.</p>
-            </div>
+            <Empty>
+                <EmptyHeader>
+                    <EmptyMedia><FileSpreadsheet className="h-10 w-10 text-muted-foreground opacity-30" /></EmptyMedia>
+                    <EmptyTitle>Nenhum resultado encontrado</EmptyTitle>
+                    <EmptyDescription>Tente ajustar os filtros da consulta</EmptyDescription>
+                </EmptyHeader>
+            </Empty>
         )
     }
 
@@ -670,13 +674,13 @@ export default function Relatorios() {
                             {/* Preview table */}
                             <div className="h-[calc(100vh-14rem)] rounded-xl border border-border bg-card overflow-hidden flex flex-col">
                                 {!resultado && !loading ? (
-                                    <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
-                                        <FileSpreadsheet className="h-12 w-12 opacity-15" />
-                                        <div className="text-center">
-                                            <p className="text-sm font-medium">Nenhuma consulta realizada</p>
-                                            <p className="text-xs mt-1">Configure os filtros e clique em <strong>Consultar</strong> para ver os dados.</p>
-                                        </div>
-                                    </div>
+                                    <Empty>
+                                        <EmptyHeader>
+                                            <EmptyMedia><FileSpreadsheet className="h-10 w-10 text-muted-foreground opacity-30" /></EmptyMedia>
+                                            <EmptyTitle>Nenhuma consulta realizada</EmptyTitle>
+                                            <EmptyDescription>Configure os filtros e clique em Consultar para ver os dados</EmptyDescription>
+                                        </EmptyHeader>
+                                    </Empty>
                                 ) : (
                                     <PreviewTable
                                         resultado={resultado}

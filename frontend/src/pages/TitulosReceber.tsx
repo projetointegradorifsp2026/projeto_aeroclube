@@ -396,7 +396,9 @@ export default function TitulosReceber() {
     ? baixaTarget.valor + (parseFloat(baixaMulta) || 0) - baixaTarget.valor_pago
     : 0
 
-  const hasNoData = !loading && titulos.length === 0
+  const [activeTab, setActiveTab] = useState<'em_aberto' | 'em_atraso' | 'baixado'>('em_aberto')
+  const activeItems = activeTab === 'em_aberto' ? emAbertoList : activeTab === 'em_atraso' ? emAtrasoList : baixadoList
+  const hasNoData = !loading && activeItems.length === 0
 
   return (
     <div className={cn("pt-2 flex flex-col gap-6", hasNoData && "flex-1")}>
@@ -446,7 +448,7 @@ export default function TitulosReceber() {
           </CardContent>
         </Card>
       ) : (
-        <Tabs defaultValue="em_aberto" className="flex-1">
+        <Tabs defaultValue="em_aberto" className="flex-1" onValueChange={v => setActiveTab(v as 'em_aberto' | 'em_atraso' | 'baixado')}>
           <TabsList>
             <TabsTrigger value="em_aberto">
               Em aberto
@@ -475,7 +477,7 @@ export default function TitulosReceber() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="em_aberto">
+          <TabsContent value="em_aberto" className={cn(hasNoData && "flex flex-col")}>
             <Card className={cn("flex flex-col", hasNoData && "flex-1")}>
               <CardHeader className="border-b pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -497,7 +499,7 @@ export default function TitulosReceber() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="em_atraso">
+          <TabsContent value="em_atraso" className={cn(hasNoData && "flex flex-col")}>
             <Card className={cn("flex flex-col", hasNoData && "flex-1")}>
               <CardHeader className="border-b pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -519,7 +521,7 @@ export default function TitulosReceber() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="baixado">
+          <TabsContent value="baixado" className={cn(hasNoData && "flex flex-col")}>
             <Card className={cn("flex flex-col", hasNoData && "flex-1")}>
               <CardHeader className="border-b pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
