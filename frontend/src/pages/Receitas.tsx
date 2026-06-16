@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -80,10 +81,13 @@ function ReceitasTable({ items, selected, onToggle, onView, onFaturar, onVerTitu
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-14 text-muted-foreground">
-        <TrendingUp className="h-10 w-10 mb-3 opacity-30" />
-        <p className="text-sm font-medium">{emptyMessage}</p>
-      </div>
+      <Empty className="py-14">
+        <EmptyHeader>
+          <EmptyMedia><TrendingUp className="h-10 w-10 text-muted-foreground opacity-30" /></EmptyMedia>
+          <EmptyTitle>{emptyMessage}</EmptyTitle>
+          <EmptyDescription>Tente ajustar os filtros ou registre uma nova receita</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     )
   }
 
@@ -498,8 +502,10 @@ export default function Receitas() {
     { value: 'quitada', label: 'Quitadas', items: byStatus('quitada'), badge: 'bg-emerald-100 text-emerald-700' },
   ]
 
+  const hasNoData = !loading && receitas.length === 0
+
   return (
-    <div className="pt-2 space-y-6">
+    <div className={cn("pt-2 flex flex-col gap-6", hasNoData && "flex-1")}>
       <div>
         <h1 className="text-2xl font-bold text-foreground">Receitas</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
@@ -526,7 +532,7 @@ export default function Receitas() {
           {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
         </CardContent></Card>
       ) : (
-        <Tabs defaultValue="pendente">
+        <Tabs defaultValue="pendente" className="flex-1">
           <div className="flex items-center justify-between">
             <TabsList>
               {tabConfig.map(t => (
@@ -547,13 +553,13 @@ export default function Receitas() {
           </div>
           {tabConfig.map(t => (
             <TabsContent key={t.value} value={t.value}>
-              <Card>
+              <Card className={cn("flex flex-col", hasNoData && "flex-1")}>
                 <CardHeader className="border-b pb-3">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
                     {t.items.length} receita{t.items.length !== 1 ? 's' : ''} {RECEITA_STATUS_LABELS[t.value].toLowerCase()}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-0">
+                <CardContent className={cn("p-0 flex flex-col", hasNoData && "flex-1")}>
                   <ReceitasTable
                     items={t.items}
                     selected={selected}

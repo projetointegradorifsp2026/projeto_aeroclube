@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
   Dialog,
@@ -79,10 +80,13 @@ function AviaoTable({
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-        <Plane className="h-8 w-8 mb-2 opacity-30" />
-        <p className="text-sm">Nenhum avião cadastrado</p>
-      </div>
+      <Empty className="py-10">
+        <EmptyHeader>
+          <EmptyMedia><Plane className="h-8 w-8 text-muted-foreground opacity-30" /></EmptyMedia>
+          <EmptyTitle>Nenhum avião cadastrado</EmptyTitle>
+          <EmptyDescription>Cadastre aviões para começar a gerenciar a frota</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     )
   }
 
@@ -156,10 +160,13 @@ function PlanadorTable({
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-        <Wind className="h-8 w-8 mb-2 opacity-30" />
-        <p className="text-sm">Nenhum planador cadastrado</p>
-      </div>
+      <Empty className="py-10">
+        <EmptyHeader>
+          <EmptyMedia><Wind className="h-8 w-8 text-muted-foreground opacity-30" /></EmptyMedia>
+          <EmptyTitle>Nenhum planador cadastrado</EmptyTitle>
+          <EmptyDescription>Cadastre planadores para começar a gerenciar a frota</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     )
   }
 

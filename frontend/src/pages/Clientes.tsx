@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { Input } from '@/components/ui/input'
 import {
   Dialog,
@@ -24,6 +25,7 @@ import {
   type Cliente,
 } from '@/services/clientesService'
 import { maskCpfCnpj, maskPhone, maskCEP } from '@/lib/masks'
+import { cn } from '@/lib/utils'
 
 // ── Modal de criação/edição ────────────────────────────────────────────────────
 
@@ -224,8 +226,10 @@ export default function Clientes() {
     setDeleting(false)
   }
 
+  const hasNoData = !loading && clientes.length === 0
+
   return (
-    <div className="pt-2 space-y-6">
+    <div className={cn("pt-2 flex flex-col gap-6", hasNoData && "flex-1")}>
       <div>
         <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
@@ -246,22 +250,25 @@ export default function Clientes() {
         </Button>
       </div>
 
-      <Card>
+      <Card className={cn("flex flex-col", hasNoData && "flex-1")}>
         <CardHeader className="border-b pb-3">
           <CardTitle className="text-sm font-medium text-muted-foreground">
             {loading ? 'Carregando...' : `${filtered.length} cliente${filtered.length !== 1 ? 's' : ''} encontrado${filtered.length !== 1 ? 's' : ''}`}
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className={cn("p-0 flex flex-col", hasNoData && "flex-1")}>
           {loading ? (
             <div className="p-4 space-y-3">
               {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-14 text-muted-foreground">
-              <UserX className="h-10 w-10 mb-3 opacity-30" />
-              <p className="text-sm font-medium">Nenhum cliente encontrado</p>
-            </div>
+            <Empty className="py-14">
+              <EmptyHeader>
+                <EmptyMedia><UserX className="h-10 w-10 text-muted-foreground opacity-30" /></EmptyMedia>
+                <EmptyTitle>Nenhum cliente encontrado</EmptyTitle>
+                <EmptyDescription>Tente ajustar os filtros ou cadastre um novo cliente</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

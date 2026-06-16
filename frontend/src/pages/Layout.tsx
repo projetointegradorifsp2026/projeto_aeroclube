@@ -456,7 +456,7 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, currentUse
 
             {/* CONTEÚDO */}
             <SidebarInset className="mt-3 rounded-tl-[2.5rem] rounded-bl-[2.5rem] overflow-hidden">
-                <div className="p-8">
+                <div className="p-8 flex flex-col flex-1">
                     <Outlet />
                 </div>
             </SidebarInset>

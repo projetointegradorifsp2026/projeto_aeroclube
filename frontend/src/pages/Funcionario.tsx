@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import {
   Dialog,
   DialogContent,
@@ -96,8 +97,10 @@ export default function Funcionario() {
     setModalOpen(true)
   }
 
+  const hasNoData = !loading && items.length === 0
+
   return (
-    <div className="pt-2 space-y-6">
+    <div className={cn("pt-2 flex flex-col gap-6", hasNoData && "flex-1")}>
       <div>
         <h1 className="text-2xl font-bold text-foreground">Funcionários e Instrutores</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
@@ -133,7 +136,7 @@ export default function Funcionario() {
         </Button>
       </div>
 
-      <Card>
+      <Card className={cn("flex flex-col", hasNoData && "flex-1")}>
         <CardHeader className="border-b pb-3">
           <CardTitle className="text-sm font-medium text-muted-foreground">
             {loading
@@ -141,7 +144,7 @@ export default function Funcionario() {
               : `${filtered.length} colaborador${filtered.length !== 1 ? 'es' : ''} encontrado${filtered.length !== 1 ? 's' : ''}`}
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className={cn("p-0 flex flex-col", hasNoData && "flex-1")}>
           {loading ? (
             <div className="p-4 space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -149,11 +152,13 @@ export default function Funcionario() {
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-14 text-muted-foreground">
-              <Users className="h-10 w-10 mb-3 opacity-30" />
-              <p className="text-sm font-medium">Nenhum colaborador encontrado</p>
-              <p className="text-xs mt-1">Tente ajustar os filtros ou faça um novo cadastro</p>
-            </div>
+            <Empty className="py-14">
+              <EmptyHeader>
+                <EmptyMedia><Users className="h-10 w-10 text-muted-foreground opacity-30" /></EmptyMedia>
+                <EmptyTitle>Nenhum colaborador encontrado</EmptyTitle>
+                <EmptyDescription>Tente ajustar os filtros ou faça um novo cadastro</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
