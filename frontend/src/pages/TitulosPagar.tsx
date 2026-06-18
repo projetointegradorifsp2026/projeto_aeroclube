@@ -371,13 +371,11 @@ export default function TitulosPagar() {
       {/* Filters */}
       <div className="flex items-center gap-3">
         <FilterInput
-          size="sm"
           value={search}
           onChange={setSearch}
           placeholder={isAdmin ? 'Buscar por favorecido ou descrição...' : 'Buscar por descrição...'}
         />
         <FilterSelect
-          size="sm"
           value={tipoFilter}
           onChange={v => setTipoFilter(v as TipoFilter)}
         >

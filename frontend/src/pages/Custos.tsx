@@ -73,7 +73,8 @@ interface TableProps {
 
 function CustosTable({ items, selected, onToggle, onView, onFaturar, onVerTitulos, emptyMessage }: TableProps) {
   const [page, setPage] = useState(1)
-  useEffect(() => { setPage(1) }, [items])
+  const itemsKey = items.map(i => i.id).join(',')
+  useEffect(() => { setPage(1) }, [itemsKey])
   const PAGE_SIZE = 10
   const totalPages = Math.ceil(items.length / PAGE_SIZE)
   const paginated = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
@@ -429,29 +430,14 @@ export default function Custos() {
     })
   }, [custos, search, tipoFilter])
 
-  const byStatus = (s: CustoStatus) => filtered.filter(c => c.status === s)
-
   function openCreate() { setEditCusto(null); setModalOpen(true) }
   function openEdit(c: Custo) { setEditCusto(c); setModalOpen(true) }
 
   function toggleSelect(id: string) {
     setSelected(prev => {
       const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-        return next
-      }
-      // Ao adicionar, garante que toda a seleção seja do MESMO favorecido.
-      // Se for diferente do já selecionado, recomeça a seleção com este custo
-      // (um título a pagar tem um único favorecido).
-      const alvo = custos.find(c => c.id === id)
-      if (alvo && next.size > 0) {
-        const algumSelecionado = custos.find(c => next.has(c.id))
-        if (algumSelecionado && favorecidoKey(alvo) !== favorecidoKey(algumSelecionado)) {
-          return new Set([id])
-        }
-      }
-      next.add(id)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }
@@ -460,6 +446,13 @@ export default function Custos() {
     if (editCusto) {
       const updated = await updateCusto(editCusto.id, data)
       setCustos(prev => prev.map(c => (c.id === editCusto.id ? updated : c)))
+    } else if (data.is_recorrente) {
+      const created = await Promise.all(
+        Array.from({ length: 12 }, (_, i) =>
+          createCusto({ ...data, data_vencimento: addMonths(data.data_vencimento, i) }),
+        ),
+      )
+      setCustos(prev => [...created, ...prev])
     } else {
       const created = await createCusto(data)
       setCustos(prev => [created, ...prev])
@@ -494,14 +487,14 @@ export default function Custos() {
 
   const selectedCustos = custos.filter(c => selected.has(c.id))
 
-  const tabConfig: { value: CustoStatus; label: string; items: Custo[]; badge: string }[] = [
-    { value: 'pendente', label: 'Pendentes', items: byStatus('pendente'), badge: 'bg-amber-100 text-amber-700' },
-    { value: 'faturado', label: 'Faturados', items: byStatus('faturado'), badge: 'bg-blue-100 text-blue-700' },
-    { value: 'quitado', label: 'Quitados', items: byStatus('quitado'), badge: 'bg-emerald-100 text-emerald-700' },
-  ]
+  const tabConfig = useMemo(() => [
+    { value: 'pendente' as CustoStatus, label: 'Pendentes', items: filtered.filter(c => c.status === 'pendente'), badge: 'bg-amber-100 text-amber-700' },
+    { value: 'faturado' as CustoStatus, label: 'Faturados', items: filtered.filter(c => c.status === 'faturado'), badge: 'bg-blue-100 text-blue-700' },
+    { value: 'quitado' as CustoStatus, label: 'Quitados', items: filtered.filter(c => c.status === 'quitado'), badge: 'bg-emerald-100 text-emerald-700' },
+  ], [filtered])
 
   const [activeTab, setActiveTab] = useState<CustoStatus>('pendente')
-  const hasNoData = !loading && byStatus(activeTab).length === 0
+  const hasNoData = !loading && (tabConfig.find(t => t.value === activeTab)?.items.length ?? 0) === 0
 
   return (
     <div className={cn("pt-2 flex flex-col gap-6", hasNoData && "flex-1")}>
