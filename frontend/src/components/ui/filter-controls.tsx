@@ -17,7 +17,7 @@ export function FilterInput({
   size = 'default',
 }: FilterInputProps) {
   return (
-    <div className={cn('relative w-64', className)}>
+    <div className={cn('relative w-64 shrink-0', className)}>
       <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
       <input
         className={cn(
@@ -59,10 +59,10 @@ export function FilterSelect({
   size = 'default',
 }: FilterSelectProps) {
   return (
-    <div className={cn('relative', className)}>
+    <div className={cn('relative w-44 shrink-0', className)}>
       <select
         className={cn(
-          'w-full rounded-lg border border-input bg-background pl-2.5 pr-7 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow appearance-none',
+          'w-full truncate rounded-lg border border-input bg-background pl-2.5 pr-7 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow appearance-none',
           size === 'sm' ? 'h-8' : 'h-10',
         )}
         value={value}

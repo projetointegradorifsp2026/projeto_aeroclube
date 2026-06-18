@@ -26,6 +26,7 @@ import Relatorios from './pages/Relatorios'
 import { getCurrentUser, isAuthenticated } from './services/api/auth';
 import { canAccess } from './lib/permissions';
 import type { UserProfile } from './mocks/users';
+import { AlertProvider } from './components/feedback/alert-provider';
 
 function ProtectedRoute({ route, children }: { route: string; children: ReactNode }) {
   if (!isAuthenticated()) return <Navigate to="/" replace />
@@ -120,6 +121,8 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <AlertProvider>
+      <RouterProvider router={router} />
+    </AlertProvider>
   </StrictMode>
 )

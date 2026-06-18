@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { TablePagination } from '@/components/ui/pagination'
 import { Plus, Eye, Trash2, Users } from 'lucide-react'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
+import { useAlert } from '@/components/feedback/alert-provider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -35,6 +36,7 @@ const TIPO_COLORS: Record<'funcionario' | 'instrutor', string> = {
 }
 
 export default function Funcionario() {
+  const alert = useAlert()
   const navigate = useNavigate()
   const [items, setItems] = useState<Entidade[]>([])
   const [loading, setLoading] = useState(true)
@@ -80,17 +82,29 @@ export default function Funcionario() {
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   async function handleSave(data: EntidadeFormData) {
-    const created = await createEntidade(data)
-    setItems(prev => [...prev, created])
+    try {
+      const created = await createEntidade(data)
+      setItems(prev => [...prev, created])
+      alert.success('Cadastro realizado com sucesso')
+    } catch (err) {
+      alert.error(err)
+      throw err
+    }
   }
 
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
-    await deleteEntidade(deleteTarget.id, deleteTarget.tipo)
-    setItems(prev => prev.filter(e => e.id !== deleteTarget.id))
-    setDeleteTarget(null)
-    setDeleting(false)
+    try {
+      await deleteEntidade(deleteTarget.id, deleteTarget.tipo)
+      setItems(prev => prev.filter(e => e.id !== deleteTarget.id))
+      setDeleteTarget(null)
+      alert.success('Registro excluído com sucesso')
+    } catch (err) {
+      alert.error(err)
+    } finally {
+      setDeleting(false)
+    }
   }
 
   function openCreate() {

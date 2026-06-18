@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { Plus, FileUp, Pencil, Trash2, TrendingDown, AlertCircle, Layers, ListChecks } from 'lucide-react'
 import { TablePagination } from '@/components/ui/pagination'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
+import { useAlert } from '@/components/feedback/alert-provider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -404,6 +405,7 @@ function AgrupamentoModal({ custos, open, onClose, onConfirm }: AgrupamentoModal
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function Custos() {
+  const alert = useAlert()
   const [custos, setCustos] = useState<Custo[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -443,34 +445,54 @@ export default function Custos() {
   }
 
   async function handleSave(data: CustoInput) {
-    if (editCusto) {
-      const updated = await updateCusto(editCusto.id, data)
-      setCustos(prev => prev.map(c => (c.id === editCusto.id ? updated : c)))
-    } else if (data.is_recorrente) {
-      const created = await Promise.all(
-        Array.from({ length: 12 }, (_, i) =>
-          createCusto({ ...data, data_vencimento: addMonths(data.data_vencimento, i) }),
-        ),
-      )
-      setCustos(prev => [...created, ...prev])
-    } else {
-      const created = await createCusto(data)
-      setCustos(prev => [created, ...prev])
+    try {
+      if (editCusto) {
+        const updated = await updateCusto(editCusto.id, data)
+        setCustos(prev => prev.map(c => (c.id === editCusto.id ? updated : c)))
+        alert.success('Custo atualizado com sucesso')
+      } else if (data.is_recorrente) {
+        const created = await Promise.all(
+          Array.from({ length: 12 }, (_, i) =>
+            createCusto({ ...data, data_vencimento: addMonths(data.data_vencimento, i) }),
+          ),
+        )
+        setCustos(prev => [...created, ...prev])
+        alert.success('12 custos recorrentes criados com sucesso')
+      } else {
+        const created = await createCusto(data)
+        setCustos(prev => [created, ...prev])
+        alert.success('Custo cadastrado com sucesso')
+      }
+    } catch (err) {
+      alert.error(err)
+      throw err
     }
   }
 
   async function handleFaturarConfirm(parcelas?: Parcela[]) {
     if (!faturarTarget) return
-    const updated = await faturarCusto(faturarTarget.id, parcelas)
-    setCustos(prev => prev.map(x => (x.id === faturarTarget.id ? updated : x)))
+    try {
+      const updated = await faturarCusto(faturarTarget.id, parcelas)
+      setCustos(prev => prev.map(x => (x.id === faturarTarget.id ? updated : x)))
+      alert.success('Custo faturado com sucesso')
+    } catch (err) {
+      alert.error(err)
+      throw err
+    }
   }
 
   async function handleAgrupamentoConfirm(data_vencimento?: string) {
     const ids = [...selected]
-    await faturarCustosAgrupados(ids, data_vencimento)
-    const refreshed = await getCustos()
-    setCustos(refreshed)
-    setSelected(new Set())
+    try {
+      await faturarCustosAgrupados(ids, data_vencimento)
+      const refreshed = await getCustos()
+      setCustos(refreshed)
+      setSelected(new Set())
+      alert.success('Custos faturados em conjunto com sucesso')
+    } catch (err) {
+      alert.error(err)
+      throw err
+    }
   }
 
   async function handleDelete() {
@@ -480,6 +502,9 @@ export default function Custos() {
       await deleteCusto(deleteTarget.id)
       setCustos(prev => prev.filter(c => c.id !== deleteTarget.id))
       setDeleteTarget(null)
+      alert.success('Custo excluído com sucesso')
+    } catch (err) {
+      alert.error(err)
     } finally {
       setDeleting(false)
     }

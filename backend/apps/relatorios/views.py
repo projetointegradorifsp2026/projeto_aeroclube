@@ -70,10 +70,12 @@ class DashboardResumoView(APIView):
         hoje = timezone.now().date()
         inicio_mes = hoje.replace(day=1)
 
-        # Títulos a receber em aberto (excluindo carteira)
+        # Títulos a receber em aberto (excluindo carteira). Inclui remessa_criada
+        # (boleto registrado em remessa CNAB, mas ainda não pago) — continua sendo
+        # um recebível em aberto/vencido.
         qs_receber_aberto = (
             TituloReceber.objects
-            .filter(status=TituloReceber.STATUS_ABERTO)
+            .exclude(status=TituloReceber.STATUS_BAIXADO)
             .exclude(tipo__in=_EXCLUIR_RECEBER)
         )
         # saldo_devedor é property — precisamos iterar
@@ -171,8 +173,8 @@ class DashboardVencidosPorMesView(APIView):
         else:
             qs = (
                 TituloReceber.objects
+                .exclude(status=TituloReceber.STATUS_BAIXADO)
                 .filter(
-                    status=TituloReceber.STATUS_ABERTO,
                     data_vencimento__lt=hoje,
                     data_vencimento__gte=inicio,
                     data_vencimento__lte=fim,

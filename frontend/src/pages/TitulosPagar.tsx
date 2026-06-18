@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { TablePagination } from '@/components/ui/pagination'
 import { Plus, Eye, ArrowDownToLine, CircleAlert, CircleDollarSign } from 'lucide-react'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
+import { useAlert } from '@/components/feedback/alert-provider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -203,6 +204,7 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessa
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function TitulosPagar() {
+  const alert = useAlert()
   const currentUser = getCurrentUser()
   const isAdmin = currentUser?.perfil_ativo === 'admin'
 
@@ -253,6 +255,7 @@ export default function TitulosPagar() {
   const baixadoList = filtered.filter(t => t.status === 'baixado')
 
   async function handleSave(data: TituloPagarFormData): Promise<void> {
+   try {
     if (editTitulo) {
       const updated = await updateTituloPagar(editTitulo.id, {
         tipo: data.tipo,
@@ -267,6 +270,7 @@ export default function TitulosPagar() {
         recorrente: data.recorrente,
       })
       setTitulos(prev => prev.map(t => (t.id === editTitulo.id ? updated : t)))
+      alert.success('Título atualizado com sucesso')
     } else {
       const created = await Promise.all(
         data.parcela_vencimentos.map((venc, i) =>
@@ -288,16 +292,27 @@ export default function TitulosPagar() {
         ),
       )
       setTitulos(prev => [...prev, ...created])
+      alert.success(created.length > 1 ? `${created.length} títulos criados com sucesso` : 'Título criado com sucesso')
     }
+   } catch (err) {
+     alert.error(err)
+     throw err
+   }
   }
 
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
-    await deleteTituloPagar(deleteTarget.id)
-    setTitulos(prev => prev.filter(t => t.id !== deleteTarget.id))
-    setDeleteTarget(null)
-    setDeleting(false)
+    try {
+      await deleteTituloPagar(deleteTarget.id)
+      setTitulos(prev => prev.filter(t => t.id !== deleteTarget.id))
+      setDeleteTarget(null)
+      alert.success('Título excluído com sucesso')
+    } catch (err) {
+      alert.error(err)
+    } finally {
+      setDeleting(false)
+    }
   }
 
   function openCreate() {
@@ -344,12 +359,18 @@ export default function TitulosPagar() {
   async function handleBaixa() {
     if (!baixaTarget) return
     setBaixando(true)
-    const multa = parseFloat(baixaMulta) || 0
-    const valorPago = baixaTarget.valor + multa
-    const updated = await baixarTituloPagar(baixaTarget.id, valorPago, baixaData, multa, baixaForma)
-    setTitulos(prev => prev.map(t => (t.id === baixaTarget.id ? updated : t)))
-    setBaixaTarget(null)
-    setBaixando(false)
+    try {
+      const multa = parseFloat(baixaMulta) || 0
+      const valorPago = baixaTarget.valor + multa
+      const updated = await baixarTituloPagar(baixaTarget.id, valorPago, baixaData, multa, baixaForma)
+      setTitulos(prev => prev.map(t => (t.id === baixaTarget.id ? updated : t)))
+      setBaixaTarget(null)
+      alert.success('Título baixado com sucesso')
+    } catch (err) {
+      alert.error(err)
+    } finally {
+      setBaixando(false)
+    }
   }
 
   const [activeTab, setActiveTab] = useState<'em_aberto' | 'em_atraso' | 'baixado'>('em_aberto')

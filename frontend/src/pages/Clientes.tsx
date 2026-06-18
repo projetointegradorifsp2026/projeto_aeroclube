@@ -3,6 +3,7 @@ import { TablePagination } from '@/components/ui/pagination'
 import { Plus, Pencil, Trash2, UserX, Landmark } from 'lucide-react'
 import { DadosBancariosModal } from '@/components/financeiro/DadosBancariosModal'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
+import { useAlert } from '@/components/feedback/alert-provider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -207,6 +208,7 @@ function ClienteFormModal({ cliente, open, onClose, onSave, onDeleteRequest }: C
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function Clientes() {
+  const alert = useAlert()
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -238,22 +240,35 @@ export default function Clientes() {
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   async function handleSave(data: Omit<Cliente, 'id' | 'created_at' | 'updated_at'>) {
-    if (editItem) {
-      const updated = await updateCliente(editItem.id, data)
-      setClientes(prev => prev.map(c => (c.id === editItem.id ? updated : c)))
-    } else {
-      const created = await createCliente(data)
-      setClientes(prev => [...prev, created])
+    try {
+      if (editItem) {
+        const updated = await updateCliente(editItem.id, data)
+        setClientes(prev => prev.map(c => (c.id === editItem.id ? updated : c)))
+        alert.success('Cliente atualizado com sucesso')
+      } else {
+        const created = await createCliente(data)
+        setClientes(prev => [...prev, created])
+        alert.success('Cliente cadastrado com sucesso')
+      }
+    } catch (err) {
+      alert.error(err)
+      throw err
     }
   }
 
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
-    await deleteCliente(deleteTarget.id)
-    setClientes(prev => prev.filter(c => c.id !== deleteTarget.id))
-    setDeleteTarget(null)
-    setDeleting(false)
+    try {
+      await deleteCliente(deleteTarget.id)
+      setClientes(prev => prev.filter(c => c.id !== deleteTarget.id))
+      setDeleteTarget(null)
+      alert.success('Cliente excluído com sucesso')
+    } catch (err) {
+      alert.error(err)
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const hasNoData = !loading && filtered.length === 0
