@@ -15,7 +15,10 @@ import {
   type TituloReceberStatus,
   TITULO_RECEBER_TIPO_LABELS,
 } from '@/mocks/titulos'
+import { getCurrentUser } from '@/services/api/auth'
 
+const currentUser = getCurrentUser()
+const isAdmin = currentUser?.perfil_ativo === 'admin'
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR')
 const isAtrasado = (t: TituloReceber) =>
@@ -205,7 +208,7 @@ export function TituloReceberDetailModal({
           </div>
 
           {/* PIX — junto às informações da parcela */}
-          {current.status !== 'baixado' && !isCarteira && (
+          {current.status !== 'baixado' && !isCarteira && isAdmin &&(
             <button
               onClick={() => setPixOpen(true)}
               className="w-full flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
