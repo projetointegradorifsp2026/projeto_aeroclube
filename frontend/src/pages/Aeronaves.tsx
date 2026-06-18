@@ -2,10 +2,13 @@ import { useEffect, useState, useMemo } from 'react'
 import { TablePagination } from '@/components/ui/pagination'
 import { Plus, Pencil, Trash2, Plane, Wind } from 'lucide-react'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
+import { useAlert } from '@/components/feedback/alert-provider'
 import { Card, CardContent } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
   Dialog,
@@ -79,10 +82,13 @@ function AviaoTable({
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-        <Plane className="h-8 w-8 mb-2 opacity-30" />
-        <p className="text-sm">Nenhum avião cadastrado</p>
-      </div>
+      <Empty className="py-10">
+        <EmptyHeader>
+          <EmptyMedia><Plane className="h-8 w-8 text-muted-foreground opacity-30" /></EmptyMedia>
+          <EmptyTitle>Nenhum avião cadastrado</EmptyTitle>
+          <EmptyDescription>Cadastre aviões para começar a gerenciar a frota</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     )
   }
 
@@ -156,10 +162,13 @@ function PlanadorTable({
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-        <Wind className="h-8 w-8 mb-2 opacity-30" />
-        <p className="text-sm">Nenhum planador cadastrado</p>
-      </div>
+      <Empty className="py-10">
+        <EmptyHeader>
+          <EmptyMedia><Wind className="h-8 w-8 text-muted-foreground opacity-30" /></EmptyMedia>
+          <EmptyTitle>Nenhum planador cadastrado</EmptyTitle>
+          <EmptyDescription>Cadastre planadores para começar a gerenciar a frota</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     )
   }
 
@@ -226,11 +235,13 @@ function PlanadorTable({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Aeronaves() {
+  const alert = useAlert()
   const [aeronaves, setAeronaves] = useState<Aeronave[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
 
+  const [activeTab, setActiveTab] = useState<'aviao' | 'planador'>('aviao')
   const [editItem, setEditItem] = useState<Aeronave | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Aeronave | null>(null)
@@ -257,24 +268,39 @@ export default function Aeronaves() {
 
   const avioes = filtered.filter(a => a.tipo === 'aviao')
   const planadores = filtered.filter(a => a.tipo === 'planador')
+  const activeItems = activeTab === 'aviao' ? avioes : planadores
+  const hasNoData = !loading && activeItems.length === 0
 
   async function handleSave(data: AeronaveFormData) {
-    if (editItem) {
-      const updated = await updateAeronave(editItem.id, data)
-      setAeronaves(prev => prev.map(a => (a.id === editItem.id ? updated : a)))
-    } else {
-      const created = await createAeronave(data)
-      setAeronaves(prev => [...prev, created])
+    try {
+      if (editItem) {
+        const updated = await updateAeronave(editItem.id, data)
+        setAeronaves(prev => prev.map(a => (a.id === editItem.id ? updated : a)))
+        alert.success('Aeronave atualizada com sucesso')
+      } else {
+        const created = await createAeronave(data)
+        setAeronaves(prev => [...prev, created])
+        alert.success('Aeronave cadastrada com sucesso')
+      }
+    } catch (err) {
+      alert.error(err)
+      throw err
     }
   }
 
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
-    await deleteAeronave(deleteTarget.id)
-    setAeronaves(prev => prev.filter(a => a.id !== deleteTarget.id))
-    setDeleteTarget(null)
-    setDeleting(false)
+    try {
+      await deleteAeronave(deleteTarget.id, deleteTarget.tipo)
+      setAeronaves(prev => prev.filter(a => a.id !== deleteTarget.id))
+      setDeleteTarget(null)
+      alert.success('Aeronave excluída com sucesso')
+    } catch (err) {
+      alert.error(err)
+    } finally {
+      setDeleting(false)
+    }
   }
 
   function openCreate() {
@@ -293,7 +319,7 @@ export default function Aeronaves() {
   }
 
   return (
-    <div className="pt-2 space-y-6">
+    <div className={cn("pt-2 flex flex-col gap-6", hasNoData && "flex-1")}>
       <div>
         <h1 className="text-2xl font-bold text-foreground">Aeronaves</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
@@ -330,7 +356,11 @@ export default function Aeronaves() {
           </CardContent>
         </Card>
       ) : (
-        <Tabs defaultValue="aviao">
+        <Tabs
+          defaultValue="aviao"
+          className="flex-1"
+          onValueChange={v => setActiveTab(v as 'aviao' | 'planador')}
+        >
           <TabsList>
             <TabsTrigger value="aviao">
               <Plane className="h-4 w-4" />
@@ -347,16 +377,16 @@ export default function Aeronaves() {
               </span>
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="aviao">
-            <Card>
-              <CardContent className="p-0">
+          <TabsContent value="aviao" className={cn(hasNoData && "flex flex-col")}>
+            <Card className={cn("flex flex-col", hasNoData && "flex-1")}>
+              <CardContent className={cn("p-0 flex flex-col", hasNoData && "flex-1")}>
                 <AviaoTable items={avioes} onEdit={openEdit} onDelete={setDeleteTarget} />
               </CardContent>
             </Card>
           </TabsContent>
-          <TabsContent value="planador">
-            <Card>
-              <CardContent className="p-0">
+          <TabsContent value="planador" className={cn(hasNoData && "flex flex-col")}>
+            <Card className={cn("flex flex-col", hasNoData && "flex-1")}>
+              <CardContent className={cn("p-0 flex flex-col", hasNoData && "flex-1")}>
                 <PlanadorTable items={planadores} onEdit={openEdit} onDelete={setDeleteTarget} />
               </CardContent>
             </Card>

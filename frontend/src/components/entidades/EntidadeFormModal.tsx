@@ -199,7 +199,7 @@ export function EntidadeFormModal({
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Contato</label>
+              <label className="text-sm font-medium">Contato (Opcional)</label>
               <Input
                 placeholder="(11) 99999-9999"
                 value={form.contato}

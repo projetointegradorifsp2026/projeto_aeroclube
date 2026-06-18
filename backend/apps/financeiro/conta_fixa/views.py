@@ -9,6 +9,7 @@ class ContaFixaViewSet(viewsets.ModelViewSet):
     queryset = ContaFixa.objects.all().order_by("nome")
     serializer_class = ContaFixaSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
         qs = ContaFixa.objects.all().order_by("nome")

@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Landmark, Save } from 'lucide-react'
+import { Landmark, Save, Pencil, X } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
+import { useAlert } from '@/components/feedback/alert-provider'
 import {
   getConfiguracoesBancarias,
   createConfiguracaoBancaria,
@@ -11,10 +13,6 @@ import {
   type ConfiguracaoBancaria as Config,
 } from '@/services/cnabService'
 
-// Valores padrão Sicoob — Aero Clube de Rio Claro (planilha do banco)
-// Obs.: o "Prefixo da Cooperativa" deve ser o número da cooperativa REAL da conta
-// (o validador exige que a agência seja igual a ela). O "1001-4" da planilha era o
-// template da SICOOB CENTRAL ES, não a cooperativa do aeroclube — confirmar com o banco.
 function defaults(): Config {
   return {
     descricao: 'Configuração Sicoob',
@@ -43,13 +41,29 @@ function defaults(): Config {
   }
 }
 
+const BENEF_KEYS: (keyof Config)[] = [
+  'descricao', 'nome_beneficiario', 'cpf_cnpj', 'convenio',
+  'codigo_banco', 'nome_banco', 'prefixo_cooperativa', 'dv_prefixo',
+  'codigo_beneficiario', 'dv_beneficiario', 'conta_corrente', 'dv_conta',
+  'carteira', 'modalidade', 'emissao', 'tipo_formulario',
+  'proximo_nsa', 'proximo_nosso_numero', 'codigos_liquidacao',
+]
+
+const PIX_KEYS: (keyof Config)[] = ['chave_pix', 'nome_recebedor', 'cidade_recebedor']
+
 const labelCls = 'text-sm font-medium'
 
 export default function ConfiguracaoBancaria() {
+  const alert = useAlert()
   const [config, setConfig] = useState<Config | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [savedMsg, setSavedMsg] = useState('')
+
+  const [editingBenef, setEditingBenef] = useState(false)
+  const [editingPix, setEditingPix] = useState(false)
+  const [snapshotBenef, setSnapshotBenef] = useState<Config | null>(null)
+  const [snapshotPix, setSnapshotPix] = useState<Config | null>(null)
 
   useEffect(() => {
     getConfiguracoesBancarias()
@@ -62,21 +76,50 @@ export default function ConfiguracaoBancaria() {
     setConfig(prev => (prev ? { ...prev, [key]: value } : prev))
   }
 
-  async function handleSave() {
+  async function handleSave(keys: (keyof Config)[], onSuccess?: () => void) {
     if (!config) return
     setSaving(true)
     setSavedMsg('')
     try {
+      const payload = Object.fromEntries(keys.map(k => [k, config[k]])) as Partial<Config>
       const saved = config.id
-        ? await updateConfiguracaoBancaria(config.id, config)
+        ? await updateConfiguracaoBancaria(config.id, payload)
         : await createConfiguracaoBancaria(config)
-      setConfig(saved)
+      setConfig(prev => prev ? { ...prev, ...saved } : saved)
       setSavedMsg('Configuração salva com sucesso.')
-    } catch (e) {
-      setSavedMsg('Erro ao salvar a configuração.')
+      alert.success('Configuração bancária salva com sucesso')
+      onSuccess?.()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Erro desconhecido'
+      setSavedMsg(`Erro ao salvar: ${msg}`)
+      alert.error(err, 'Erro ao salvar configuração bancária.')
     } finally {
       setSaving(false)
     }
+  }
+
+  function startEditBenef() {
+    setEditingBenef(true)
+    setSnapshotBenef({ ...config! })
+    setSavedMsg('')
+  }
+
+  function cancelEditBenef() {
+    setEditingBenef(false)
+    if (snapshotBenef) setConfig(snapshotBenef)
+    setSnapshotBenef(null)
+  }
+
+  function startEditPix() {
+    setEditingPix(true)
+    setSnapshotPix({ ...config! })
+    setSavedMsg('')
+  }
+
+  function cancelEditPix() {
+    setEditingPix(false)
+    if (snapshotPix) setConfig(snapshotPix)
+    setSnapshotPix(null)
   }
 
   if (loading || !config) {
@@ -90,21 +133,44 @@ export default function ConfiguracaoBancaria() {
     )
   }
 
-  const field = (label: string, key: keyof Config, placeholder = '') => (
+  const changedBenef = editingBenef && snapshotBenef !== null &&
+    BENEF_KEYS.some(k => config[k] !== snapshotBenef![k])
+
+  const changedPix = editingPix && snapshotPix !== null &&
+    PIX_KEYS.some(k => config[k] !== snapshotPix![k])
+
+  const field = (label: string, key: keyof Config, disabled: boolean, placeholder = '', maxLength?: number) => (
     <div className="space-y-1.5">
       <label className={labelCls}>{label}</label>
       <Input
         value={String(config[key] ?? '')}
         placeholder={placeholder}
+        disabled={disabled}
+        maxLength={maxLength}
         onChange={e => set(key, e.target.value as Config[typeof key])}
       />
     </div>
   )
 
+  const editToggleBtn = (editing: boolean, onStart: () => void, onCancel: () => void) => (
+    <button
+      type="button"
+      onClick={editing ? onCancel : onStart}
+      className={cn(
+        'p-1.5 rounded-lg transition-colors',
+        editing
+          ? 'text-muted-foreground hover:text-destructive hover:bg-destructive/10'
+          : 'text-muted-foreground hover:text-foreground hover:bg-muted',
+      )}
+      title={editing ? 'Cancelar edição' : 'Editar'}
+    >
+      {editing ? <X className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+    </button>
+  )
+
   return (
     <div className="pt-2 space-y-6">
       <div className="flex items-center gap-3">
-        <div className="rounded-lg bg-primary/10 p-2 text-primary"><Landmark className="h-5 w-5" /></div>
         <div>
           <h1 className="text-2xl font-bold text-foreground">Configuração Bancária</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -113,47 +179,52 @@ export default function ConfiguracaoBancaria() {
         </div>
       </div>
 
+      {/* ── Dados do Beneficiário ── */}
       <Card>
         <CardHeader className="border-b pb-3">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Dados do Beneficiário</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Dados do Beneficiário</CardTitle>
+            {editToggleBtn(editingBenef, startEditBenef, cancelEditBenef)}
+          </div>
         </CardHeader>
         <CardContent className="p-6 space-y-5">
           <div className="grid grid-cols-2 gap-4">
-            {field('Descrição', 'descricao')}
-            {field('Nome / Razão Social', 'nome_beneficiario')}
-            {field('CPF/CNPJ', 'cpf_cnpj')}
-            {field('Convênio', 'convenio')}
+            {field('Descrição', 'descricao', !editingBenef, '', 120)}
+            {field('Nome / Razão Social', 'nome_beneficiario', !editingBenef, '', 120)}
+            {field('CPF/CNPJ', 'cpf_cnpj', !editingBenef, '', 18)}
+            {field('Convênio', 'convenio', !editingBenef, '', 20)}
           </div>
 
           <div className="grid grid-cols-4 gap-4">
-            {field('Código do Banco', 'codigo_banco')}
-            {field('Nome do Banco', 'nome_banco')}
-            {field('Prefixo Cooperativa', 'prefixo_cooperativa')}
-            {field('DV Prefixo', 'dv_prefixo')}
+            {field('Código do Banco', 'codigo_banco', !editingBenef, '', 3)}
+            {field('Nome do Banco', 'nome_banco', !editingBenef, '', 30)}
+            {field('Prefixo Cooperativa', 'prefixo_cooperativa', !editingBenef, '', 4)}
+            {field('DV Prefixo', 'dv_prefixo', !editingBenef, '', 1)}
           </div>
 
           <div className="grid grid-cols-4 gap-4">
-            {field('Código Beneficiário', 'codigo_beneficiario')}
-            {field('DV Beneficiário', 'dv_beneficiario')}
-            {field('Conta Corrente', 'conta_corrente')}
-            {field('DV Conta', 'dv_conta')}
+            {field('Código Beneficiário', 'codigo_beneficiario', !editingBenef, '', 10)}
+            {field('DV Beneficiário', 'dv_beneficiario', !editingBenef, '', 1)}
+            {field('Conta Corrente', 'conta_corrente', !editingBenef, '', 12)}
+            {field('DV Conta', 'dv_conta', !editingBenef, '', 1)}
           </div>
 
           <div className="grid grid-cols-4 gap-4">
-            {field('Carteira', 'carteira')}
-            {field('Modalidade', 'modalidade')}
+            {field('Carteira', 'carteira', !editingBenef, '', 2)}
+            {field('Modalidade', 'modalidade', !editingBenef, '', 2)}
             <div className="space-y-1.5">
               <label className={labelCls}>Emissão do Boleto</label>
               <select
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-50"
                 value={config.emissao}
+                disabled={!editingBenef}
                 onChange={e => set('emissao', e.target.value)}
               >
                 <option value="2">Beneficiário emite</option>
                 <option value="1">Sicoob emite</option>
               </select>
             </div>
-            {field('Tipo de Formulário', 'tipo_formulario')}
+            {field('Tipo de Formulário', 'tipo_formulario', !editingBenef, '', 1)}
           </div>
 
           <div className="grid grid-cols-4 gap-4">
@@ -163,6 +234,7 @@ export default function ConfiguracaoBancaria() {
                 type="number"
                 min={1}
                 value={config.proximo_nsa}
+                disabled={!editingBenef}
                 onChange={e => set('proximo_nsa', parseInt(e.target.value, 10) || 1)}
               />
             </div>
@@ -172,6 +244,7 @@ export default function ConfiguracaoBancaria() {
                 type="number"
                 min={1}
                 value={config.proximo_nosso_numero}
+                disabled={!editingBenef}
                 onChange={e => set('proximo_nosso_numero', parseInt(e.target.value, 10) || 1)}
               />
             </div>
@@ -182,6 +255,8 @@ export default function ConfiguracaoBancaria() {
             <Input
               value={config.codigos_liquidacao ?? ''}
               placeholder="06,17"
+              disabled={!editingBenef}
+              maxLength={60}
               onChange={e => set('codigos_liquidacao', e.target.value)}
             />
             <p className="text-xs text-muted-foreground">
@@ -191,21 +266,30 @@ export default function ConfiguracaoBancaria() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3 pt-2">
-            <Button onClick={handleSave} disabled={saving}>
-              <Save className="h-4 w-4" />
-              {saving ? 'Salvando...' : 'Salvar configuração'}
-            </Button>
-            {savedMsg && <span className="text-sm text-muted-foreground">{savedMsg}</span>}
-          </div>
+          {changedBenef && (
+            <div className="flex items-center gap-3 pt-2">
+              <Button
+                onClick={() => handleSave(BENEF_KEYS, () => { setEditingBenef(false); setSnapshotBenef(null) })}
+                disabled={saving}
+              >
+                <Save className="h-4 w-4" />
+                {saving ? 'Salvando...' : 'Salvar'}
+              </Button>
+              {savedMsg && <span className="text-sm text-muted-foreground">{savedMsg}</span>}
+            </div>
+          )}
         </CardContent>
       </Card>
 
+      {/* ── Recebimento via PIX ── */}
       <Card>
         <CardHeader className="border-b pb-3">
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            Recebimento via PIX (QR Code)
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Recebimento via PIX (QR Code)
+            </CardTitle>
+            {editToggleBtn(editingPix, startEditPix, cancelEditPix)}
+          </div>
         </CardHeader>
         <CardContent className="p-6 space-y-5">
           <p className="text-sm text-muted-foreground">
@@ -213,17 +297,23 @@ export default function ConfiguracaoBancaria() {
             títulos a receber. Para a apresentação, use uma chave sua.
           </p>
           <div className="grid grid-cols-2 gap-4">
-            {field('Chave PIX', 'chave_pix', 'CPF/CNPJ, e-mail, telefone ou chave aleatória')}
-            {field('Nome do recebedor', 'nome_recebedor', 'máx. 25 caracteres')}
-            {field('Cidade do recebedor', 'cidade_recebedor', 'máx. 15 caracteres')}
+            {field('Chave PIX', 'chave_pix', !editingPix, 'CPF/CNPJ, e-mail, telefone ou chave aleatória', 77)}
+            {field('Nome do recebedor', 'nome_recebedor', !editingPix, 'máx. 25 caracteres', 25)}
+            {field('Cidade do recebedor', 'cidade_recebedor', !editingPix, 'máx. 15 caracteres', 15)}
           </div>
-          <div className="flex items-center gap-3 pt-2">
-            <Button onClick={handleSave} disabled={saving}>
-              <Save className="h-4 w-4" />
-              {saving ? 'Salvando...' : 'Salvar configuração'}
-            </Button>
-            {savedMsg && <span className="text-sm text-muted-foreground">{savedMsg}</span>}
-          </div>
+
+          {changedPix && (
+            <div className="flex items-center gap-3 pt-2">
+              <Button
+                onClick={() => handleSave(PIX_KEYS, () => { setEditingPix(false); setSnapshotPix(null) })}
+                disabled={saving}
+              >
+                <Save className="h-4 w-4" />
+                {saving ? 'Salvando...' : 'Salvar'}
+              </Button>
+              {savedMsg && <span className="text-sm text-muted-foreground">{savedMsg}</span>}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

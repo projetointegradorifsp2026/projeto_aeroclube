@@ -31,6 +31,7 @@ class Cliente(models.Model):
     uf = models.CharField("UF", max_length=2, blank=True, default="")
 
     is_active = models.BooleanField("Ativo", default=True)
+    is_deleted = models.BooleanField("Excluído", default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -65,6 +66,7 @@ class EntidadePagar(models.Model):
     contato = models.CharField("Contato (telefone)", max_length=20, blank=True, null=True)
     tipo = models.CharField("Tipo", max_length=20, choices=TIPO_CHOICES)
     is_active = models.BooleanField("Ativo", default=True)
+    is_deleted = models.BooleanField("Excluído", default=False)
 
     # Vínculo opcional com usuário do sistema
     usuario = models.OneToOneField(

@@ -217,7 +217,7 @@ export function AeronaveFormModal({
 
           {/* Foto (upload com resize client-side, salva como data URL no campo foto) */}
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Foto (opcional)</label>
+            <label className="text-sm font-medium">Foto (Opcional)</label>
             <div className="flex items-center gap-3">
               <div className="h-16 w-24 shrink-0 overflow-hidden rounded-md border border-border bg-muted flex items-center justify-center">
                 {form.foto ? (
@@ -341,7 +341,7 @@ export function AeronaveFormModal({
               <p className="text-xs text-muted-foreground font-medium pt-1">Duplo comando (opcional)</p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-muted-foreground">Valor fixo duplo (R$)</label>
+                  <label className="text-sm font-medium text-muted-foreground">Valor fixo duplo (Opcional)</label>
                   <Input
                     type="number"
                     min={0}
@@ -355,7 +355,7 @@ export function AeronaveFormModal({
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-muted-foreground">Adicional duplo (R$/min)</label>
+                  <label className="text-sm font-medium text-muted-foreground">Adicional duplo (Opcional)</label>
                   <Input
                     type="number"
                     min={0}

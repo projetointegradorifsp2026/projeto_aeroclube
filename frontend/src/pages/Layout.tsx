@@ -218,34 +218,6 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, currentUse
                             <SidebarGroupLabel>Títulos</SidebarGroupLabel>
 
                             <SidebarMenu>
-                                {canAccess(perfil, '/titulos-a-receber') && (
-                                    <SidebarMenuItem>
-                                        <SidebarMenuButton
-                                            asChild
-                                            isActive={pathname.startsWith("/titulos-a-receber")}
-                                            tooltip={titulosReceberLabel}
-                                        >
-                                            <Link to="/titulos-a-receber">
-                                                <FileInput />
-                                                <span className="group-data-[collapsible=icon]:hidden">{titulosReceberLabel}</span>
-                                            </Link>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-                                )}
-                                {canAccess(perfil, '/titulos-a-pagar') && (
-                                    <SidebarMenuItem>
-                                        <SidebarMenuButton
-                                            asChild
-                                            isActive={pathname.startsWith("/titulos-a-pagar")}
-                                            tooltip={titulosPagarLabel}
-                                        >
-                                            <Link to="/titulos-a-pagar">
-                                                <FileOutput />
-                                                <span className="group-data-[collapsible=icon]:hidden">{titulosPagarLabel}</span>
-                                            </Link>
-                                        </SidebarMenuButton>
-                                    </SidebarMenuItem>
-                                )}
                                 {canAccess(perfil, '/receitas') && (
                                     <SidebarMenuItem>
                                         <SidebarMenuButton
@@ -260,6 +232,20 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, currentUse
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
                                 )}
+                                {canAccess(perfil, '/titulos-a-receber') && (
+                                    <SidebarMenuItem>
+                                        <SidebarMenuButton
+                                            asChild
+                                            isActive={pathname.startsWith("/titulos-a-receber")}
+                                            tooltip={titulosReceberLabel}
+                                        >
+                                            <Link to="/titulos-a-receber">
+                                                <FileInput />
+                                                <span className="group-data-[collapsible=icon]:hidden">{titulosReceberLabel}</span>
+                                            </Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                )}
                                 {canAccess(perfil, '/custos') && (
                                     <SidebarMenuItem>
                                         <SidebarMenuButton
@@ -270,6 +256,20 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, currentUse
                                             <Link to="/custos">
                                                 <TrendingDown />
                                                 <span className="group-data-[collapsible=icon]:hidden">Custos</span>
+                                            </Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                )}
+                                {canAccess(perfil, '/titulos-a-pagar') && (
+                                    <SidebarMenuItem>
+                                        <SidebarMenuButton
+                                            asChild
+                                            isActive={pathname.startsWith("/titulos-a-pagar")}
+                                            tooltip={titulosPagarLabel}
+                                        >
+                                            <Link to="/titulos-a-pagar">
+                                                <FileOutput />
+                                                <span className="group-data-[collapsible=icon]:hidden">{titulosPagarLabel}</span>
                                             </Link>
                                         </SidebarMenuButton>
                                     </SidebarMenuItem>
@@ -456,7 +456,7 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, currentUse
 
             {/* CONTEÚDO */}
             <SidebarInset className="mt-3 rounded-tl-[2.5rem] rounded-bl-[2.5rem] overflow-hidden">
-                <div className="p-8">
+                <div className="p-8 flex flex-col flex-1">
                     <Outlet />
                 </div>
             </SidebarInset>

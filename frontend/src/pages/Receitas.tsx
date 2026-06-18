@@ -2,10 +2,12 @@ import { useEffect, useState, useMemo } from 'react'
 import { Plus, FileUp, Pencil, Trash2, TrendingUp, AlertCircle, Layers, ListChecks } from 'lucide-react'
 import { TablePagination } from '@/components/ui/pagination'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
+import { useAlert } from '@/components/feedback/alert-provider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -80,10 +82,13 @@ function ReceitasTable({ items, selected, onToggle, onView, onFaturar, onVerTitu
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-14 text-muted-foreground">
-        <TrendingUp className="h-10 w-10 mb-3 opacity-30" />
-        <p className="text-sm font-medium">{emptyMessage}</p>
-      </div>
+      <Empty className="py-14">
+        <EmptyHeader>
+          <EmptyMedia><TrendingUp className="h-10 w-10 text-muted-foreground opacity-30" /></EmptyMedia>
+          <EmptyTitle>{emptyMessage}</EmptyTitle>
+          <EmptyDescription>Tente ajustar os filtros ou registre uma nova receita</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     )
   }
 
@@ -400,6 +405,7 @@ function AgrupamentoModal({ receitas, open, onClose, onConfirm }: AgrupamentoMod
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function Receitas() {
+  const alert = useAlert()
   const [receitas, setReceitas] = useState<Receita[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -454,28 +460,47 @@ export default function Receitas() {
   }
 
   async function handleSave(data: ReceitaInput) {
-    if (editReceita) {
-      const updated = await updateReceita(editReceita.id, data)
-      setReceitas(prev => prev.map(r => (r.id === editReceita.id ? updated : r)))
-    } else {
-      const created = await createReceita(data)
-      setReceitas(prev => [created, ...prev])
+    try {
+      if (editReceita) {
+        const updated = await updateReceita(editReceita.id, data)
+        setReceitas(prev => prev.map(r => (r.id === editReceita.id ? updated : r)))
+        alert.success('Receita atualizada com sucesso')
+      } else {
+        const created = await createReceita(data)
+        setReceitas(prev => [created, ...prev])
+        alert.success('Receita cadastrada com sucesso')
+      }
+    } catch (err) {
+      alert.error(err)
+      throw err
     }
   }
 
   async function handleFaturarConfirm(parcelas?: Parcela[]) {
     if (!faturarTarget) return
-    const updated = await faturarReceita(faturarTarget.id, parcelas)
-    setReceitas(prev => prev.map(x => (x.id === faturarTarget.id ? updated : x)))
+    try {
+      const updated = await faturarReceita(faturarTarget.id, parcelas)
+      setReceitas(prev => prev.map(x => (x.id === faturarTarget.id ? updated : x)))
+      alert.success('Receita faturada com sucesso')
+    } catch (err) {
+      alert.error(err)
+      throw err
+    }
   }
 
   async function handleAgrupamentoConfirm(data_vencimento?: string) {
     const ids = [...selected]
     // Erros (ex.: 400 de devedores diferentes) são propagados para o modal exibir.
-    await faturarReceitasAgrupadas(ids, data_vencimento)
-    const refreshed = await getReceitas()
-    setReceitas(refreshed)
-    setSelected(new Set())
+    try {
+      await faturarReceitasAgrupadas(ids, data_vencimento)
+      const refreshed = await getReceitas()
+      setReceitas(refreshed)
+      setSelected(new Set())
+      alert.success('Receitas faturadas em conjunto com sucesso')
+    } catch (err) {
+      alert.error(err)
+      throw err
+    }
   }
 
   async function handleDelete() {
@@ -485,6 +510,9 @@ export default function Receitas() {
       await deleteReceita(deleteTarget.id)
       setReceitas(prev => prev.filter(r => r.id !== deleteTarget.id))
       setDeleteTarget(null)
+      alert.success('Receita excluída com sucesso')
+    } catch (err) {
+      alert.error(err)
     } finally {
       setDeleting(false)
     }
@@ -498,8 +526,11 @@ export default function Receitas() {
     { value: 'quitada', label: 'Quitadas', items: byStatus('quitada'), badge: 'bg-emerald-100 text-emerald-700' },
   ]
 
+  const [activeTab, setActiveTab] = useState<ReceitaStatus>('pendente')
+  const hasNoData = !loading && byStatus(activeTab).length === 0
+
   return (
-    <div className="pt-2 space-y-6">
+    <div className={cn("pt-2 flex flex-col gap-6", hasNoData && "flex-1")}>
       <div>
         <h1 className="text-2xl font-bold text-foreground">Receitas</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
@@ -526,7 +557,7 @@ export default function Receitas() {
           {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
         </CardContent></Card>
       ) : (
-        <Tabs defaultValue="pendente">
+        <Tabs defaultValue="pendente" className="flex-1" onValueChange={v => setActiveTab(v as ReceitaStatus)}>
           <div className="flex items-center justify-between">
             <TabsList>
               {tabConfig.map(t => (
@@ -546,14 +577,14 @@ export default function Receitas() {
             )}
           </div>
           {tabConfig.map(t => (
-            <TabsContent key={t.value} value={t.value}>
-              <Card>
+            <TabsContent key={t.value} value={t.value} className={cn(hasNoData && "flex flex-col")}>
+              <Card className={cn("flex flex-col", hasNoData && "flex-1")}>
                 <CardHeader className="border-b pb-3">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
                     {t.items.length} receita{t.items.length !== 1 ? 's' : ''} {RECEITA_STATUS_LABELS[t.value].toLowerCase()}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-0">
+                <CardContent className={cn("p-0 flex flex-col", hasNoData && "flex-1")}>
                   <ReceitasTable
                     items={t.items}
                     selected={selected}

@@ -2,9 +2,11 @@ import { useEffect, useState, useMemo } from 'react'
 import { TablePagination } from '@/components/ui/pagination'
 import { Plus, Eye, CircleDollarSign, CircleAlert, Wallet } from 'lucide-react'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
+import { useAlert } from '@/components/feedback/alert-provider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog,
@@ -36,7 +38,7 @@ const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', curren
 const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR')
 const todayStr = () => new Date().toISOString().split('T')[0]
 const isAtrasado = (t: TituloReceber) =>
-  t.status !== 'baixado' && new Date(t.data_vencimento + 'T00:00:00') < new Date()
+  t.status !== 'baixado' && t.data_vencimento < todayStr()
 
 type TipoFilter = 'all' | TituloReceberTipo
 
@@ -78,10 +80,13 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessa
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-14 text-muted-foreground">
-        <CircleDollarSign className="h-10 w-10 mb-3 opacity-30" />
-        <p className="text-sm font-medium">{emptyMessage}</p>
-      </div>
+      <Empty className="py-14">
+        <EmptyHeader>
+          <EmptyMedia><CircleDollarSign className="h-10 w-10 text-muted-foreground opacity-30" /></EmptyMedia>
+          <EmptyTitle>{emptyMessage}</EmptyTitle>
+          <EmptyDescription>Tente ajustar os filtros ou registre um novo título</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     )
   }
 
@@ -201,6 +206,7 @@ function TitulosTable({ items, showBaixa, showMulta, onBaixa, onView, emptyMessa
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function TitulosReceber() {
+  const alert = useAlert()
   const currentUser = getCurrentUser()
   const isAdmin = currentUser?.perfil_ativo === 'admin'
 
@@ -227,13 +233,15 @@ export default function TitulosReceber() {
   const [viewTitulo, setViewTitulo] = useState<TituloReceber | null>(null)
 
   useEffect(() => {
-    getTitulosReceber().then(data => {
-      const filtered = isAdmin
-        ? data
-        : data.filter(t => t.usuario_id === String(currentUser?.id))
-      setTitulos(filtered)
-      setLoading(false)
-    })
+    getTitulosReceber()
+      .then(data => {
+        const filtered = isAdmin
+          ? data
+          : data.filter(t => t.usuario_id === String(currentUser?.id))
+        setTitulos(filtered)
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [])
 
   const filtered = useMemo(() => {
@@ -257,6 +265,7 @@ export default function TitulosReceber() {
   const baixadoList = filtered.filter(t => t.status === 'baixado')
 
   async function handleSave(data: TituloReceberFormData): Promise<void> {
+   try {
     if (editTitulo) {
       const updated = await updateTituloReceber(editTitulo.id, {
         usuario_nome: data.usuario_nome,
@@ -270,6 +279,7 @@ export default function TitulosReceber() {
         data_vencimento: data.parcela_vencimentos[0],
       })
       setTitulos(prev => prev.map(t => (t.id === editTitulo.id ? updated : t)))
+      alert.success('Título atualizado com sucesso')
     } else {
       const created = await Promise.all(
         data.parcela_vencimentos.map((venc, i) =>
@@ -293,16 +303,27 @@ export default function TitulosReceber() {
         ),
       )
       setTitulos(prev => [...prev, ...created])
+      alert.success(created.length > 1 ? `${created.length} títulos criados com sucesso` : 'Título criado com sucesso')
     }
+   } catch (err) {
+     alert.error(err)
+     throw err
+   }
   }
 
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
-    await deleteTituloReceber(deleteTarget.id)
-    setTitulos(prev => prev.filter(t => t.id !== deleteTarget.id))
-    setDeleteTarget(null)
-    setDeleting(false)
+    try {
+      await deleteTituloReceber(deleteTarget.id)
+      setTitulos(prev => prev.filter(t => t.id !== deleteTarget.id))
+      setDeleteTarget(null)
+      alert.success('Título excluído com sucesso')
+    } catch (err) {
+      alert.error(err)
+    } finally {
+      setDeleting(false)
+    }
   }
 
   function openCreate() {
@@ -362,38 +383,48 @@ export default function TitulosReceber() {
   async function handleBaixa() {
     if (!baixaTarget) return
     setBaixando(true)
-    const multa = parseFloat(baixaMulta) || 0
-    const carteiraAmount = baixaUsarCarteira ? (parseFloat(baixaCarteiraValor) || 0) : 0
+    try {
+      const multa = parseFloat(baixaMulta) || 0
+      const carteiraAmount = baixaUsarCarteira ? (parseFloat(baixaCarteiraValor) || 0) : 0
 
-    // Bug 5: debita a carteira diretamente (a MovimentacaoCarteira já registra o evento)
-    // Não cria mais TituloReceber fantasma de tipo 'carteira'
-    if (carteiraAmount > 0 && baixaTarget.usuario_id) {
-      await debitarCarteira(baixaTarget.usuario_id, carteiraAmount)
+      // Bug 5: debita a carteira diretamente (a MovimentacaoCarteira já registra o evento)
+      // Não cria mais TituloReceber fantasma de tipo 'carteira'
+      if (carteiraAmount > 0 && baixaTarget.usuario_id) {
+        await debitarCarteira(baixaTarget.usuario_id, carteiraAmount)
+      }
+
+      const cashAmount = parseFloat(baixaValor) || 0
+      const totalPayment = cashAmount + multa + carteiraAmount
+      // Se a baixa foi inteiramente via carteira (sem dinheiro externo), registra "carteira".
+      const forma: FormaPagamento = cashAmount <= 0 && carteiraAmount > 0 ? 'carteira' : baixaForma
+      const updated = await baixarTituloReceber(
+        baixaTarget.id,
+        totalPayment,
+        baixaData,
+        multa,
+        carteiraAmount,
+        forma,
+      )
+      setTitulos(prev => prev.map(t => (t.id === baixaTarget.id ? updated : t)))
+      setBaixaTarget(null)
+      alert.success(updated.status === 'baixado' ? 'Título baixado com sucesso' : 'Pagamento registrado com sucesso')
+    } catch (err) {
+      alert.error(err)
+    } finally {
+      setBaixando(false)
     }
-
-    const cashAmount = parseFloat(baixaValor) || 0
-    const totalPayment = cashAmount + multa + carteiraAmount
-    // Se a baixa foi inteiramente via carteira (sem dinheiro externo), registra "carteira".
-    const forma: FormaPagamento = cashAmount <= 0 && carteiraAmount > 0 ? 'carteira' : baixaForma
-    const updated = await baixarTituloReceber(
-      baixaTarget.id,
-      totalPayment,
-      baixaData,
-      multa,
-      carteiraAmount,
-      forma,
-    )
-    setTitulos(prev => prev.map(t => (t.id === baixaTarget.id ? updated : t)))
-    setBaixaTarget(null)
-    setBaixando(false)
   }
 
   const restanteBaixa = baixaTarget
     ? baixaTarget.valor + (parseFloat(baixaMulta) || 0) - baixaTarget.valor_pago
     : 0
 
+  const [activeTab, setActiveTab] = useState<'em_aberto' | 'em_atraso' | 'baixado'>('em_aberto')
+  const activeItems = activeTab === 'em_aberto' ? emAbertoList : activeTab === 'em_atraso' ? emAtrasoList : baixadoList
+  const hasNoData = !loading && activeItems.length === 0
+
   return (
-    <div className="pt-2 space-y-6">
+    <div className={cn("pt-2 flex flex-col gap-6", hasNoData && "flex-1")}>
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-foreground">
@@ -440,7 +471,7 @@ export default function TitulosReceber() {
           </CardContent>
         </Card>
       ) : (
-        <Tabs defaultValue="em_aberto">
+        <Tabs defaultValue="em_aberto" className="flex-1" onValueChange={v => setActiveTab(v as 'em_aberto' | 'em_atraso' | 'baixado')}>
           <TabsList>
             <TabsTrigger value="em_aberto">
               Em aberto
@@ -469,14 +500,14 @@ export default function TitulosReceber() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="em_aberto">
-            <Card>
+          <TabsContent value="em_aberto" className={cn(hasNoData && "flex flex-col")}>
+            <Card className={cn("flex flex-col", hasNoData && "flex-1")}>
               <CardHeader className="border-b pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {emAbertoList.length} título{emAbertoList.length !== 1 ? 's' : ''} em aberto
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-0">
+              <CardContent className={cn("p-0 flex flex-col", hasNoData && "flex-1")}>
                 <TitulosTable
                   items={emAbertoList}
                   showBaixa={isAdmin}
@@ -491,14 +522,14 @@ export default function TitulosReceber() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="em_atraso">
-            <Card>
+          <TabsContent value="em_atraso" className={cn(hasNoData && "flex flex-col")}>
+            <Card className={cn("flex flex-col", hasNoData && "flex-1")}>
               <CardHeader className="border-b pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {emAtrasoList.length} título{emAtrasoList.length !== 1 ? 's' : ''} em atraso
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-0">
+              <CardContent className={cn("p-0 flex flex-col", hasNoData && "flex-1")}>
                 <TitulosTable
                   items={emAtrasoList}
                   showBaixa={isAdmin}
@@ -513,14 +544,14 @@ export default function TitulosReceber() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="baixado">
-            <Card>
+          <TabsContent value="baixado" className={cn(hasNoData && "flex flex-col")}>
+            <Card className={cn("flex flex-col", hasNoData && "flex-1")}>
               <CardHeader className="border-b pb-3">
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {baixadoList.length} título{baixadoList.length !== 1 ? 's' : ''} baixado{baixadoList.length !== 1 ? 's' : ''}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-0">
+              <CardContent className={cn("p-0 flex flex-col", hasNoData && "flex-1")}>
                 <TitulosTable
                   items={baixadoList}
                   showBaixa={false}

@@ -34,6 +34,7 @@ import {
     Area,
 } from 'recharts'
 import { Card, CardContent } from '@/components/ui/card'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 import { FilterSelect } from '@/components/ui/filter-controls'
 import {
@@ -368,10 +369,13 @@ function TitulosVencerPanel({
                         {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
                     </div>
                 ) : dates.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-10 text-muted-foreground gap-2">
-                        <CheckCircle2 className="h-8 w-8 opacity-30" />
-                        <p className="text-sm">Nenhum vencimento pendente.</p>
-                    </div>
+                    <Empty className="py-10">
+                        <EmptyHeader>
+                            <EmptyMedia><CheckCircle2 className="h-8 w-8 text-muted-foreground opacity-30" /></EmptyMedia>
+                            <EmptyTitle>Nenhum vencimento pendente</EmptyTitle>
+                            <EmptyDescription>Todos os títulos estão em dia</EmptyDescription>
+                        </EmptyHeader>
+                    </Empty>
                 ) : (
                     <div className="p-4 space-y-5 overflow-hidden">
                         {dates.map(date => (
@@ -1199,10 +1203,13 @@ function DashboardAluno({ perfil }: { perfil: string }) {
                                 {loading ? (
                                     <div className="p-4 space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
                                 ) : meusVoos.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-                                        <Plane className="h-8 w-8 mb-2 opacity-30" />
-                                        <p className="text-sm">Nenhum voo registrado ainda.</p>
-                                    </div>
+                                    <Empty className="py-10">
+                                        <EmptyHeader>
+                                            <EmptyMedia><Plane className="h-8 w-8 text-muted-foreground opacity-30" /></EmptyMedia>
+                                            <EmptyTitle>Nenhum voo registrado ainda</EmptyTitle>
+                                            <EmptyDescription>Seus voos aparecerão aqui após serem registrados</EmptyDescription>
+                                        </EmptyHeader>
+                                    </Empty>
                                 ) : (
                                     <table className="w-full text-sm">
                                         <thead>
@@ -1372,10 +1379,13 @@ function DashboardInstrutor({ perfil }: { perfil: string }) {
                                 {loading ? (
                                     <div className="p-4 space-y-3">{Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
                                 ) : voosComoInstrutor.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-                                        <Plane className="h-8 w-8 mb-2 opacity-30" />
-                                        <p className="text-sm">Nenhum voo registrado ainda.</p>
-                                    </div>
+                                    <Empty className="py-10">
+                                        <EmptyHeader>
+                                            <EmptyMedia><Plane className="h-8 w-8 text-muted-foreground opacity-30" /></EmptyMedia>
+                                            <EmptyTitle>Nenhum voo registrado ainda</EmptyTitle>
+                                            <EmptyDescription>Voos como instrutor aparecerão aqui após serem registrados</EmptyDescription>
+                                        </EmptyHeader>
+                                    </Empty>
                                 ) : (
                                     <table className="w-full text-sm">
                                         <thead>

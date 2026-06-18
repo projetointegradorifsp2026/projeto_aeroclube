@@ -16,6 +16,7 @@ class TituloPagarViewSet(viewsets.ModelViewSet):
     """
     queryset = TituloPagar.objects.select_related("favorecido__usuario", "favorecido__entidade").order_by("data_vencimento")
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_serializer_class(self):
         if self.action == "create":

@@ -89,6 +89,7 @@ class ReceitaViewSet(viewsets.ModelViewSet):
     queryset = Receita.objects.select_related("participante", "cliente", "voo").all()
     serializer_class = ReceitaSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
         qs = super().get_queryset()

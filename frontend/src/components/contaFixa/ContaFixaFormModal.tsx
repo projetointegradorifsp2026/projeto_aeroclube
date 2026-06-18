@@ -192,15 +192,17 @@ export function ContaFixaFormModal({
             </div>
           </div>
 
-          <label className="flex items-center gap-2 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={form.is_active}
-              onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))}
-              className="h-4 w-4 rounded border-input accent-primary"
-            />
-            <span className="text-sm">Conta ativa (gera título mensalmente)</span>
-          </label>
+          {isEdit && (
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={form.is_active}
+                onChange={e => setForm(p => ({ ...p, is_active: e.target.checked }))}
+                className="h-4 w-4 rounded border-input accent-primary"
+              />
+              <span className="text-sm">Conta ativa</span>
+            </label>
+          )}
 
           {saveError && (
             <p className="text-sm text-destructive rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2">

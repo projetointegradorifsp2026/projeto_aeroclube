@@ -29,6 +29,7 @@ import { createReceita } from '@/services/receitasService'
 import { createCusto } from '@/services/custosService'
 import { debitarCarteira } from '@/services/usersService'
 import { cn } from '@/lib/utils'
+import { useAlert } from '@/components/feedback/alert-provider'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -136,6 +137,7 @@ function makeEmpty(): FormState {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function VooFormPage() {
+  const alert = useAlert()
   const navigate = useNavigate()
   const { id } = useParams<{ id?: string }>()
   const location = useLocation()
@@ -405,7 +407,10 @@ export default function VooFormPage() {
         }
       }
 
+      alert.success(isEdit ? 'Voo atualizado com sucesso' : 'Voo registrado com sucesso')
       navigate('/voos')
+    } catch (err) {
+      alert.error(err)
     } finally {
       setSaving(false)
     }
@@ -416,7 +421,10 @@ export default function VooFormPage() {
     setDeleting(true)
     try {
       await deleteVoo(id)
+      alert.success('Voo excluído com sucesso')
       navigate('/voos')
+    } catch (err) {
+      alert.error(err)
     } finally {
       setDeleting(false)
     }

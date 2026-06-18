@@ -25,6 +25,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Usuario.objects.prefetch_related("perfis").order_by("nome")
+    pagination_class = None
 
     def get_queryset(self):
         qs = super().get_queryset()

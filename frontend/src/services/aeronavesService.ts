@@ -123,13 +123,9 @@ export async function updateAeronave(
   }
 }
 
-export async function deleteAeronave(id: string): Promise<void> {
-  // Try avião first, then planador (soft-delete via PATCH is_active=false)
-  try {
-    await apiDelete(`/api/v1/avioes/${id}/`)
-  } catch {
-    await apiDelete(`/api/v1/planadores/${id}/`)
-  }
+export async function deleteAeronave(id: string, tipo: 'aviao' | 'planador'): Promise<void> {
+  const endpoint = tipo === 'aviao' ? `/api/v1/avioes/${id}/` : `/api/v1/planadores/${id}/`
+  await apiDelete(endpoint)
 }
 
 export type { Aeronave }

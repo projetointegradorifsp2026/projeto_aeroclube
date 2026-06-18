@@ -14,37 +14,36 @@ from .serializers import (
 
 class ClienteViewSet(viewsets.ModelViewSet):
     """GET/POST/PATCH/DELETE /api/v1/clientes/"""
-    queryset = Cliente.objects.all().order_by("nome")
     serializer_class = ClienteSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
-        qs = super().get_queryset()
+        qs = Cliente.objects.filter(is_deleted=False).order_by("nome")
         if self.action == "list":
             ativo = self.request.query_params.get("ativo")
             if ativo is None:
                 qs = qs.filter(is_active=True)
             elif ativo.lower() == "false":
                 qs = qs.filter(is_active=False)
-            elif ativo.lower() == "all":
-                pass  # retorna ativos e inativos (a página filtra no cliente)
+            # ativo=all: retorna ativos e inativos (nunca excluídos)
         return qs
 
     def destroy(self, request, *args, **kwargs):
         obj = self.get_object()
-        obj.is_active = False
+        obj.is_deleted = True
         obj.save()
-        return Response({"detail": "Cliente desativado."}, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class EntidadePagarViewSet(viewsets.ModelViewSet):
     """GET /api/v1/entidades/?tipo=cliente|fornecedor|funcionario|instrutor"""
-    queryset = EntidadePagar.objects.all().order_by("nome")
     serializer_class = EntidadePagarSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
-        qs = EntidadePagar.objects.all().order_by("nome")
+        qs = EntidadePagar.objects.filter(is_deleted=False).order_by("nome")
         if self.action == 'list':
             qs = qs.filter(is_active=True)
         tipo = self.request.query_params.get("tipo")
@@ -54,38 +53,38 @@ class EntidadePagarViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         obj = self.get_object()
-        obj.is_active = False
+        obj.is_deleted = True
         obj.save()
-        return Response({"detail": "Entidade desativada."}, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class FornecedorViewSet(viewsets.ModelViewSet):
     """GET /api/v1/fornecedores/"""
-    queryset = Fornecedor.objects.all().order_by("nome")
     serializer_class = FornecedorSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
-        qs = Fornecedor.objects.all().order_by("nome")
+        qs = Fornecedor.objects.filter(is_deleted=False).order_by("nome")
         if self.action == 'list':
             qs = qs.filter(is_active=True)
         return qs
 
     def destroy(self, request, *args, **kwargs):
         obj = self.get_object()
-        obj.is_active = False
+        obj.is_deleted = True
         obj.save()
-        return Response({"detail": "Fornecedor desativado."}, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class FuncionarioViewSet(viewsets.ModelViewSet):
     """GET /api/v1/funcionarios/  (inclui instrutores)"""
-    queryset = Funcionario.objects.all().order_by("nome")
     serializer_class = FuncionarioSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
-        qs = Funcionario.objects.all().order_by("nome")
+        qs = Funcionario.objects.filter(is_deleted=False).order_by("nome")
         if self.action == 'list':
             qs = qs.filter(is_active=True)
         is_instrutor = self.request.query_params.get("instrutor")
@@ -95,6 +94,6 @@ class FuncionarioViewSet(viewsets.ModelViewSet):
 
     def destroy(self, request, *args, **kwargs):
         obj = self.get_object()
-        obj.is_active = False
+        obj.is_deleted = True
         obj.save()
-        return Response({"detail": "Funcionário desativado."}, status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_204_NO_CONTENT)
