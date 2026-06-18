@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
+import { useAlert } from '@/components/feedback/alert-provider'
 import {
   getConfiguracoesBancarias,
   createConfiguracaoBancaria,
@@ -53,6 +54,7 @@ const PIX_KEYS: (keyof Config)[] = ['chave_pix', 'nome_recebedor', 'cidade_receb
 const labelCls = 'text-sm font-medium'
 
 export default function ConfiguracaoBancaria() {
+  const alert = useAlert()
   const [config, setConfig] = useState<Config | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -85,10 +87,12 @@ export default function ConfiguracaoBancaria() {
         : await createConfiguracaoBancaria(config)
       setConfig(prev => prev ? { ...prev, ...saved } : saved)
       setSavedMsg('Configuração salva com sucesso.')
+      alert.success('Configuração bancária salva com sucesso')
       onSuccess?.()
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro desconhecido'
       setSavedMsg(`Erro ao salvar: ${msg}`)
+      alert.error(err, 'Erro ao salvar configuração bancária.')
     } finally {
       setSaving(false)
     }

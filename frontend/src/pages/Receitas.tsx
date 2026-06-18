@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { Plus, FileUp, Pencil, Trash2, TrendingUp, AlertCircle, Layers, ListChecks } from 'lucide-react'
 import { TablePagination } from '@/components/ui/pagination'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
+import { useAlert } from '@/components/feedback/alert-provider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -404,6 +405,7 @@ function AgrupamentoModal({ receitas, open, onClose, onConfirm }: AgrupamentoMod
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function Receitas() {
+  const alert = useAlert()
   const [receitas, setReceitas] = useState<Receita[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -458,28 +460,47 @@ export default function Receitas() {
   }
 
   async function handleSave(data: ReceitaInput) {
-    if (editReceita) {
-      const updated = await updateReceita(editReceita.id, data)
-      setReceitas(prev => prev.map(r => (r.id === editReceita.id ? updated : r)))
-    } else {
-      const created = await createReceita(data)
-      setReceitas(prev => [created, ...prev])
+    try {
+      if (editReceita) {
+        const updated = await updateReceita(editReceita.id, data)
+        setReceitas(prev => prev.map(r => (r.id === editReceita.id ? updated : r)))
+        alert.success('Receita atualizada com sucesso')
+      } else {
+        const created = await createReceita(data)
+        setReceitas(prev => [created, ...prev])
+        alert.success('Receita cadastrada com sucesso')
+      }
+    } catch (err) {
+      alert.error(err)
+      throw err
     }
   }
 
   async function handleFaturarConfirm(parcelas?: Parcela[]) {
     if (!faturarTarget) return
-    const updated = await faturarReceita(faturarTarget.id, parcelas)
-    setReceitas(prev => prev.map(x => (x.id === faturarTarget.id ? updated : x)))
+    try {
+      const updated = await faturarReceita(faturarTarget.id, parcelas)
+      setReceitas(prev => prev.map(x => (x.id === faturarTarget.id ? updated : x)))
+      alert.success('Receita faturada com sucesso')
+    } catch (err) {
+      alert.error(err)
+      throw err
+    }
   }
 
   async function handleAgrupamentoConfirm(data_vencimento?: string) {
     const ids = [...selected]
     // Erros (ex.: 400 de devedores diferentes) são propagados para o modal exibir.
-    await faturarReceitasAgrupadas(ids, data_vencimento)
-    const refreshed = await getReceitas()
-    setReceitas(refreshed)
-    setSelected(new Set())
+    try {
+      await faturarReceitasAgrupadas(ids, data_vencimento)
+      const refreshed = await getReceitas()
+      setReceitas(refreshed)
+      setSelected(new Set())
+      alert.success('Receitas faturadas em conjunto com sucesso')
+    } catch (err) {
+      alert.error(err)
+      throw err
+    }
   }
 
   async function handleDelete() {
@@ -489,6 +510,9 @@ export default function Receitas() {
       await deleteReceita(deleteTarget.id)
       setReceitas(prev => prev.filter(r => r.id !== deleteTarget.id))
       setDeleteTarget(null)
+      alert.success('Receita excluída com sucesso')
+    } catch (err) {
+      alert.error(err)
     } finally {
       setDeleting(false)
     }

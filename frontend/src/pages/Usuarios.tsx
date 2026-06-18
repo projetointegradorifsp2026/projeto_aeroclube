@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { TablePagination } from '@/components/ui/pagination'
 import { UserPlus, Eye, Trash2, UserCheck, UserX } from 'lucide-react'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
+import { useAlert } from '@/components/feedback/alert-provider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -34,6 +35,7 @@ const fmtDate = (d: string) =>
   new Date(d + 'T00:00:00').toLocaleDateString('pt-BR')
 
 export default function Usuarios() {
+  const alert = useAlert()
   const navigate = useNavigate()
 
   const [users, setUsers] = useState<User[]>([])
@@ -83,17 +85,29 @@ export default function Usuarios() {
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   async function handleSave(data: UserFormData): Promise<void> {
-    const created = await createUser(data)
-    setUsers(prev => [...prev, created])
+    try {
+      const created = await createUser(data)
+      setUsers(prev => [...prev, created])
+      alert.success('Usuário cadastrado com sucesso')
+    } catch (err) {
+      alert.error(err)
+      throw err
+    }
   }
 
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
-    await deleteUser(deleteTarget.id)
-    setUsers(prev => prev.filter(u => u.id !== deleteTarget.id))
-    setDeleteTarget(null)
-    setDeleting(false)
+    try {
+      await deleteUser(deleteTarget.id)
+      setUsers(prev => prev.filter(u => u.id !== deleteTarget.id))
+      setDeleteTarget(null)
+      alert.success('Usuário excluído com sucesso')
+    } catch (err) {
+      alert.error(err)
+    } finally {
+      setDeleting(false)
+    }
   }
 
   async function handleResetPassword() {
@@ -102,6 +116,9 @@ export default function Usuarios() {
     try {
       await resetPassword(resetTarget.id)
       setResetSuccess(true)
+      alert.success('Senha redefinida com sucesso')
+    } catch (err) {
+      alert.error(err)
     } finally {
       setResetting(false)
     }

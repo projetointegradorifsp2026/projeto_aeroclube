@@ -2,6 +2,7 @@
 import { TablePagination } from '@/components/ui/pagination'
 import { Plus, Pencil, Trash2, ReceiptText } from 'lucide-react'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
+import { useAlert } from '@/components/feedback/alert-provider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -31,6 +32,7 @@ import { cn } from '@/lib/utils'
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
 export default function ContaFixa() {
+  const alert = useAlert()
   const [contas, setContas] = useState<ContaFixa[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -75,22 +77,35 @@ export default function ContaFixa() {
 
 
   async function handleSave(data: ContaFixaFormData) {
-    if (editItem) {
-      const updated = await updateContaFixa(editItem.id, data)
-      setContas(prev => prev.map(c => (c.id === editItem.id ? updated : c)))
-    } else {
-      const created = await createContaFixa(data)
-      setContas(prev => [...prev, created])
+    try {
+      if (editItem) {
+        const updated = await updateContaFixa(editItem.id, data)
+        setContas(prev => prev.map(c => (c.id === editItem.id ? updated : c)))
+        alert.success('Conta fixa atualizada com sucesso')
+      } else {
+        const created = await createContaFixa(data)
+        setContas(prev => [...prev, created])
+        alert.success('Conta fixa cadastrada com sucesso')
+      }
+    } catch (err) {
+      alert.error(err)
+      throw err
     }
   }
 
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
-    await deleteContaFixa(deleteTarget.id)
-    setContas(prev => prev.filter(c => c.id !== deleteTarget.id))
-    setDeleteTarget(null)
-    setDeleting(false)
+    try {
+      await deleteContaFixa(deleteTarget.id)
+      setContas(prev => prev.filter(c => c.id !== deleteTarget.id))
+      setDeleteTarget(null)
+      alert.success('Conta fixa excluída com sucesso')
+    } catch (err) {
+      alert.error(err)
+    } finally {
+      setDeleting(false)
+    }
   }
 
   function openCreate() {

@@ -3,6 +3,7 @@ import { TablePagination } from '@/components/ui/pagination'
 import { Plus, Pencil, Trash2, Building2, Landmark } from 'lucide-react'
 import { DadosBancariosModal } from '@/components/financeiro/DadosBancariosModal'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
+import { useAlert } from '@/components/feedback/alert-provider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -30,6 +31,7 @@ import {
 import { cn } from '@/lib/utils'
 
 export default function Fornecedores() {
+  const alert = useAlert()
   const [fornecedores, setFornecedores] = useState<Entidade[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -72,22 +74,35 @@ export default function Fornecedores() {
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   async function handleSave(data: EntidadeFormData) {
-    if (editItem) {
-      const updated = await updateEntidade(editItem.id, data)
-      setFornecedores(prev => prev.map(e => (e.id === editItem.id ? updated : e)))
-    } else {
-      const created = await createEntidade(data)
-      setFornecedores(prev => [...prev, created])
+    try {
+      if (editItem) {
+        const updated = await updateEntidade(editItem.id, data)
+        setFornecedores(prev => prev.map(e => (e.id === editItem.id ? updated : e)))
+        alert.success('Fornecedor atualizado com sucesso')
+      } else {
+        const created = await createEntidade(data)
+        setFornecedores(prev => [...prev, created])
+        alert.success('Fornecedor cadastrado com sucesso')
+      }
+    } catch (err) {
+      alert.error(err)
+      throw err
     }
   }
 
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
-    await deleteEntidade(deleteTarget.id, deleteTarget.tipo)
-    setFornecedores(prev => prev.filter(e => e.id !== deleteTarget.id))
-    setDeleteTarget(null)
-    setDeleting(false)
+    try {
+      await deleteEntidade(deleteTarget.id, deleteTarget.tipo)
+      setFornecedores(prev => prev.filter(e => e.id !== deleteTarget.id))
+      setDeleteTarget(null)
+      alert.success('Fornecedor excluído com sucesso')
+    } catch (err) {
+      alert.error(err)
+    } finally {
+      setDeleting(false)
+    }
   }
 
   function openCreate() {

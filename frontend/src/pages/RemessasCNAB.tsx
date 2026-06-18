@@ -29,6 +29,7 @@ import {
   type ProcessarRetornoResp,
 } from '@/services/cnabService'
 import { cn } from '@/lib/utils'
+import { useAlert } from '@/components/feedback/alert-provider'
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR')
@@ -43,6 +44,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 export default function RemessasCNAB() {
+  const alert = useAlert()
   const [config, setConfig] = useState<ConfiguracaoBancaria | null>(null)
   const [titulos, setTitulos] = useState<TituloAberto[]>([])
   const [remessas, setRemessas] = useState<RemessaCNAB[]>([])
@@ -77,6 +79,7 @@ export default function RemessasCNAB() {
       setRetornos(rets)
       // títulos liquidados saem da lista de abertos → recarrega
       setTitulos(await getTitulosAbertosParaRemessa())
+      alert.success(`Retorno processado: ${resp.resumo.baixados} título(s) baixado(s)`)
     } catch (err) {
       const raw = err instanceof Error ? err.message : String(err)
       let msg = raw
@@ -87,6 +90,7 @@ export default function RemessasCNAB() {
         /* não era JSON */
       }
       setRetErro(msg || 'Erro ao processar o arquivo de retorno.')
+      alert.error(err, 'Erro ao processar o arquivo de retorno.')
     } finally {
       setProcessando(false)
     }
@@ -142,8 +146,10 @@ export default function RemessasCNAB() {
       await gerarRemessa(config.id, Array.from(selected))
       setSelected(new Set())
       await reload()
+      alert.success('Remessa gerada com sucesso')
     } catch (e) {
       setErro(e instanceof Error ? e.message : 'Erro ao gerar remessa.')
+      alert.error(e, 'Erro ao gerar remessa.')
     } finally {
       setGerando(false)
     }

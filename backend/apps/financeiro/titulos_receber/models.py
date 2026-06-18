@@ -116,7 +116,9 @@ class TituloReceber(models.Model):
 
     @property
     def esta_atrasado(self) -> bool:
-        return self.status == self.STATUS_ABERTO and self.data_vencimento < timezone.now().date()
+        # Considera atrasado qualquer título não baixado e vencido — inclui
+        # remessa_criada (boleto registrado em remessa CNAB, mas ainda não pago).
+        return self.status != self.STATUS_BAIXADO and self.data_vencimento < timezone.now().date()
 
     def aplicar_baixa_parcial(self, valor: Decimal, juros: Decimal = Decimal("0"), data=None,
                               valor_via_carteira: Decimal = Decimal("0"),

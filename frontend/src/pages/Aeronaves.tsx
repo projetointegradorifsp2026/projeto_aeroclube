@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { TablePagination } from '@/components/ui/pagination'
 import { Plus, Pencil, Trash2, Plane, Wind } from 'lucide-react'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
+import { useAlert } from '@/components/feedback/alert-provider'
 import { Card, CardContent } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -234,6 +235,7 @@ function PlanadorTable({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function Aeronaves() {
+  const alert = useAlert()
   const [aeronaves, setAeronaves] = useState<Aeronave[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -270,22 +272,35 @@ export default function Aeronaves() {
   const hasNoData = !loading && activeItems.length === 0
 
   async function handleSave(data: AeronaveFormData) {
-    if (editItem) {
-      const updated = await updateAeronave(editItem.id, data)
-      setAeronaves(prev => prev.map(a => (a.id === editItem.id ? updated : a)))
-    } else {
-      const created = await createAeronave(data)
-      setAeronaves(prev => [...prev, created])
+    try {
+      if (editItem) {
+        const updated = await updateAeronave(editItem.id, data)
+        setAeronaves(prev => prev.map(a => (a.id === editItem.id ? updated : a)))
+        alert.success('Aeronave atualizada com sucesso')
+      } else {
+        const created = await createAeronave(data)
+        setAeronaves(prev => [...prev, created])
+        alert.success('Aeronave cadastrada com sucesso')
+      }
+    } catch (err) {
+      alert.error(err)
+      throw err
     }
   }
 
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
-    await deleteAeronave(deleteTarget.id, deleteTarget.tipo)
-    setAeronaves(prev => prev.filter(a => a.id !== deleteTarget.id))
-    setDeleteTarget(null)
-    setDeleting(false)
+    try {
+      await deleteAeronave(deleteTarget.id, deleteTarget.tipo)
+      setAeronaves(prev => prev.filter(a => a.id !== deleteTarget.id))
+      setDeleteTarget(null)
+      alert.success('Aeronave excluída com sucesso')
+    } catch (err) {
+      alert.error(err)
+    } finally {
+      setDeleting(false)
+    }
   }
 
   function openCreate() {
