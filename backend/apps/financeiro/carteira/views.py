@@ -28,6 +28,7 @@ class CarteiraViewSet(mixins.CreateModelMixin,
     """
     queryset = Carteira.objects.select_related("participante").order_by("participante__nome")
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_serializer_class(self):
         if self.action == "retrieve":
@@ -170,6 +171,7 @@ class MovimentacaoCarteiraViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = MovimentacaoCarteira.objects.select_related("carteira__participante").order_by("-data_transacao")
     serializer_class = MovimentacaoCarteiraSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
         qs = super().get_queryset()

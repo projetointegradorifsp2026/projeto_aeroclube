@@ -12,12 +12,14 @@ class AeronaveViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Aeronave.objects.filter(is_active=True, is_deleted=False).order_by("nome")
     serializer_class = AeronaveSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
 
 class AviaoViewSet(viewsets.ModelViewSet):
     """CRUD /api/v1/avioes/  ?all=true inclui inativos (mas nunca excluídos)"""
     serializer_class = AviaoSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
         qs = Aviao.objects.filter(is_deleted=False).order_by("nome")
@@ -52,6 +54,7 @@ class PlanadorViewSet(viewsets.ModelViewSet):
     """CRUD /api/v1/planadores/  ?all=true inclui inativos (mas nunca excluídos)"""
     serializer_class = PlanadorSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
         qs = Planador.objects.filter(is_deleted=False).order_by("nome")

@@ -22,6 +22,7 @@ class VooViewSet(viewsets.ModelViewSet):
     queryset = Voo.objects.select_related("participante", "instrutor", "aeronave").order_by("-data_voo")
     serializer_class = VooSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)

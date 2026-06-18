@@ -16,6 +16,7 @@ class ClienteViewSet(viewsets.ModelViewSet):
     """GET/POST/PATCH/DELETE /api/v1/clientes/"""
     serializer_class = ClienteSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
         qs = Cliente.objects.filter(is_deleted=False).order_by("nome")
@@ -39,6 +40,7 @@ class EntidadePagarViewSet(viewsets.ModelViewSet):
     """GET /api/v1/entidades/?tipo=cliente|fornecedor|funcionario|instrutor"""
     serializer_class = EntidadePagarSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
         qs = EntidadePagar.objects.filter(is_deleted=False).order_by("nome")
@@ -60,6 +62,7 @@ class FornecedorViewSet(viewsets.ModelViewSet):
     """GET /api/v1/fornecedores/"""
     serializer_class = FornecedorSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
         qs = Fornecedor.objects.filter(is_deleted=False).order_by("nome")
@@ -78,6 +81,7 @@ class FuncionarioViewSet(viewsets.ModelViewSet):
     """GET /api/v1/funcionarios/  (inclui instrutores)"""
     serializer_class = FuncionarioSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
         qs = Funcionario.objects.filter(is_deleted=False).order_by("nome")
