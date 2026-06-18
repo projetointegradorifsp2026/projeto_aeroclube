@@ -9,18 +9,18 @@ from .serializers import AeronaveSerializer, AviaoSerializer, PlanadorSerializer
 
 class AeronaveViewSet(viewsets.ReadOnlyModelViewSet):
     """GET /api/v1/aeronaves/ — lista todas as aeronaves (visão resumida, apenas ativas)."""
-    queryset = Aeronave.objects.filter(is_active=True).order_by("nome")
+    queryset = Aeronave.objects.filter(is_active=True, is_deleted=False).order_by("nome")
     serializer_class = AeronaveSerializer
     permission_classes = [IsAuthenticated]
 
 
 class AviaoViewSet(viewsets.ModelViewSet):
-    """CRUD /api/v1/avioes/  ?all=true inclui inativos"""
+    """CRUD /api/v1/avioes/  ?all=true inclui inativos (mas nunca excluídos)"""
     serializer_class = AviaoSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        qs = Aviao.objects.all().order_by("nome")
+        qs = Aviao.objects.filter(is_deleted=False).order_by("nome")
         if self.action == 'list' and self.request.query_params.get("all") != "true":
             qs = qs.filter(is_active=True)
         return qs
@@ -41,27 +41,28 @@ class AviaoViewSet(viewsets.ModelViewSet):
         )
 
     def destroy(self, request, *args, **kwargs):
-        """Soft delete — apenas desativa."""
+        """Soft delete — marca como excluída (nunca mais aparece na interface)."""
         obj = self.get_object()
-        obj.is_active = False
+        obj.is_deleted = True
         obj.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class PlanadorViewSet(viewsets.ModelViewSet):
-    """CRUD /api/v1/planadores/  ?all=true inclui inativos"""
+    """CRUD /api/v1/planadores/  ?all=true inclui inativos (mas nunca excluídos)"""
     serializer_class = PlanadorSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        qs = Planador.objects.all().order_by("nome")
+        qs = Planador.objects.filter(is_deleted=False).order_by("nome")
         if self.action == 'list' and self.request.query_params.get("all") != "true":
             qs = qs.filter(is_active=True)
         return qs
 
     def destroy(self, request, *args, **kwargs):
+        """Soft delete — marca como excluída (nunca mais aparece na interface)."""
         obj = self.get_object()
-        obj.is_active = False
+        obj.is_deleted = True
         obj.save()
         return Response(status=status.HTTP_204_NO_CONTENT)
 

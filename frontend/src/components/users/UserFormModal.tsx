@@ -190,35 +190,35 @@ export function UserFormModal({ user, open, onClose, onSave, restrictedFields = 
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5 col-span-2">
-              <label className="text-sm font-medium">Logradouro</label>
+              <label className="text-sm font-medium">Logradouro (Opcional)</label>
               <Input placeholder="Rua / Avenida" value={form.logradouro}
                 onChange={e => setForm(p => ({ ...p, logradouro: e.target.value }))} autoComplete="off" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Número</label>
+              <label className="text-sm font-medium">Número (Opcional)</label>
               <Input placeholder="123" value={form.numero}
                 onChange={e => setForm(p => ({ ...p, numero: e.target.value }))} autoComplete="off" />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">CEP</label>
+              <label className="text-sm font-medium">CEP (Opcional)</label>
               <Input placeholder="00000-000" value={form.cep}
                 onChange={e => setForm(p => ({ ...p, cep: maskCEP(e.target.value) }))} autoComplete="off" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Bairro</label>
+              <label className="text-sm font-medium">Bairro (Opcional)</label>
               <Input placeholder="Bairro" value={form.bairro}
                 onChange={e => setForm(p => ({ ...p, bairro: e.target.value }))} autoComplete="off" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">UF</label>
+              <label className="text-sm font-medium">UF (Opcional)</label>
               <Input placeholder="SP" maxLength={2} value={form.uf}
                 onChange={e => setForm(p => ({ ...p, uf: e.target.value.toUpperCase() }))} autoComplete="off" />
             </div>
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Cidade</label>
+            <label className="text-sm font-medium">Cidade (Opcional)</label>
             <Input placeholder="Cidade" value={form.cidade}
               onChange={e => setForm(p => ({ ...p, cidade: e.target.value }))} autoComplete="off" />
           </div>

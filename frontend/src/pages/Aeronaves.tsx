@@ -237,7 +237,7 @@ export default function Aeronaves() {
   const [aeronaves, setAeronaves] = useState<Aeronave[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('active')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
 
   const [activeTab, setActiveTab] = useState<'aviao' | 'planador'>('aviao')
   const [editItem, setEditItem] = useState<Aeronave | null>(null)
@@ -282,8 +282,8 @@ export default function Aeronaves() {
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
-    await deleteAeronave(deleteTarget.id)
-    setAeronaves(prev => prev.map(a => a.id === deleteTarget.id ? { ...a, is_active: false } : a))
+    await deleteAeronave(deleteTarget.id, deleteTarget.tipo)
+    setAeronaves(prev => prev.filter(a => a.id !== deleteTarget.id))
     setDeleteTarget(null)
     setDeleting(false)
   }

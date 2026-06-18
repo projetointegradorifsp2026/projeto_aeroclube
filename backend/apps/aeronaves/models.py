@@ -40,6 +40,7 @@ class Aeronave(models.Model):
         ),
     )
     is_active = models.BooleanField("Ativa", default=True)
+    is_deleted = models.BooleanField("Excluída", default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
