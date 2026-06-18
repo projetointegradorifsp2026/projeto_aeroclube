@@ -37,7 +37,7 @@ const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', curren
 const fmtDate = (d: string) => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR')
 const todayStr = () => new Date().toISOString().split('T')[0]
 const isAtrasado = (t: TituloReceber) =>
-  t.status !== 'baixado' && new Date(t.data_vencimento + 'T00:00:00') < new Date()
+  t.status !== 'baixado' && t.data_vencimento < todayStr()
 
 type TipoFilter = 'all' | TituloReceberTipo
 
@@ -231,13 +231,15 @@ export default function TitulosReceber() {
   const [viewTitulo, setViewTitulo] = useState<TituloReceber | null>(null)
 
   useEffect(() => {
-    getTitulosReceber().then(data => {
-      const filtered = isAdmin
-        ? data
-        : data.filter(t => t.usuario_id === String(currentUser?.id))
-      setTitulos(filtered)
-      setLoading(false)
-    })
+    getTitulosReceber()
+      .then(data => {
+        const filtered = isAdmin
+          ? data
+          : data.filter(t => t.usuario_id === String(currentUser?.id))
+        setTitulos(filtered)
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [])
 
   const filtered = useMemo(() => {
