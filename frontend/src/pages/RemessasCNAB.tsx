@@ -12,6 +12,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   getConfiguracoesBancarias,
@@ -148,8 +149,17 @@ export default function RemessasCNAB() {
     }
   }
 
+  const [activeTab, setActiveTab] = useState<'gerar' | 'remessas' | 'retornos'>('gerar')
+  const noTitulos = !loading && titulos.length === 0
+  const noRemessas = !loading && remessas.length === 0
+  const noRetornos = !loading && retornos.length === 0
+  const hasNoData =
+    (activeTab === 'gerar' && noTitulos) ||
+    (activeTab === 'remessas' && noRemessas) ||
+    (activeTab === 'retornos' && noRetornos)
+
   return (
-    <div className="pt-2 space-y-6">
+    <div className={cn("pt-2 flex flex-col gap-6", hasNoData && "flex-1")}>
       <div>
         <h1 className="text-2xl font-bold text-foreground">Remessas CNAB</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
@@ -166,7 +176,7 @@ export default function RemessasCNAB() {
         </Card>
       )}
 
-      <Tabs defaultValue="gerar">
+      <Tabs defaultValue="gerar" className="flex-1" onValueChange={v => setActiveTab(v as 'gerar' | 'remessas' | 'retornos')}>
         <TabsList>
           <TabsTrigger value="gerar">Gerar remessa</TabsTrigger>
           <TabsTrigger value="remessas">
@@ -178,8 +188,8 @@ export default function RemessasCNAB() {
         </TabsList>
 
         {/* GERAR */}
-        <TabsContent value="gerar">
-          <Card>
+        <TabsContent value="gerar" className={cn(noTitulos && "flex flex-col")}>
+          <Card className={cn("flex flex-col", noTitulos && "flex-1")}>
             <CardHeader className="border-b pb-3 flex-row items-center justify-between">
               <CardTitle className="text-sm font-medium text-muted-foreground">
                 {titulos.length} título{titulos.length !== 1 ? 's' : ''} em aberto
@@ -196,15 +206,18 @@ export default function RemessasCNAB() {
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className={cn("p-0 flex flex-col", noTitulos && "flex-1")}>
               {erro && <div className="px-4 py-2 text-sm text-rose-600 border-b">{erro}</div>}
               {loading ? (
                 <div className="p-4 space-y-3">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}</div>
               ) : titulos.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-14 text-muted-foreground">
-                  <FileText className="h-10 w-10 mb-3 opacity-30" />
-                  <p className="text-sm font-medium">Nenhum título em aberto para remessa</p>
-                </div>
+                <Empty className="py-14">
+                  <EmptyHeader>
+                    <EmptyMedia><FileText className="h-10 w-10 text-muted-foreground opacity-30" /></EmptyMedia>
+                    <EmptyTitle>Nenhum título em aberto para remessa</EmptyTitle>
+                    <EmptyDescription>Aguarde títulos serem cadastrados para gerar remessas</EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
               ) : (
                 <table className="w-full text-sm">
                   <thead>
@@ -240,14 +253,17 @@ export default function RemessasCNAB() {
         </TabsContent>
 
         {/* REMESSAS */}
-        <TabsContent value="remessas">
-          <Card>
-            <CardContent className="p-0">
+        <TabsContent value="remessas" className={cn(noRemessas && "flex flex-col")}>
+          <Card className={cn("flex flex-col", noRemessas && "flex-1")}>
+            <CardContent className={cn("p-0 flex flex-col", noRemessas && "flex-1")}>
               {remessas.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-14 text-muted-foreground">
-                  <FileText className="h-10 w-10 mb-3 opacity-30" />
-                  <p className="text-sm font-medium">Nenhuma remessa gerada</p>
-                </div>
+                <Empty className="py-14">
+                  <EmptyHeader>
+                    <EmptyMedia><FileText className="h-10 w-10 text-muted-foreground opacity-30" /></EmptyMedia>
+                    <EmptyTitle>Nenhuma remessa gerada</EmptyTitle>
+                    <EmptyDescription>Gere remessas a partir dos títulos em aberto</EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
               ) : (
                 <div className="divide-y">
                   {remessas.map(r => (
@@ -288,7 +304,7 @@ export default function RemessasCNAB() {
         </TabsContent>
 
         {/* RETORNOS */}
-        <TabsContent value="retornos" className="space-y-4">
+        <TabsContent value="retornos" className={cn(noRetornos ? "flex flex-col gap-4" : "space-y-4")}>
           {/* Importar arquivo de retorno (.RET) */}
           <Card>
             <CardHeader className="border-b pb-3">
@@ -372,13 +388,16 @@ export default function RemessasCNAB() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="p-0">
+          <Card className={cn("flex flex-col", noRetornos && "flex-1")}>
+            <CardContent className={cn("p-0 flex flex-col", noRetornos && "flex-1")}>
               {retornos.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-14 text-muted-foreground">
-                  <FileText className="h-10 w-10 mb-3 opacity-30" />
-                  <p className="text-sm font-medium">Nenhum retorno importado</p>
-                </div>
+                <Empty className="py-14">
+                  <EmptyHeader>
+                    <EmptyMedia><FileText className="h-10 w-10 text-muted-foreground opacity-30" /></EmptyMedia>
+                    <EmptyTitle>Nenhum retorno importado</EmptyTitle>
+                    <EmptyDescription>Importe arquivos de retorno CNAB para processar pagamentos</EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
               ) : (
                 <div className="divide-y">
                   {retornos.map(r => (

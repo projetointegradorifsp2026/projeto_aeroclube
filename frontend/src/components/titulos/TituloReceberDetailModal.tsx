@@ -94,6 +94,8 @@ export function TituloReceberDetailModal({
       ? [...siblings, current].sort((a, b) => a.num_parcela - b.num_parcela)
       : []
 
+  const hasParcelas = allParcelas.length > 0
+
   return (
     <Dialog open={open} onOpenChange={o => !o && onClose()}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
@@ -117,17 +119,23 @@ export function TituloReceberDetailModal({
             >
               {atrasado ? 'Em atraso' : STATUS_LABELS[current.status]}
             </span>
-            {current.total_parcelas > 1 && (
-              <span className="text-xs text-muted-foreground">
-                Parcela {current.num_parcela}/{current.total_parcelas}
-              </span>
-            )}
           </div>
           <DialogTitle className="text-base leading-snug">{current.usuario_nome}</DialogTitle>
           <p className="text-sm text-muted-foreground">{current.descricao}</p>
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Label da parcela selecionada — deixa claro que o bloco abaixo muda conforme a seleção */}
+          {hasParcelas && (
+            <p className="text-xs font-medium text-muted-foreground">
+              Exibindo parcela{' '}
+              <span className="text-foreground">{current.num_parcela}</span>
+              {' '}de{' '}
+              <span className="text-foreground">{current.total_parcelas}</span>
+            </p>
+          )}
+
+          {/* Bloco de informações da parcela */}
           <div className="rounded-lg border border-border overflow-hidden divide-y divide-border text-sm">
             <div className="grid grid-cols-2 divide-x divide-border">
               <div className="px-4 py-3">
@@ -196,10 +204,22 @@ export function TituloReceberDetailModal({
             )}
           </div>
 
-          {allParcelas.length > 0 && (
+          {/* PIX — junto às informações da parcela */}
+          {current.status !== 'baixado' && !isCarteira && (
+            <button
+              onClick={() => setPixOpen(true)}
+              className="w-full flex items-center justify-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+            >
+              <QrCode className="h-3.5 w-3.5" />
+              Pagar com PIX
+            </button>
+          )}
+
+          {/* Parcelas da série */}
+          {hasParcelas && (
             <div className="space-y-1.5">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Parcelas da série
+                Parcelas — selecione para ver detalhes
               </p>
               <div className="rounded-lg border border-border overflow-hidden divide-y divide-border">
                 {allParcelas.map(p => {
@@ -208,9 +228,10 @@ export function TituloReceberDetailModal({
                   return (
                     <div
                       key={p.id}
+                      onClick={() => { if (!isCurrent) setCurrent(p) }}
                       className={cn(
                         'flex items-center gap-3 px-3 py-2 text-sm',
-                        isCurrent && 'bg-primary/5',
+                        isCurrent ? 'bg-primary/5' : 'cursor-pointer hover:bg-muted/40 transition-colors',
                       )}
                     >
                       <span
@@ -240,15 +261,21 @@ export function TituloReceberDetailModal({
                       >
                         {pAtrasado ? 'Atraso' : STATUS_LABELS[p.status]}
                       </span>
-                      {!isCurrent && (
-                        <button
-                          onClick={() => setCurrent(p)}
-                          className="ml-0.5 rounded p-1 hover:bg-muted transition-colors"
-                          title={`Ver parcela #${p.num_parcela}`}
-                        >
-                          <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-                        </button>
-                      )}
+                      <div className="ml-0.5 w-6 h-6 flex items-center justify-center">
+                        {isCurrent ? (
+                          canEdit && !isCarteira ? (
+                            <button
+                              onClick={e => { e.stopPropagation(); onEdit(current) }}
+                              className="rounded p-1 hover:bg-muted transition-colors"
+                              title="Editar esta parcela"
+                            >
+                              <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                            </button>
+                          ) : null
+                        ) : (
+                          <Eye className="h-3.5 w-3.5 text-muted-foreground opacity-50" />
+                        )}
+                      </div>
                     </div>
                   )
                 })}
@@ -256,6 +283,7 @@ export function TituloReceberDetailModal({
             </div>
           )}
 
+          {/* Histórico de pagamentos */}
           {current.baixas && current.baixas.length > 0 && (
             <div className="space-y-1.5">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -299,13 +327,8 @@ export function TituloReceberDetailModal({
               <Button variant="outline" onClick={onClose}>
                 Fechar
               </Button>
-              {current.status !== 'baixado' && !isCarteira && (
-                <Button variant="outline" onClick={() => setPixOpen(true)}>
-                  <QrCode className="h-3.5 w-3.5" />
-                  Pagar com PIX
-                </Button>
-              )}
-              {canEdit && !isCarteira && (
+              {/* Editar no footer apenas quando não há lista de parcelas */}
+              {!hasParcelas && canEdit && !isCarteira && (
                 <Button variant="outline" onClick={() => onEdit(current)}>
                   <Pencil className="h-3.5 w-3.5" />
                   Editar

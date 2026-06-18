@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { TablePagination } from '@/components/ui/pagination'
 import { Input } from '@/components/ui/input'
 import {
@@ -324,10 +325,13 @@ export default function FuncionarioPerfilPage() {
         </CardHeader>
         <CardContent className="p-0">
           {movimentacoes.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-              <Wallet className="h-8 w-8 mb-2 opacity-30" />
-              <p className="text-sm">Nenhuma movimentação encontrada</p>
-            </div>
+            <Empty className="py-10">
+              <EmptyHeader>
+                <EmptyMedia><Wallet className="h-8 w-8 text-muted-foreground opacity-30" /></EmptyMedia>
+                <EmptyTitle>Nenhuma movimentação encontrada</EmptyTitle>
+                <EmptyDescription>As movimentações aparecem conforme títulos são lançados</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -428,10 +432,13 @@ export default function FuncionarioPerfilPage() {
         </CardHeader>
         <CardContent className="p-0">
           {titulos.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-              <Receipt className="h-8 w-8 mb-2 opacity-30" />
-              <p className="text-sm">Nenhum título encontrado</p>
-            </div>
+            <Empty className="py-10">
+              <EmptyHeader>
+                <EmptyMedia><Receipt className="h-8 w-8 text-muted-foreground opacity-30" /></EmptyMedia>
+                <EmptyTitle>Nenhum título encontrado</EmptyTitle>
+                <EmptyDescription>Os títulos aparecem conforme são lançados no sistema</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">

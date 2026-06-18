@@ -93,6 +93,7 @@ class CustoViewSet(viewsets.ModelViewSet):
     """
     queryset = Custo.objects.select_related("favorecido__usuario", "favorecido__entidade").all()
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_serializer_class(self):
         if self.action == "create":

@@ -15,9 +15,10 @@ class TituloReceberViewSet(viewsets.ModelViewSet):
     CRUD /api/v1/titulos-receber/
     Filtros: ?participante=ID  ?status=aberto|baixado  ?atrasado=true
     """
-    queryset = TituloReceber.objects.select_related("participante", "voo").order_by("data_vencimento")
+    queryset = TituloReceber.objects.select_related("participante", "cliente", "voo").order_by("data_vencimento")
     serializer_class = TituloReceberSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
         qs = super().get_queryset()

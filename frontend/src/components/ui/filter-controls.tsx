@@ -62,7 +62,7 @@ export function FilterSelect({
     <div className={cn('relative', className)}>
       <select
         className={cn(
-          'rounded-lg border border-input bg-background pl-2.5 pr-7 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow appearance-none',
+          'w-full rounded-lg border border-input bg-background pl-2.5 pr-7 text-sm outline-none focus:ring-2 focus:ring-ring/50 transition-shadow appearance-none',
           size === 'sm' ? 'h-8' : 'h-10',
         )}
         value={value}

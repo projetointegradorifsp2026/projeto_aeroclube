@@ -90,6 +90,7 @@ class ConfiguracaoBancariaViewSet(viewsets.ModelViewSet):
     queryset = ConfiguracaoBancaria.objects.all().order_by("-is_active", "descricao")
     serializer_class = ConfiguracaoBancariaSerializer
     permission_classes = [IsAdminUser]
+    pagination_class = None
 
 
 class DadosBancariosViewSet(viewsets.ModelViewSet):
@@ -100,6 +101,7 @@ class DadosBancariosViewSet(viewsets.ModelViewSet):
     queryset = DadosBancarios.objects.select_related("usuario", "entidade").all()
     serializer_class = DadosBancariosSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -123,6 +125,7 @@ class RemessaCNABViewSet(viewsets.ModelViewSet):
     queryset = RemessaCNAB.objects.select_related("configuracao", "criado_por").prefetch_related("itens")
     serializer_class = RemessaCNABSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     @action(detail=False, methods=["post"], url_path="gerar")
     def gerar(self, request):
@@ -242,6 +245,7 @@ class RetornoCNABViewSet(viewsets.ModelViewSet):
     queryset = RetornoCNAB.objects.select_related("configuracao", "criado_por").prefetch_related("itens")
     serializer_class = RetornoCNABSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
     @action(detail=False, methods=["post"], url_path="processar")
     def processar(self, request):

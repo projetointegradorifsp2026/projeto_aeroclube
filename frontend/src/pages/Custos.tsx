@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
@@ -72,17 +73,21 @@ interface TableProps {
 
 function CustosTable({ items, selected, onToggle, onView, onFaturar, onVerTitulos, emptyMessage }: TableProps) {
   const [page, setPage] = useState(1)
-  useEffect(() => { setPage(1) }, [items])
+  const itemsKey = items.map(i => i.id).join(',')
+  useEffect(() => { setPage(1) }, [itemsKey])
   const PAGE_SIZE = 10
   const totalPages = Math.ceil(items.length / PAGE_SIZE)
   const paginated = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-14 text-muted-foreground">
-        <TrendingDown className="h-10 w-10 mb-3 opacity-30" />
-        <p className="text-sm font-medium">{emptyMessage}</p>
-      </div>
+      <Empty className="py-14">
+        <EmptyHeader>
+          <EmptyMedia><TrendingDown className="h-10 w-10 text-muted-foreground opacity-30" /></EmptyMedia>
+          <EmptyTitle>{emptyMessage}</EmptyTitle>
+          <EmptyDescription>Tente ajustar os filtros ou registre um novo lançamento</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     )
   }
 
@@ -425,29 +430,14 @@ export default function Custos() {
     })
   }, [custos, search, tipoFilter])
 
-  const byStatus = (s: CustoStatus) => filtered.filter(c => c.status === s)
-
   function openCreate() { setEditCusto(null); setModalOpen(true) }
   function openEdit(c: Custo) { setEditCusto(c); setModalOpen(true) }
 
   function toggleSelect(id: string) {
     setSelected(prev => {
       const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-        return next
-      }
-      // Ao adicionar, garante que toda a seleção seja do MESMO favorecido.
-      // Se for diferente do já selecionado, recomeça a seleção com este custo
-      // (um título a pagar tem um único favorecido).
-      const alvo = custos.find(c => c.id === id)
-      if (alvo && next.size > 0) {
-        const algumSelecionado = custos.find(c => next.has(c.id))
-        if (algumSelecionado && favorecidoKey(alvo) !== favorecidoKey(algumSelecionado)) {
-          return new Set([id])
-        }
-      }
-      next.add(id)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }
@@ -456,6 +446,13 @@ export default function Custos() {
     if (editCusto) {
       const updated = await updateCusto(editCusto.id, data)
       setCustos(prev => prev.map(c => (c.id === editCusto.id ? updated : c)))
+    } else if (data.is_recorrente) {
+      const created = await Promise.all(
+        Array.from({ length: 12 }, (_, i) =>
+          createCusto({ ...data, data_vencimento: addMonths(data.data_vencimento, i) }),
+        ),
+      )
+      setCustos(prev => [...created, ...prev])
     } else {
       const created = await createCusto(data)
       setCustos(prev => [created, ...prev])
@@ -490,14 +487,17 @@ export default function Custos() {
 
   const selectedCustos = custos.filter(c => selected.has(c.id))
 
-  const tabConfig: { value: CustoStatus; label: string; items: Custo[]; badge: string }[] = [
-    { value: 'pendente', label: 'Pendentes', items: byStatus('pendente'), badge: 'bg-amber-100 text-amber-700' },
-    { value: 'faturado', label: 'Faturados', items: byStatus('faturado'), badge: 'bg-blue-100 text-blue-700' },
-    { value: 'quitado', label: 'Quitados', items: byStatus('quitado'), badge: 'bg-emerald-100 text-emerald-700' },
-  ]
+  const tabConfig = useMemo(() => [
+    { value: 'pendente' as CustoStatus, label: 'Pendentes', items: filtered.filter(c => c.status === 'pendente'), badge: 'bg-amber-100 text-amber-700' },
+    { value: 'faturado' as CustoStatus, label: 'Faturados', items: filtered.filter(c => c.status === 'faturado'), badge: 'bg-blue-100 text-blue-700' },
+    { value: 'quitado' as CustoStatus, label: 'Quitados', items: filtered.filter(c => c.status === 'quitado'), badge: 'bg-emerald-100 text-emerald-700' },
+  ], [filtered])
+
+  const [activeTab, setActiveTab] = useState<CustoStatus>('pendente')
+  const hasNoData = !loading && (tabConfig.find(t => t.value === activeTab)?.items.length ?? 0) === 0
 
   return (
-    <div className="pt-2 space-y-6">
+    <div className={cn("pt-2 flex flex-col gap-6", hasNoData && "flex-1")}>
       <div>
         <h1 className="text-2xl font-bold text-foreground">Custos</h1>
         <p className="text-sm text-muted-foreground mt-0.5">
@@ -524,7 +524,7 @@ export default function Custos() {
           {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
         </CardContent></Card>
       ) : (
-        <Tabs defaultValue="pendente">
+        <Tabs defaultValue="pendente" className="flex-1" onValueChange={v => setActiveTab(v as CustoStatus)}>
           <div className="flex items-center justify-between">
             <TabsList>
               {tabConfig.map(t => (
@@ -544,14 +544,14 @@ export default function Custos() {
             )}
           </div>
           {tabConfig.map(t => (
-            <TabsContent key={t.value} value={t.value}>
-              <Card>
+            <TabsContent key={t.value} value={t.value} className={cn(hasNoData && "flex flex-col")}>
+              <Card className={cn("flex flex-col", hasNoData && "flex-1")}>
                 <CardHeader className="border-b pb-3">
                   <CardTitle className="text-sm font-medium text-muted-foreground">
                     {t.items.length} custo{t.items.length !== 1 ? 's' : ''} {CUSTO_STATUS_LABELS[t.value].toLowerCase()}
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-0">
+                <CardContent className={cn("p-0 flex flex-col", hasNoData && "flex-1")}>
                   <CustosTable
                     items={t.items}
                     selected={selected}
