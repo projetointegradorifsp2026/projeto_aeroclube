@@ -44,6 +44,7 @@ class Carteira(models.Model):
             carteira=self,
             tipo=MovimentacaoCarteira.TIPO_CREDITO,
             valor=valor,
+            saldo_restante=valor,
             descricao=descricao,
             data_vencimento=data_vencimento,
             metadados=metadados,
@@ -96,6 +97,17 @@ class MovimentacaoCarteira(models.Model):
         null=True,
         blank=True,
         help_text="Deixar em branco para débitos. Para créditos, indica até quando são válidos.",
+    )
+
+    # RF14 / Price freeze: saldo restante deste lote (só relevante para créditos)
+    saldo_restante = models.DecimalField(
+        "Saldo restante do lote (R$)",
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        null=True,
+        blank=True,
+        help_text="Saldo restante deste lote de crédito. Decrementado a cada débito de voo.",
     )
 
     # Vínculo opcional com o voo que gerou o débito

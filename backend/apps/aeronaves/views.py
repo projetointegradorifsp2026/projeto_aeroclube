@@ -15,6 +15,23 @@ class AeronaveViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
 
 
+def _snapshot_aviao(aviao):
+    return {
+        "tarifa_solo": str(aviao.tarifa_solo),
+        "tarifa_duplo_comando": str(aviao.tarifa_duplo_comando),
+    }
+
+
+def _snapshot_planador(planador):
+    return {
+        "minutos_franquia": planador.minutos_franquia,
+        "valor_fixo_inicial": str(planador.valor_fixo_inicial),
+        "valor_minuto_adicional": str(planador.valor_minuto_adicional),
+        "valor_fixo_duplo": str(planador.valor_fixo_duplo) if planador.valor_fixo_duplo is not None else None,
+        "valor_minuto_duplo": str(planador.valor_minuto_duplo) if planador.valor_minuto_duplo is not None else None,
+    }
+
+
 class AviaoViewSet(viewsets.ModelViewSet):
     """CRUD /api/v1/avioes/  ?all=true inclui inativos (mas nunca excluídos)"""
     serializer_class = AviaoSerializer
@@ -27,23 +44,34 @@ class AviaoViewSet(viewsets.ModelViewSet):
             qs = qs.filter(is_active=True)
         return qs
 
-    def perform_update(self, serializer):
-        """Registra histórico antes de salvar."""
-        instancia = self.get_object()
-        historico = {
-            "tarifa_solo": str(instancia.tarifa_solo),
-            "tarifa_duplo_comando": str(instancia.tarifa_duplo_comando),
-        }
+    def perform_create(self, serializer):
         obj = serializer.save()
         HistoricoTarifaAeronave.objects.create(
             aeronave=obj,
-            descricao_alteracao="Atualização de tarifas",
-            valores_anteriores=historico,
+            descricao_alteracao="Cadastro inicial",
+            valores_anteriores={},
+            valores_vigentes=_snapshot_aviao(obj),
+            alterado_por=self.request.user if self.request.user.is_authenticated else None,
+        )
+
+    def perform_update(self, serializer):
+        instancia = self.get_object()
+        anteriores = _snapshot_aviao(instancia)
+        obj = serializer.save()
+        vigentes = _snapshot_aviao(obj)
+        alteracoes = [
+            f"{k}: {anteriores[k]} → {vigentes[k]}"
+            for k in vigentes if anteriores.get(k) != vigentes[k]
+        ]
+        HistoricoTarifaAeronave.objects.create(
+            aeronave=obj,
+            descricao_alteracao=", ".join(alteracoes) if alteracoes else "Atualização sem mudança de tarifa",
+            valores_anteriores=anteriores,
+            valores_vigentes=vigentes,
             alterado_por=self.request.user if self.request.user.is_authenticated else None,
         )
 
     def destroy(self, request, *args, **kwargs):
-        """Soft delete — marca como excluída (nunca mais aparece na interface)."""
         obj = self.get_object()
         obj.is_deleted = True
         obj.save()
@@ -62,8 +90,34 @@ class PlanadorViewSet(viewsets.ModelViewSet):
             qs = qs.filter(is_active=True)
         return qs
 
+    def perform_create(self, serializer):
+        obj = serializer.save()
+        HistoricoTarifaAeronave.objects.create(
+            aeronave=obj,
+            descricao_alteracao="Cadastro inicial",
+            valores_anteriores={},
+            valores_vigentes=_snapshot_planador(obj),
+            alterado_por=self.request.user if self.request.user.is_authenticated else None,
+        )
+
+    def perform_update(self, serializer):
+        instancia = self.get_object()
+        anteriores = _snapshot_planador(instancia)
+        obj = serializer.save()
+        vigentes = _snapshot_planador(obj)
+        alteracoes = [
+            f"{k}: {anteriores.get(k)} → {vigentes.get(k)}"
+            for k in vigentes if anteriores.get(k) != vigentes.get(k)
+        ]
+        HistoricoTarifaAeronave.objects.create(
+            aeronave=obj,
+            descricao_alteracao=", ".join(alteracoes) if alteracoes else "Atualização sem mudança de tarifa",
+            valores_anteriores=anteriores,
+            valores_vigentes=vigentes,
+            alterado_por=self.request.user if self.request.user.is_authenticated else None,
+        )
+
     def destroy(self, request, *args, **kwargs):
-        """Soft delete — marca como excluída (nunca mais aparece na interface)."""
         obj = self.get_object()
         obj.is_deleted = True
         obj.save()
@@ -91,7 +145,14 @@ class PlanadorViewSet(viewsets.ModelViewSet):
 
 
 class HistoricoTarifaViewSet(viewsets.ReadOnlyModelViewSet):
-    """GET /api/v1/historico-tarifas/"""
-    queryset = HistoricoTarifaAeronave.objects.all().order_by("-alterado_em")
+    """GET /api/v1/historico-tarifas/?aeronave=ID"""
     serializer_class = HistoricoTarifaSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        qs = HistoricoTarifaAeronave.objects.select_related("aeronave", "alterado_por").order_by("-alterado_em")
+        aeronave_id = self.request.query_params.get("aeronave")
+        if aeronave_id:
+            qs = qs.filter(aeronave_id=aeronave_id)
+        return qs
