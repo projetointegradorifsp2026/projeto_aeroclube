@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 
 from django.conf import settings
 from django.contrib.auth.tokens import default_token_generator
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 
@@ -159,18 +159,75 @@ def solicitar_reset_senha(request):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = default_token_generator.make_token(user)
         link = f"{settings.FRONTEND_URL}/resetar-senha?uid={uid}&token={token}"
-        send_mail(
-            subject="Redefinição de senha — Aeroclube",
-            message=(
-                f"Olá {user.nome},\n\n"
-                f"Recebemos uma solicitação para redefinir sua senha. "
-                f"Acesse o link abaixo para criar uma nova senha:\n\n{link}\n\n"
-                f"Se você não solicitou, ignore este e-mail."
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=True,
+        texto = (
+            f"Olá {user.nome},\n\n"
+            f"Recebemos uma solicitação para redefinir sua senha.\n"
+            f"Acesse o link abaixo para criar uma nova senha:\n\n{link}\n\n"
+            f"O link expira em 24 horas.\n\n"
+            f"Se você não solicitou essa redefinição, ignore este e-mail.\n\n"
+            f"— Equipe Aeroclube"
         )
+        html = f"""
+        <!DOCTYPE html>
+        <html lang="pt-BR">
+        <head><meta charset="UTF-8"></head>
+        <body style="margin:0;padding:0;background:#f4f6f8;font-family:Arial,sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f8;padding:40px 0;">
+            <tr><td align="center">
+              <table width="520" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+
+                <tr>
+                  <td style="background:#1a3a5c;padding:32px;text-align:center;">
+                    <h1 style="margin:0;color:#ffffff;font-size:22px;letter-spacing:1px;">✈ AEROCLUBE - RIO CLARO</h1>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="padding:40px 40px 24px;">
+                    <p style="margin:0 0 16px;font-size:16px;color:#333333;">Olá, <strong>{user.nome}</strong></p>
+                    <p style="margin:0 0 24px;font-size:15px;color:#555555;line-height:1.6;">
+                      Recebemos uma solicitação para redefinir a senha da sua conta no Aeroclube.
+                      Clique no botão abaixo para criar uma nova senha:
+                    </p>
+                    <table cellpadding="0" cellspacing="0" style="margin:0 auto 24px;">
+                      <tr>
+                        <td style="background:#1a3a5c;border-radius:6px;">
+                          <a href="{link}" style="display:inline-block;padding:14px 32px;color:#ffffff;font-size:15px;font-weight:bold;text-decoration:none;">
+                            Redefinir minha senha
+                          </a>
+                        </td>
+                      </tr>
+                    </table>
+                    <p style="margin:0 0 8px;font-size:13px;color:#888888;">
+                      Se o botão não funcionar, copie e cole o link abaixo no seu navegador:
+                    </p>
+                    <p style="margin:0 0 24px;font-size:12px;color:#aaaaaa;word-break:break-all;">{link}</p>
+                    <p style="margin:0;font-size:13px;color:#aaaaaa;">
+                      O link expira em <strong>24 horas</strong>. Se você não solicitou a redefinição, ignore este e-mail.
+                    </p>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="background:#f4f6f8;padding:20px;text-align:center;border-top:1px solid #e8eaed;">
+                    <p style="margin:0;font-size:12px;color:#aaaaaa;">© 2026 Aeroclube — Sistema de Gestão</p>
+                  </td>
+                </tr>
+
+              </table>
+            </td></tr>
+          </table>
+        </body>
+        </html>
+        """
+        msg = EmailMultiAlternatives(
+            subject="Redefinição de senha — Aeroclube",
+            body=texto,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[user.email],
+        )
+        msg.attach_alternative(html, "text/html")
+        msg.send(fail_silently=False)
     return Response({"detail": "Se o e-mail estiver cadastrado, enviaremos as instruções de redefinição."})
 
 
