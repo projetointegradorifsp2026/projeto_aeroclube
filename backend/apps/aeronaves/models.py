@@ -163,7 +163,17 @@ class Planador(Aeronave):
 class HistoricoTarifaAeronave(models.Model):
     """
     RF22: Registro do histórico de tarifas por aeronave para consulta e auditoria.
-    Toda vez que a tarifa de uma aeronave é alterada, o valor antigo é registrado aqui.
+    Toda vez que a tarifa de uma aeronave é alterada, um registro é criado aqui.
+
+    valores_vigentes: tarifas que passaram a vigorar a partir de alterado_em.
+    valores_anteriores: tarifas que estavam em vigor antes da alteração (auditoria).
+
+    Para encontrar a tarifa de uma aeronave em uma data X:
+        HistoricoTarifaAeronave.objects
+            .filter(aeronave=A, alterado_em__lte=X)
+            .order_by('-alterado_em')
+            .first()
+            .valores_vigentes
     """
 
     aeronave = models.ForeignKey(
@@ -171,14 +181,19 @@ class HistoricoTarifaAeronave(models.Model):
         on_delete=models.CASCADE,
         related_name="historico_tarifas",
     )
-    # Snapshot dos valores no momento da alteração
     descricao_alteracao = models.TextField(
         "Descrição da alteração",
         help_text="Ex: 'tarifa_solo: 300 → 320'",
     )
     valores_anteriores = models.JSONField(
         "Valores anteriores",
+        default=dict,
         help_text="Snapshot JSON dos valores antes da alteração.",
+    )
+    valores_vigentes = models.JSONField(
+        "Valores vigentes",
+        default=dict,
+        help_text="Snapshot JSON dos valores que passaram a vigorar a partir desta data.",
     )
     alterado_em = models.DateTimeField(auto_now_add=True)
     alterado_por = models.ForeignKey(

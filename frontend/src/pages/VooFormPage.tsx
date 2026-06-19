@@ -27,7 +27,7 @@ import { getUsers, type User } from '@/services/usersService'
 import { createVoo, updateVoo, deleteVoo } from '@/services/voosService'
 import { createReceita } from '@/services/receitasService'
 import { createCusto } from '@/services/custosService'
-import { debitarCarteira } from '@/services/usersService'
+import { calcularCustoVoo, debitarVooCarteira } from '@/services/usersService'
 import { cn } from '@/lib/utils'
 import { useAlert } from '@/components/feedback/alert-provider'
 
@@ -156,6 +156,8 @@ export default function VooFormPage() {
   const [usarCarteira, setUsarCarteira] = useState(false)
   const [carteiraValor, setCarteiraValor] = useState('')
   const [gerarTitulo, setGerarTitulo] = useState(false)
+  const [custoCarteira, setCustoCarteira] = useState<{ calculando: boolean; total: number | null; insuficiente: boolean }>({ calculando: false, total: null, insuficiente: false })
+  const hasManuallyEditedCarteira = useRef(false)
 
   const autoVencimento = useRef<string>('')
 
@@ -228,6 +230,40 @@ export default function VooFormPage() {
     autoVencimento.current = auto
   }, [form.data])
 
+  // Preview do custo frozen da carteira quando "usar carteira" é ativado
+  useEffect(() => {
+    if (!usarCarteira || !form.aeronave_id || !form.participante_id || !form.data) {
+      setCustoCarteira({ calculando: false, total: null, insuficiente: false })
+      return
+    }
+    const aeronave = aeronaves.find(a => a.id === form.aeronave_id)
+    const duracao = aeronave?.tipo === 'planador'
+      ? calcMinutosPlanador(form.inicio, form.fim)
+      : Math.round(form.tempo_decimal * 60)
+    if (duracao <= 0) {
+      setCustoCarteira({ calculando: false, total: null, insuficiente: false })
+      return
+    }
+    const tipoVooApi = TIPOS_VOO_COM_INSTRUTOR.includes(form.tipo_voo) ? 'duplo' : 'solo'
+    let aborted = false
+    const timer = setTimeout(() => {
+      setCustoCarteira(prev => ({ ...prev, calculando: true }))
+      calcularCustoVoo(form.participante_id, parseInt(form.aeronave_id), tipoVooApi, duracao, form.data)
+        .then(r => { if (!aborted) setCustoCarteira({ calculando: false, total: r.total_calculado, insuficiente: r.saldo_insuficiente }) })
+        .catch(() => { if (!aborted) setCustoCarteira({ calculando: false, total: null, insuficiente: false }) })
+    }, 400)
+    return () => { clearTimeout(timer); aborted = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usarCarteira, form.aeronave_id, form.participante_id, form.tipo_voo, form.data, form.tempo_decimal, form.inicio, form.fim])
+
+  // Auto-preenche carteiraValor com o max frozen quando o cálculo termina (sem edição manual)
+  useEffect(() => {
+    if (usarCarteira && !custoCarteira.calculando && custoCarteira.total !== null && !hasManuallyEditedCarteira.current) {
+      setCarteiraValor(carteiraMaxUsavel.toFixed(2))
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [custoCarteira.total, custoCarteira.calculando])
+
   // ─── Computed values ────────────────────────────────────────────────────────
 
   const selectedAeronave = useMemo(
@@ -282,7 +318,7 @@ export default function VooFormPage() {
     () => usuarios.find(u => u.id === form.participante_id)?.saldo_carteira ?? 0,
     [form.participante_id, usuarios],
   )
-  const carteiraMaxUsavel = Math.min(participanteSaldo, valorVoo)
+  const carteiraMaxUsavel = Math.min(participanteSaldo, custoCarteira.total !== null ? custoCarteira.total : valorVoo)
   const carteiraUsadaNum = usarCarteira ? Math.min(parseFloat(carteiraValor) || 0, carteiraMaxUsavel) : 0
   const valorTitulo = valorVoo - carteiraUsadaNum
 
@@ -365,29 +401,45 @@ export default function VooFormPage() {
             : `${voo.tempo_decimal.toFixed(1)}h`
         const descricaoVoo = `${TIPO_VOO_LABELS[voo.tipo_voo]} – ${tempoDisplay} – ${voo.aeronave_nome}`
 
-        // Debit wallet if used
-        if (carteiraUsadaNum > 0) {
-          await debitarCarteira(voo.participante_id, carteiraUsadaNum)
+        // Debit wallet if used — uses price freeze via debitar-voo endpoint
+        let totalDebitadoCarteira = 0
+        if (usarCarteira && form.aeronave_id && carteiraUsadaNum > 0) {
+          const aeronave = aeronaves.find(a => a.id === form.aeronave_id)
+          const duracao = aeronave?.tipo === 'planador'
+            ? calcMinutosPlanador(form.inicio, form.fim)
+            : Math.round(form.tempo_decimal * 60)
+          const tipoVooApi = TIPOS_VOO_COM_INSTRUTOR.includes(form.tipo_voo) ? 'duplo' : 'solo'
+          const resultado = await debitarVooCarteira(
+            voo.participante_id,
+            parseInt(form.aeronave_id),
+            tipoVooApi,
+            duracao,
+            voo.data,
+            descricaoVoo,
+            carteiraUsadaNum,
+          )
+          totalDebitadoCarteira = resultado.total_debitado
         }
 
-        if (valorTitulo > 0) {
+        const valorTituloFinal = Math.max(0, valorVoo - totalDebitadoCarteira)
+        if (valorTituloFinal > 0) {
           // Parte/total via carteira → gera uma RECEITA pendente do valor restante.
           // O operador decide depois se ela vira título a receber (faturar).
           const descricaoFinal =
-            carteiraUsadaNum > 0
-              ? `${descricaoVoo} (${fmt(carteiraUsadaNum)} via carteira)`
+            totalDebitadoCarteira > 0
+              ? `${descricaoVoo} (${fmt(totalDebitadoCarteira)} via carteira)`
               : descricaoVoo
           await createReceita({
             participante_id: voo.participante_id,
             tipo: 'voo',
             descricao: descricaoFinal,
-            valor: valorTitulo,
+            valor: valorTituloFinal,
             data_emissao: voo.data,
             data_vencimento: voo.data_vencimento,
             gerar_titulo: gerarTitulo,
           })
         }
-        // Se valorTitulo <= 0, pagamento coberto pela carteira — nenhuma receita necessária.
+        // Se valorTituloFinal <= 0, pagamento coberto pela carteira — nenhuma receita necessária.
 
         // Custo do instrutor: para PLANADOR o backend já gera o repasse (Custo + título);
         // aqui tratamos apenas AVIÃO, evitando duplicidade.
@@ -814,8 +866,13 @@ export default function VooFormPage() {
                             checked={usarCarteira}
                             onChange={e => {
                               setUsarCarteira(e.target.checked)
-                              if (!e.target.checked) setCarteiraValor('')
-                              else setCarteiraValor(carteiraMaxUsavel.toFixed(2))
+                              hasManuallyEditedCarteira.current = false
+                              if (!e.target.checked) {
+                                setCarteiraValor('')
+                                setCustoCarteira({ calculando: false, total: null, insuficiente: false })
+                              } else {
+                                setCarteiraValor(carteiraMaxUsavel.toFixed(2))
+                              }
                             }}
                           />
                           Usar saldo da carteira
@@ -828,10 +885,21 @@ export default function VooFormPage() {
                               min={0.01}
                               step={0.01}
                               max={carteiraMaxUsavel}
-                              placeholder={carteiraMaxUsavel.toFixed(2)}
+                              placeholder={custoCarteira.calculando ? 'Calculando...' : carteiraMaxUsavel.toFixed(2)}
                               value={carteiraValor}
-                              onChange={e => setCarteiraValor(e.target.value)}
+                              onChange={e => {
+                                hasManuallyEditedCarteira.current = true
+                                setCarteiraValor(e.target.value)
+                              }}
                             />
+                            {custoCarteira.calculando && (
+                              <p className="text-xs text-muted-foreground animate-pulse">Calculando tarifa travada...</p>
+                            )}
+                            {!custoCarteira.calculando && custoCarteira.total !== null && custoCarteira.total < valorVoo && (
+                              <p className="text-xs text-blue-600 dark:text-blue-400">
+                                Tarifa travada aplicada — custo carteira: {fmt(custoCarteira.total)} (economia de {fmt(valorVoo - custoCarteira.total)})
+                              </p>
+                            )}
                             {(() => {
                               const inputNum = parseFloat(carteiraValor) || 0
                               if (inputNum > carteiraMaxUsavel) {

@@ -1287,8 +1287,8 @@ export default function UsuarioPerfilPage() {
             ) : (() => {
               const hoje = new Date().toISOString().split('T')[0]
               const totalVencido = historicoData
-                .filter(m => m.data_vencimento && m.data_vencimento < hoje)
-                .reduce((acc, m) => acc + m.valor, 0)
+                .filter(m => m.status_lote === 'expirado' && (m.saldo_restante ?? 0) > 0)
+                .reduce((acc, m) => acc + (m.saldo_restante ?? 0), 0)
               return (
                 <>
                   <table className="w-full text-sm">
@@ -1296,16 +1296,19 @@ export default function UsuarioPerfilPage() {
                       <tr className="border-b bg-muted/30">
                         <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Data</th>
                         <th className="text-right px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Valor R$</th>
+                        <th className="text-right px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Saldo restante</th>
                         <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Vencimento</th>
+                        <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Status</th>
                         <th className="text-left px-4 py-2 font-medium text-muted-foreground">Equivalência</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {historicoData.map(m => {
-                        const vencido = !!(m.data_vencimento && m.data_vencimento < hoje)
+                        const expirado = m.status_lote === 'expirado'
                         const expanded = expandedEquiv.has(m.id)
+                        const saldoRef = m.saldo_restante ?? m.valor
                         return (
-                          <tr key={m.id} className={cn('hover:bg-muted/20', vencido && 'opacity-60')}>
+                          <tr key={m.id} className={cn('hover:bg-muted/20', expirado && 'opacity-60')}>
                             <td className="px-4 py-2 whitespace-nowrap text-muted-foreground">
                               {fmtDate(m.data_transacao.split('T')[0])}
                             </td>
@@ -1314,13 +1317,30 @@ export default function UsuarioPerfilPage() {
                                 +{fmt(m.valor)}
                               </span>
                             </td>
-                            <td className="px-4 py-2 whitespace-nowrap">
-                              {m.data_vencimento ? (
-                                <span className={cn('text-sm', vencido ? 'text-rose-500' : '')}>
-                                  {fmtDate(m.data_vencimento)}
-                                  {vencido && <span className="ml-1 text-xs">(expirado)</span>}
+                            <td className="px-4 py-2 text-right whitespace-nowrap">
+                              {m.saldo_restante != null ? (
+                                <span className={cn('font-semibold', m.saldo_restante > 0 ? 'text-foreground' : 'text-muted-foreground')}>
+                                  {fmt(m.saldo_restante)}
                                 </span>
                               ) : '—'}
+                            </td>
+                            <td className="px-4 py-2 whitespace-nowrap">
+                              {m.data_vencimento ? (
+                                <span className={cn('text-sm', expirado ? 'text-rose-500' : '')}>
+                                  {fmtDate(m.data_vencimento)}
+                                </span>
+                              ) : '—'}
+                            </td>
+                            <td className="px-4 py-2 whitespace-nowrap">
+                              {expirado ? (
+                                <span className="inline-flex rounded-full bg-rose-100 dark:bg-rose-900/40 px-2 py-0.5 text-xs font-medium text-rose-700 dark:text-rose-400">
+                                  Expirado
+                                </span>
+                              ) : (
+                                <span className="inline-flex rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                                  Válido
+                                </span>
+                              )}
                             </td>
                             <td className="px-4 py-2">
                               <button
@@ -1337,19 +1357,38 @@ export default function UsuarioPerfilPage() {
                               </button>
                               {expanded && (
                                 <div className="flex flex-col gap-0.5 text-xs text-muted-foreground mt-1.5">
-                                  {historicoAeronaves.map(a => {
-                                    if (a.tipo === 'aviao') {
-                                      const solo = a.valor_solo > 0 ? `${(m.valor / a.valor_solo).toFixed(1)}h solo` : null
-                                      const duplo = a.valor_duplo > 0 ? `${(m.valor / a.valor_duplo).toFixed(1)}h duplo` : null
-                                      const eq = [solo, duplo].filter(Boolean).join(' / ')
-                                      return <span key={a.id}><span className="font-medium text-foreground">{a.nome}:</span> {eq}</span>
-                                    } else {
-                                      const sessoes = a.valor_fixo_inicial > 0
-                                        ? `${(m.valor / a.valor_fixo_inicial).toFixed(1)} sessões`
-                                        : '—'
-                                      return <span key={a.id}><span className="font-medium text-foreground">{a.nome}:</span> {sessoes}</span>
-                                    }
-                                  })}
+                                  {expirado && (
+                                    <span className="text-rose-500 italic mb-0.5">Tarifa travada expirada — usando tarifa atual</span>
+                                  )}
+                                  {expirado || !m.tarifas_historicas
+                                    ? historicoAeronaves.filter(a => a.is_active).map(a => {
+                                        if (a.tipo === 'aviao') {
+                                          const solo = a.valor_solo > 0 ? `${(saldoRef / a.valor_solo).toFixed(1)}h solo` : null
+                                          const duplo = a.valor_duplo > 0 ? `${(saldoRef / a.valor_duplo).toFixed(1)}h duplo` : null
+                                          const eq = [solo, duplo].filter(Boolean).join(' / ')
+                                          return <span key={a.id}><span className="font-medium text-foreground">{a.nome}:</span> {eq}</span>
+                                        } else {
+                                          const sessoes = a.valor_fixo_inicial > 0
+                                            ? `${(saldoRef / a.valor_fixo_inicial).toFixed(1)} sessões`
+                                            : '—'
+                                          return <span key={a.id}><span className="font-medium text-foreground">{a.nome}:</span> {sessoes}</span>
+                                        }
+                                      })
+                                    : Object.entries(m.tarifas_historicas).map(([id, t]) => {
+                                        if (t.tipo === 'aviao') {
+                                          const solo = t.tarifa_solo ? parseFloat(t.tarifa_solo) : 0
+                                          const duplo = t.tarifa_duplo_comando ? parseFloat(t.tarifa_duplo_comando) : 0
+                                          const eqSolo = solo > 0 ? `${(saldoRef / solo).toFixed(1)}h solo` : null
+                                          const eqDuplo = duplo > 0 ? `${(saldoRef / duplo).toFixed(1)}h duplo` : null
+                                          const eq = [eqSolo, eqDuplo].filter(Boolean).join(' / ')
+                                          return <span key={id}><span className="font-medium text-foreground">{t.nome}:</span> {eq}</span>
+                                        } else {
+                                          const fixo = t.valor_fixo_inicial ? parseFloat(t.valor_fixo_inicial) : 0
+                                          const sessoes = fixo > 0 ? `${(saldoRef / fixo).toFixed(1)} sessões` : '—'
+                                          return <span key={id}><span className="font-medium text-foreground">{t.nome}:</span> {sessoes}</span>
+                                        }
+                                      })
+                                  }
                                 </div>
                               )}
                             </td>
@@ -1361,11 +1400,14 @@ export default function UsuarioPerfilPage() {
                   {totalVencido > 0 && (
                     <div className="mx-4 my-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm dark:border-rose-900 dark:bg-rose-950/30">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-rose-700 dark:text-rose-400 font-semibold">Saldo vencido</span>
+                        <span className="text-rose-700 dark:text-rose-400 font-semibold">Saldo expirado disponível</span>
                         <span className="text-rose-700 dark:text-rose-400 font-bold">{fmt(totalVencido)}</span>
                       </div>
+                      <p className="text-xs text-rose-600 dark:text-rose-400 mb-2">
+                        Este saldo pode ser usado, porém sem tarifa travada — será cobrado pela tarifa atual da aeronave no momento do voo.
+                      </p>
                       <div className="flex flex-col gap-0.5 text-xs text-rose-600 dark:text-rose-400">
-                        {historicoAeronaves.map(a => {
+                        {historicoAeronaves.filter(a => a.is_active).map(a => {
                           if (a.tipo === 'aviao') {
                             const solo = a.valor_solo > 0 ? `${(totalVencido / a.valor_solo).toFixed(1)}h solo` : null
                             const duplo = a.valor_duplo > 0 ? `${(totalVencido / a.valor_duplo).toFixed(1)}h duplo` : null
