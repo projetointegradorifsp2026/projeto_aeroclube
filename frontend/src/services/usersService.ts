@@ -212,24 +212,42 @@ export async function removerSaldoCarteira(
   })
 }
 
+export interface TarifaHistoricaItem {
+  nome: string
+  tipo: 'aviao' | 'planador'
+  tarifa_solo?: string
+  tarifa_duplo_comando?: string
+  minutos_franquia?: number
+  valor_fixo_inicial?: string
+  valor_minuto_adicional?: string
+  valor_fixo_duplo?: string | null
+  valor_minuto_duplo?: string | null
+}
+
 export interface MovimentacaoCarteira {
   id: string
   tipo: 'credito' | 'debito' | 'ajuste'
   valor: number
+  saldo_restante: number | null
+  status_lote: 'valido' | 'expirado' | null
   descricao: string
   data_transacao: string
   data_vencimento: string | null
   metadados: CreditoHorasMetadados | null
+  tarifas_historicas: Record<string, TarifaHistoricaItem> | null
 }
 
 interface BackendMovimentacao {
   id: number
   tipo: string
   valor: string
+  saldo_restante: string | null
+  status_lote: 'valido' | 'expirado' | null
   descricao: string
   data_transacao: string
   data_vencimento: string | null
   metadados: CreditoHorasMetadados | null
+  tarifas_historicas: Record<string, TarifaHistoricaItem> | null
 }
 
 export async function getMovimentacoesCarteira(userId: string): Promise<MovimentacaoCarteira[]> {
@@ -242,10 +260,13 @@ export async function getMovimentacoesCarteira(userId: string): Promise<Moviment
       id: String(m.id),
       tipo: m.tipo as 'credito' | 'debito' | 'ajuste',
       valor: parseFloat(m.valor),
+      saldo_restante: m.saldo_restante != null ? parseFloat(m.saldo_restante) : null,
+      status_lote: m.status_lote ?? null,
       descricao: m.descricao,
       data_transacao: m.data_transacao,
       data_vencimento: m.data_vencimento,
       metadados: m.metadados,
+      tarifas_historicas: m.tarifas_historicas ?? null,
     }))
 }
 
@@ -264,6 +285,59 @@ export async function debitarCarteira(id: string, valor: number): Promise<User |
     return adaptUser(user, saldoMap.get(user.id) ?? 0)
   } catch {
     return null
+  }
+}
+
+export async function calcularCustoVoo(
+  userId: string,
+  aeronaveId: number,
+  tipoVoo: string,
+  duracaoMinutos: number,
+  dataVoo: string,
+): Promise<{ total_calculado: number; saldo_insuficiente: boolean }> {
+  const carteira = await getOrCreateCarteira(userId)
+  const result = await apiPost<{ total_calculado: string; saldo_insuficiente: boolean }>(
+    `/api/v1/carteiras/${carteira.id}/calcular-custo-voo/`,
+    {
+      aeronave_id: aeronaveId,
+      tipo_voo: tipoVoo,
+      duracao_minutos: duracaoMinutos,
+      data_voo: dataVoo,
+    },
+  )
+  return {
+    total_calculado: parseFloat(result.total_calculado),
+    saldo_insuficiente: result.saldo_insuficiente,
+  }
+}
+
+export async function debitarVooCarteira(
+  userId: string,
+  aeronaveId: number,
+  tipoVoo: string,
+  duracaoMinutos: number,
+  dataVoo: string,
+  descricao: string,
+  maxDebit?: number,
+): Promise<{ total_debitado: number; saldo_atual: number; saldo_insuficiente: boolean }> {
+  const carteira = await getOrCreateCarteira(userId)
+  const body: Record<string, unknown> = {
+    aeronave_id: aeronaveId,
+    tipo_voo: tipoVoo,
+    duracao_minutos: duracaoMinutos,
+    data_voo: dataVoo,
+    descricao,
+  }
+  if (maxDebit !== undefined) body.max_debit = maxDebit.toFixed(2)
+  const result = await apiPost<{
+    total_debitado: string
+    saldo_atual: string
+    saldo_insuficiente: boolean
+  }>(`/api/v1/carteiras/${carteira.id}/debitar-voo/`, body)
+  return {
+    total_debitado: parseFloat(result.total_debitado),
+    saldo_atual: parseFloat(result.saldo_atual),
+    saldo_insuficiente: result.saldo_insuficiente,
   }
 }
 

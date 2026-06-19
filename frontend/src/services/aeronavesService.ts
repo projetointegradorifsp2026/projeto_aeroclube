@@ -128,4 +128,19 @@ export async function deleteAeronave(id: string, tipo: 'aviao' | 'planador'): Pr
   await apiDelete(endpoint)
 }
 
+export interface HistoricoTarifa {
+  id: number
+  aeronave: number
+  descricao_alteracao: string
+  valores_anteriores: Record<string, string | number | null>
+  valores_vigentes: Record<string, string | number | null>
+  alterado_em: string
+  alterado_por: number | null
+  alterado_por_nome: string | null
+}
+
+export async function getHistoricoTarifas(aeronaveId: string): Promise<HistoricoTarifa[]> {
+  return apiList<HistoricoTarifa>(`/api/v1/historico-tarifas/?aeronave=${aeronaveId}`)
+}
+
 export type { Aeronave }

@@ -35,6 +35,12 @@ class AeronaveSerializer(serializers.ModelSerializer):
 
 
 class HistoricoTarifaSerializer(serializers.ModelSerializer):
+    alterado_por_nome = serializers.CharField(source="alterado_por.nome", read_only=True, default=None)
+
     class Meta:
         model = HistoricoTarifaAeronave
-        fields = ["id", "aeronave", "descricao_alteracao", "valores_anteriores", "alterado_em", "alterado_por"]
+        fields = [
+            "id", "aeronave", "descricao_alteracao",
+            "valores_anteriores", "valores_vigentes",
+            "alterado_em", "alterado_por", "alterado_por_nome",
+        ]

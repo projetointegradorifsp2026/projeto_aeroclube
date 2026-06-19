@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { TablePagination } from '@/components/ui/pagination'
-import { Plus, Pencil, Trash2, Plane, Wind } from 'lucide-react'
+import { Plus, Pencil, Trash2, Plane, Wind, History } from 'lucide-react'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
 import { useAlert } from '@/components/feedback/alert-provider'
 import { Card, CardContent } from '@/components/ui/card'
@@ -27,8 +27,12 @@ import {
   createAeronave,
   updateAeronave,
   deleteAeronave,
+  getHistoricoTarifas,
   type Aeronave,
+  type HistoricoTarifa,
 } from '@/services/aeronavesService'
+
+const fmtDate = (d: string) => new Date(d).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 
@@ -70,10 +74,12 @@ function AviaoTable({
   items,
   onEdit,
   onDelete,
+  onHistorico,
 }: {
   items: Aeronave[]
   onEdit: (a: Aeronave) => void
   onDelete: (a: Aeronave) => void
+  onHistorico: (a: Aeronave) => void
 }) {
   const [page, setPage] = useState(1)
   useEffect(() => { setPage(1) }, [items])
@@ -125,6 +131,9 @@ function AviaoTable({
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
+                    <Button variant="ghost" size="icon-sm" onClick={() => onHistorico(a)} title="Histórico de tarifas">
+                      <History className="h-3.5 w-3.5 text-muted-foreground" />
+                    </Button>
                     <Button variant="ghost" size="icon-sm" onClick={() => onEdit(a)} title="Editar">
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
@@ -150,10 +159,12 @@ function PlanadorTable({
   items,
   onEdit,
   onDelete,
+  onHistorico,
 }: {
   items: Aeronave[]
   onEdit: (a: Aeronave) => void
   onDelete: (a: Aeronave) => void
+  onHistorico: (a: Aeronave) => void
 }) {
   const [page, setPage] = useState(1)
   useEffect(() => { setPage(1) }, [items])
@@ -211,6 +222,9 @@ function PlanadorTable({
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center justify-end gap-1">
+                    <Button variant="ghost" size="icon-sm" onClick={() => onHistorico(a)} title="Histórico de tarifas">
+                      <History className="h-3.5 w-3.5 text-muted-foreground" />
+                    </Button>
                     <Button variant="ghost" size="icon-sm" onClick={() => onEdit(a)} title="Editar">
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
@@ -246,6 +260,10 @@ export default function Aeronaves() {
   const [modalOpen, setModalOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<Aeronave | null>(null)
   const [deleting, setDeleting] = useState(false)
+
+  const [historicoTarget, setHistoricoTarget] = useState<Aeronave | null>(null)
+  const [historicoData, setHistoricoData] = useState<HistoricoTarifa[]>([])
+  const [historicoLoading, setHistoricoLoading] = useState(false)
 
   useEffect(() => {
     getAeronaves().then(data => {
@@ -318,6 +336,18 @@ export default function Aeronaves() {
     setDeleteTarget(editItem)
   }
 
+  async function openHistorico(a: Aeronave) {
+    setHistoricoTarget(a)
+    setHistoricoLoading(true)
+    setHistoricoData([])
+    try {
+      const data = await getHistoricoTarifas(a.id)
+      setHistoricoData(data)
+    } finally {
+      setHistoricoLoading(false)
+    }
+  }
+
   return (
     <div className={cn("pt-2 flex flex-col gap-6", hasNoData && "flex-1")}>
       <div>
@@ -380,14 +410,14 @@ export default function Aeronaves() {
           <TabsContent value="aviao" className={cn(hasNoData && "flex flex-col")}>
             <Card className={cn("flex flex-col", hasNoData && "flex-1")}>
               <CardContent className={cn("p-0 flex flex-col", hasNoData && "flex-1")}>
-                <AviaoTable items={avioes} onEdit={openEdit} onDelete={setDeleteTarget} />
+                <AviaoTable items={avioes} onEdit={openEdit} onDelete={setDeleteTarget} onHistorico={openHistorico} />
               </CardContent>
             </Card>
           </TabsContent>
           <TabsContent value="planador" className={cn(hasNoData && "flex flex-col")}>
             <Card className={cn("flex flex-col", hasNoData && "flex-1")}>
               <CardContent className={cn("p-0 flex flex-col", hasNoData && "flex-1")}>
-                <PlanadorTable items={planadores} onEdit={openEdit} onDelete={setDeleteTarget} />
+                <PlanadorTable items={planadores} onEdit={openEdit} onDelete={setDeleteTarget} onHistorico={openHistorico} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -401,6 +431,75 @@ export default function Aeronaves() {
         onSave={handleSave}
         onDeleteRequest={editItem ? handleDeleteRequest : undefined}
       />
+
+      {/* Dialog: Histórico de Tarifas */}
+      <Dialog open={!!historicoTarget} onOpenChange={o => !o && setHistoricoTarget(null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Histórico de Tarifas — {historicoTarget?.nome}</DialogTitle>
+            <DialogDescription>
+              Registro de todas as alterações de tarifa desta aeronave.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1">
+            {historicoLoading ? (
+              <div className="space-y-2 p-2">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full" />
+                ))}
+              </div>
+            ) : historicoData.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-8">
+                Nenhum registro de histórico encontrado.
+              </p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-muted/30">
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Data / Hora</th>
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Alterado por</th>
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground">Descrição</th>
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Tarifas vigentes</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {historicoData.map((h, idx) => (
+                    <tr key={h.id} className={cn('hover:bg-muted/20', idx === 0 && 'bg-emerald-50/50 dark:bg-emerald-950/20')}>
+                      <td className="px-4 py-3 whitespace-nowrap text-muted-foreground text-xs">
+                        {fmtDate(h.alterado_em)}
+                        {idx === 0 && <span className="ml-1.5 inline-flex rounded-full bg-emerald-100 dark:bg-emerald-900/40 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400">atual</span>}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm">
+                        {h.alterado_por_nome ?? <span className="text-muted-foreground">—</span>}
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground text-xs max-w-[200px]">
+                        <p className="truncate">{h.descricao_alteracao}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col gap-0.5 text-xs">
+                          {Object.entries(h.valores_vigentes).map(([k, v]) => v !== null && (
+                            <span key={k}>
+                              <span className="font-medium text-foreground">{k.replace(/_/g, ' ')}:</span>{' '}
+                              <span className="text-muted-foreground">
+                                {typeof v === 'number' || (typeof v === 'string' && !isNaN(Number(v)))
+                                  ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                                  : String(v)}
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setHistoricoTarget(null)}>Fechar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!deleteTarget} onOpenChange={o => !o && setDeleteTarget(null)}>
         <DialogContent className="sm:max-w-sm">
