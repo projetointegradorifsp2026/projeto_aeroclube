@@ -53,8 +53,6 @@ export default function Login() {
     }
     if (!senha) {
       newErrors.senha = "Senha é obrigatória"
-    } else if (senha.length <= 6) {
-      newErrors.senha = "A senha deve ter mais de 6 caracteres"
     }
     setErrors(newErrors)
 
@@ -195,7 +193,8 @@ export default function Login() {
               {forgotSent ? (
                 <p className="text-sm text-center text-muted-foreground">
                   Se o e-mail estiver cadastrado, enviamos as instruções de
-                  redefinição. Verifique sua caixa de entrada.
+                  redefinição. Verifique sua caixa de entrada e também a caixa
+                  de spam.
                 </p>
               ) : (
                 <>
