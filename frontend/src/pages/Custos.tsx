@@ -298,14 +298,6 @@ function FaturarModal({ custo, open, onClose, onConfirm }: FaturarModalProps) {
 
 // ── Modal de agrupamento ──────────────────────────────────────────────────────
 
-// Identidade do favorecido de um custo. Custos só podem ser agrupados num título
-// a pagar se compartilharem o mesmo favorecido (por id, ou pelo nome livre em "outros").
-function favorecidoKey(c: Custo): string {
-  if (c.favorecido_id) return `id:${c.favorecido_id}`
-  if (c.favorecido_nome) return `nome:${c.favorecido_nome.trim().toLowerCase()}`
-  return 'none'
-}
-
 // Extrai a mensagem de erro do backend (o client lança Error(JSON.stringify(err))).
 function msgErro(e: unknown): string {
   const raw = e instanceof Error ? e.message : String(e)
