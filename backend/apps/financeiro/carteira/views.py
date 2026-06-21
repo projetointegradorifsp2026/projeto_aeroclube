@@ -401,6 +401,7 @@ class CarteiraViewSet(mixins.CreateModelMixin,
         data_voo_raw = request.data.get("data_voo")
         descricao = request.data.get("descricao", "Débito de voo")
         max_debit_raw = request.data.get("max_debit")
+        voo_id = request.data.get("voo_id")
 
         if not aeronave_id or not duracao_minutos_raw or not data_voo_raw:
             return Response(
@@ -449,6 +450,7 @@ class CarteiraViewSet(mixins.CreateModelMixin,
                     tipo=MovimentacaoCarteira.TIPO_DEBITO,
                     valor=total_debitado,
                     descricao=descricao,
+                    voo_id=voo_id or None,
                     metadados={
                         "aeronave_id": aeronave_id,
                         "aeronave_nome": aeronave.nome,

@@ -78,6 +78,7 @@ export interface ReceitaInput {
   data_emissao: string
   data_vencimento: string
   gerar_titulo?: boolean
+  voo_id?: string
 }
 
 export async function getReceitas(): Promise<Receita[]> {
@@ -96,6 +97,7 @@ export async function createReceita(input: ReceitaInput): Promise<Receita> {
     data_emissao: input.data_emissao,
     data_vencimento: input.data_vencimento,
     gerar_titulo: input.gerar_titulo ?? false,
+    voo: input.voo_id ? parseInt(input.voo_id, 10) : null,
   }
   const created = await apiPost<BackendReceita>('/api/v1/receitas/', payload)
   return adapt(created)

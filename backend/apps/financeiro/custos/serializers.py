@@ -21,6 +21,7 @@ class CustoSerializer(serializers.ModelSerializer):
         fields = [
             "id", "tipo", "tipo_display",
             "favorecido", "favorecido_nome",
+            "voo",
             "descricao",
             "num_parcela", "total_parcelas",
             "valor",
@@ -86,6 +87,7 @@ class CustoWriteSerializer(serializers.ModelSerializer):
         model = Custo
         fields = [
             "tipo", "favorecido_id", "favorecido_nome", "favorecido_tipo",
+            "voo",
             "descricao", "num_parcela", "total_parcelas", "valor",
             "data_emissao", "data_vencimento",
             "is_recorrente", "periodicidade_dias",

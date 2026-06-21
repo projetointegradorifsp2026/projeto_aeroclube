@@ -53,6 +53,7 @@ class VooViewSet(viewsets.ModelViewSet):
         Custo.objects.create(
             tipo=Custo.TIPO_FOLHA,
             favorecido=fav,
+            voo=voo,
             descricao=descricao,
             num_parcela=1,
             total_parcelas=1,
@@ -61,6 +62,64 @@ class VooViewSet(viewsets.ModelViewSet):
             data_vencimento=voo.data_voo,
             status=Custo.STATUS_PENDENTE,
         )
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Exclui o voo aplicando cascata segura:
+        - BLOQUEIA se já houver título a receber gerado, ou receita/custo
+          faturado/quitado (financeiro já cobrado/pago) — exige estorno manual antes.
+        - Caso contrário, apaga receitas/custos PENDENTES vinculados e estorna
+          os débitos de carteira do voo antes de remover o registro.
+        """
+        voo = self.get_object()
+        from apps.financeiro.receitas.models import Receita
+        from apps.financeiro.custos.models import Custo
+        from apps.financeiro.titulos_receber.models import TituloReceber
+
+        receitas = voo.receitas.all()
+        custos = voo.custos.all()
+
+        bloqueios = []
+        if TituloReceber.objects.filter(voo=voo).exists() or \
+                receitas.filter(status__in=[Receita.STATUS_FATURADA, Receita.STATUS_QUITADA]).exists():
+            bloqueios.append("título a receber já gerado/cobrado")
+        if custos.filter(status__in=[Custo.STATUS_FATURADO, Custo.STATUS_QUITADO]).exists():
+            bloqueios.append("custo (repasse) já faturado/pago")
+
+        if bloqueios:
+            return Response(
+                {"detail": "Não é possível excluir o voo: " + "; ".join(bloqueios) +
+                           ". Estorne/cancele o financeiro vinculado antes."},
+                status=status.HTTP_409_CONFLICT,
+            )
+
+        with transaction.atomic():
+            self._estornar_carteira_do_voo(voo)
+            receitas.delete()
+            custos.delete()
+            voo.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def _estornar_carteira_do_voo(self, voo):
+        """Devolve à carteira os débitos do voo e restaura o saldo dos lotes consumidos."""
+        from apps.financeiro.carteira.models import MovimentacaoCarteira
+
+        movs = MovimentacaoCarteira.objects.filter(
+            voo=voo, tipo=MovimentacaoCarteira.TIPO_DEBITO
+        )
+        for mov in movs:
+            carteira = mov.carteira
+            carteira.saldo += mov.valor
+            carteira.save(update_fields=["saldo"])
+            for item in (mov.metadados or {}).get("breakdown", []):
+                lote_id = item.get("lote_id")
+                if not lote_id:
+                    continue
+                lote = MovimentacaoCarteira.objects.filter(pk=lote_id).first()
+                if lote and lote.saldo_restante is not None:
+                    lote.saldo_restante += Decimal(str(item.get("valor_debitado", "0")))
+                    lote.save(update_fields=["saldo_restante"])
+            mov.delete()
 
     def get_queryset(self):
         qs = super().get_queryset()

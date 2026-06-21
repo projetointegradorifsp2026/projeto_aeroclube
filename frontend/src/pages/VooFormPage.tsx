@@ -417,6 +417,7 @@ export default function VooFormPage() {
             voo.data,
             descricaoVoo,
             carteiraUsadaNum,
+            voo.id,
           )
           totalDebitadoCarteira = resultado.total_debitado
         }
@@ -437,6 +438,7 @@ export default function VooFormPage() {
             data_emissao: voo.data,
             data_vencimento: voo.data_vencimento,
             gerar_titulo: gerarTitulo,
+            voo_id: voo.id,
           })
         }
         // Se valorTituloFinal <= 0, pagamento coberto pela carteira — nenhuma receita necessária.
@@ -455,6 +457,7 @@ export default function VooFormPage() {
             valor: voo.valor_voo * (voo.taxa_instrutor / 100),
             data_emissao: voo.data,
             data_vencimento: voo.data_vencimento,
+            voo_id: voo.id,
           })
         }
       }

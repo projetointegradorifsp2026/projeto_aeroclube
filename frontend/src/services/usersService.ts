@@ -319,6 +319,7 @@ export async function debitarVooCarteira(
   dataVoo: string,
   descricao: string,
   maxDebit?: number,
+  vooId?: string,
 ): Promise<{ total_debitado: number; saldo_atual: number; saldo_insuficiente: boolean }> {
   const carteira = await getOrCreateCarteira(userId)
   const body: Record<string, unknown> = {
@@ -329,6 +330,7 @@ export async function debitarVooCarteira(
     descricao,
   }
   if (maxDebit !== undefined) body.max_debit = maxDebit.toFixed(2)
+  if (vooId) body.voo_id = parseInt(vooId, 10)
   const result = await apiPost<{
     total_debitado: string
     saldo_atual: string

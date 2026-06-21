@@ -49,6 +49,16 @@ class Custo(models.Model):
         verbose_name="Favorecido",
     )
 
+    # Vínculo com voo de origem (quando o custo vem de um voo — ex: repasse de instrutor)
+    voo = models.ForeignKey(
+        "voos.Voo",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="custos",
+        verbose_name="Voo de origem",
+    )
+
     descricao = models.CharField("Descrição", max_length=300)
 
     # Parcelamento
