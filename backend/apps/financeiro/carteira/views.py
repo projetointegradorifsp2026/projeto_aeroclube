@@ -289,9 +289,18 @@ class CarteiraViewSet(mixins.CreateModelMixin,
         except Exception:
             return Response({"detail": "Valor inválido."}, status=status.HTTP_400_BAD_REQUEST)
 
+        if valor <= 0:
+            return Response({"detail": "O valor deve ser maior que zero."}, status=status.HTTP_400_BAD_REQUEST)
+
         hoje = timezone.now().date()
 
         if is_remocao:
+            # Não permite remover mais do que o saldo disponível na carteira.
+            if valor > carteira.saldo:
+                return Response(
+                    {"detail": f"Saldo insuficiente. Disponível: R$ {carteira.saldo}."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             with transaction.atomic():
                 from apps.financeiro.custos.models import Custo
                 from apps.pessoas.models import Favorecido
