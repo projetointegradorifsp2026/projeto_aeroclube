@@ -223,6 +223,9 @@ export default function Login() {
                   setForgotMode(false)
                   setForgotSent(false)
                   setForgotEmail("")
+                  setEmail("")
+                  setSenha("")
+                  setErrors({})
                 }}
               >
                 Voltar ao login
@@ -326,7 +329,12 @@ export default function Login() {
             <div className="text-center">
               <button
                 type="button"
-                onClick={() => setForgotMode(true)}
+                onClick={() => {
+                  setForgotMode(true)
+                  setForgotSent(false)
+                  setForgotEmail(email)
+                  setErrors({})
+                }}
                 className="text-xs text-muted-foreground hover:text-primary underline underline-offset-2"
               >
                 Esqueci minha senha
