@@ -172,4 +172,29 @@ export async function baixarTituloReceber(
   return adaptTitulo(updated)
 }
 
+/**
+ * Quitação múltipla (RF07): distribui um valor total pelos títulos informados,
+ * na ordem de vencimento, no backend. Faz baixa parcial no último coberto.
+ */
+export async function quitacaoMultipla(
+  tituloIds: string[],
+  valorTotal: number,
+  dataPagamento: string,
+  formaPagamento: FormaPagamento = 'dinheiro',
+): Promise<{ titulos: TituloReceber[]; valorRestante: number }> {
+  const resp = await apiPost<{ titulos_atualizados: BackendTituloReceber[]; valor_restante: string }>(
+    '/api/v1/titulos-receber/quitacao-multipla/',
+    {
+      titulo_ids: tituloIds.map(id => parseInt(id, 10)),
+      valor_total: valorTotal.toFixed(2),
+      data_pagamento: dataPagamento,
+      forma_pagamento: formaPagamento,
+    },
+  )
+  return {
+    titulos: resp.titulos_atualizados.map(adaptTitulo),
+    valorRestante: parseFloat(resp.valor_restante),
+  }
+}
+
 export type { TituloReceber, TituloReceberTipo, TituloReceberStatus, FormaPagamento, BaixaTitulo }

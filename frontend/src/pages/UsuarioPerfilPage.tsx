@@ -54,8 +54,10 @@ import { getCurrentUser } from '@/services/api/auth'
 import {
   getTitulosReceber,
   baixarTituloReceber,
+  quitacaoMultipla,
   type TituloReceber,
 } from '@/services/titulosReceberService'
+import { useAlert } from '@/components/feedback/alert-provider'
 import { getTitulosPagar } from '@/services/titulosPagarService'
 import { PROFILE_LABELS, type UserProfile } from '@/mocks/users'
 import { TITULO_RECEBER_TIPO_LABELS, type TituloReceberStatus } from '@/mocks/titulos'
@@ -102,6 +104,7 @@ const PAGE_SIZE = 5
 export default function UsuarioPerfilPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const alert = useAlert()
 
   const currentUser = getCurrentUser()
   const isAdmin = currentUser?.perfil_ativo === 'admin'
@@ -156,6 +159,7 @@ export default function UsuarioPerfilPage() {
 
   const [batchOpen, setBatchOpen] = useState(false)
   const [batchData, setBatchData] = useState(todayStr())
+  const [batchValor, setBatchValor] = useState('')
   const [batchBaixando, setBatchBaixando] = useState(false)
 
   async function reloadMovimentacoes(nomeUsuario: string) {
@@ -463,22 +467,34 @@ export default function UsuarioPerfilPage() {
   }
 
   async function handleBatchBaixa() {
+    const valor = parseFloat(batchValor) || 0
+    if (valor <= 0) return
     setBatchBaixando(true)
-    const updates = await Promise.all(
-      selectedTitulos.map(t => {
-        const remaining = t.valor - t.valor_pago
-        return baixarTituloReceber(t.id, remaining, batchData)
-      }),
-    )
-    setTitulos(prev =>
-      prev
-        .map(t => updates.find(u => u.id === t.id) ?? t)
-        .filter(t => t.status !== 'baixado')
-        .sort((a, b) => b.data_vencimento.localeCompare(a.data_vencimento)),
-    )
-    setSelectedIds(new Set())
-    setBatchOpen(false)
-    setBatchBaixando(false)
+    try {
+      // Distribui o valor pelos títulos por ordem de vencimento (baixa parcial no último).
+      const ids = [...selectedTitulos]
+        .sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento))
+        .map(t => t.id)
+      const { titulos: updates, valorRestante } = await quitacaoMultipla(ids, valor, batchData)
+      setTitulos(prev =>
+        prev
+          .map(t => updates.find(u => u.id === t.id) ?? t)
+          .filter(t => t.status !== 'baixado')
+          .sort((a, b) => b.data_vencimento.localeCompare(a.data_vencimento)),
+      )
+      const baixados = updates.filter(u => u.status === 'baixado').length
+      alert.success(
+        valorRestante > 0
+          ? `${baixados} título(s) quitado(s). Sobraram ${fmt(valorRestante)} não utilizados.`
+          : `${baixados} título(s) quitado(s) com a distribuição.`,
+      )
+      setSelectedIds(new Set())
+      setBatchOpen(false)
+    } catch (err) {
+      alert.error(err)
+    } finally {
+      setBatchBaixando(false)
+    }
   }
 
   if (loadingUser) {
@@ -850,7 +866,7 @@ export default function UsuarioPerfilPage() {
               <CardTitle className="text-base font-semibold">Títulos a Receber</CardTitle>
             </div>
             {selectedIds.size > 0 && (
-              <Button size="sm" onClick={() => { setBatchData(todayStr()); setBatchOpen(true) }}>
+              <Button size="sm" onClick={() => { setBatchData(todayStr()); setBatchValor(totalBatch.toFixed(2)); setBatchOpen(true) }}>
                 <CheckSquare className="h-4 w-4" />
                 Baixa múltipla ({selectedIds.size})
               </Button>
@@ -1221,30 +1237,63 @@ export default function UsuarioPerfilPage() {
         )
       })()}
 
-      {/* Dialog: Baixa múltipla */}
+      {/* Dialog: Quitação múltipla */}
+      {(() => {
+        const valorInformado = parseFloat(batchValor) || 0
+        // Simula a distribuição por ordem de vencimento (mais antigo primeiro).
+        const ordenados = [...selectedTitulos].sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento))
+        let restante = valorInformado
+        const distrib = ordenados.map(t => {
+          const saldo = t.valor - t.valor_pago
+          const aplicar = Math.max(0, Math.min(restante, saldo))
+          restante -= aplicar
+          return { t, saldo, aplicar, quita: aplicar >= saldo - 0.005 && aplicar > 0 }
+        })
+        const sobra = Math.max(0, restante)
+        const valorError = valorInformado <= 0
+          ? 'Informe um valor maior que zero'
+          : valorInformado > totalBatch + 0.005
+            ? `Valor excede o total dos títulos (${fmt(totalBatch)})`
+            : null
+        return (
       <Dialog open={batchOpen} onOpenChange={o => !o && setBatchOpen(false)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Baixa Múltipla</DialogTitle>
+            <DialogTitle>Quitação Múltipla</DialogTitle>
             <DialogDescription>
-              Pagamento integral de {selectedTitulos.length} título{selectedTitulos.length !== 1 ? 's' : ''} selecionado{selectedTitulos.length !== 1 ? 's' : ''}.
+              Distribui o valor informado entre {selectedTitulos.length} título{selectedTitulos.length !== 1 ? 's' : ''}, por ordem de vencimento (mais antigo primeiro).
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-1">
             <div className="max-h-48 overflow-y-auto divide-y divide-border rounded-lg border border-border">
-              {selectedTitulos.map(t => {
-                const restante = t.valor - t.valor_pago
-                return (
-                  <div key={t.id} className="flex items-center justify-between px-3 py-2 text-sm">
-                    <span className="text-muted-foreground flex-1 truncate pr-4">{t.descricao}</span>
-                    <span className="font-medium whitespace-nowrap">{fmt(restante)}</span>
-                  </div>
-                )
-              })}
+              {distrib.map(({ t, saldo, aplicar, quita }) => (
+                <div key={t.id} className="flex items-center justify-between px-3 py-2 text-sm gap-2">
+                  <span className="text-muted-foreground flex-1 truncate">{t.descricao}</span>
+                  <span className="whitespace-nowrap text-right">
+                    <span className={cn('font-medium', aplicar > 0 ? 'text-foreground' : 'text-muted-foreground')}>{fmt(aplicar)}</span>
+                    <span className="text-muted-foreground"> / {fmt(saldo)}</span>
+                    {aplicar > 0 && (
+                      <span className={cn('ml-1.5 rounded-full px-1.5 py-0.5 text-xs', quita ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700')}>
+                        {quita ? 'quita' : 'parcial'}
+                      </span>
+                    )}
+                  </span>
+                </div>
+              ))}
             </div>
             <div className="flex items-center justify-between text-sm font-semibold border-t border-border pt-2">
-              <span>Total</span>
+              <span>Total em aberto</span>
               <span>{fmt(totalBatch)}</span>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Valor a distribuir (R$)</label>
+              <Input
+                type="number" min={0.01} step={0.01}
+                value={batchValor}
+                onChange={e => setBatchValor(e.target.value)}
+                hasError={!!valorError}
+                helper={valorError ?? (sobra > 0 ? `Sobrarão ${fmt(sobra)} não utilizados` : undefined)}
+              />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Data do pagamento</label>
@@ -1253,12 +1302,14 @@ export default function UsuarioPerfilPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setBatchOpen(false)} disabled={batchBaixando}>Cancelar</Button>
-            <Button onClick={handleBatchBaixa} disabled={batchBaixando || !batchData}>
-              {batchBaixando ? 'Processando...' : `Confirmar ${selectedTitulos.length} título${selectedTitulos.length !== 1 ? 's' : ''}`}
+            <Button onClick={handleBatchBaixa} disabled={batchBaixando || !batchData || !!valorError}>
+              {batchBaixando ? 'Processando...' : 'Confirmar distribuição'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+        )
+      })()}
 
       {/* Dialog: Histórico da Carteira */}
       <Dialog open={historicoOpen} onOpenChange={o => { if (!o) { setHistoricoOpen(false); setExpandedEquiv(new Set()) } }}>
@@ -1285,7 +1336,6 @@ export default function UsuarioPerfilPage() {
                 </EmptyHeader>
               </Empty>
             ) : (() => {
-              const hoje = new Date().toISOString().split('T')[0]
               const totalVencido = historicoData
                 .filter(m => m.status_lote === 'expirado' && (m.saldo_restante ?? 0) > 0)
                 .reduce((acc, m) => acc + (m.saldo_restante ?? 0), 0)
