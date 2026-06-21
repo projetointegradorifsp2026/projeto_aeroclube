@@ -214,6 +214,8 @@ export default function TitulosReceber() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [tipoFilter, setTipoFilter] = useState<TipoFilter>('all')
+  const [periodoInicio, setPeriodoInicio] = useState('')
+  const [periodoFim, setPeriodoFim] = useState('')
 
   const [editTitulo, setEditTitulo] = useState<TituloReceber | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
@@ -253,10 +255,13 @@ export default function TitulosReceber() {
           t.usuario_nome.toLowerCase().includes(q) ||
           t.descricao.toLowerCase().includes(q)
         const matchTipo = tipoFilter === 'all' || t.tipo === tipoFilter
-        return matchSearch && matchTipo
+        const matchPeriodo =
+          (!periodoInicio || t.data_vencimento >= periodoInicio) &&
+          (!periodoFim || t.data_vencimento <= periodoFim)
+        return matchSearch && matchTipo && matchPeriodo
       })
       .sort((a, b) => a.data_vencimento.localeCompare(b.data_vencimento))
-  }, [titulos, search, tipoFilter])
+  }, [titulos, search, tipoFilter, periodoInicio, periodoFim])
 
   const emAbertoList = filtered.filter(
     t => (t.status === 'em_aberto' || t.status === 'pago_parcial') && !isAtrasado(t),
@@ -453,6 +458,28 @@ export default function TitulosReceber() {
           <option value="voo">Voo</option>
           <option value="carteira">Carteira</option>
         </FilterSelect>
+        <div className="flex items-center gap-1.5 shrink-0" title="Filtrar por período de vencimento">
+          <input
+            type="date"
+            value={periodoInicio}
+            onChange={e => setPeriodoInicio(e.target.value)}
+            className="h-9 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
+            aria-label="Vencimento de"
+          />
+          <span className="text-sm text-muted-foreground">até</span>
+          <input
+            type="date"
+            value={periodoFim}
+            onChange={e => setPeriodoFim(e.target.value)}
+            className="h-9 rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus:ring-2 focus:ring-ring/50"
+            aria-label="Vencimento até"
+          />
+          {(periodoInicio || periodoFim) && (
+            <Button variant="ghost" size="sm" onClick={() => { setPeriodoInicio(''); setPeriodoFim('') }}>
+              Limpar
+            </Button>
+          )}
+        </div>
         {isAdmin && (
           <Button onClick={openCreate} className="ml-auto shrink-0">
             <Plus className="h-4 w-4" />
