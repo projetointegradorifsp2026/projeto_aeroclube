@@ -379,7 +379,7 @@ export default function Clientes() {
       <DadosBancariosModal
         open={!!dadosBancariosTarget}
         onClose={() => setDadosBancariosTarget(null)}
-        entidadeId={dadosBancariosTarget?.id}
+        clienteId={dadosBancariosTarget?.id}
         titularNome={dadosBancariosTarget?.nome}
       />
 
