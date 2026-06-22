@@ -90,7 +90,7 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, currentUse
             const updated = await switchPerfilAtivo(currentUser.id, selectedPerfil)
             onUserUpdated(updated)
             setSwitchDialogOpen(false)
-            navigate("/dashboard")
+            window.location.href = "/dashboard"
         } catch {
             setSwitchError("Erro ao trocar perfil. Tente novamente.")
         } finally {
