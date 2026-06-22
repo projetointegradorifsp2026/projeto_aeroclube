@@ -47,6 +47,7 @@ export interface DadosBancarios {
   id?: number
   usuario?: number | null
   entidade?: number | null
+  cliente?: number | null
   titular_nome?: string
   banco: string
   codigo_banco: string
@@ -75,6 +76,11 @@ export async function getDadosBancariosUsuario(usuarioId: string): Promise<Dados
 
 export async function getDadosBancariosEntidade(entidadeId: string): Promise<DadosBancarios | null> {
   const list = await apiList<DadosBancarios>(`/api/v1/dados-bancarios/?entidade=${entidadeId}`)
+  return list[0] ?? null
+}
+
+export async function getDadosBancariosCliente(clienteId: string): Promise<DadosBancarios | null> {
+  const list = await apiList<DadosBancarios>(`/api/v1/dados-bancarios/?cliente=${clienteId}`)
   return list[0] ?? null
 }
 

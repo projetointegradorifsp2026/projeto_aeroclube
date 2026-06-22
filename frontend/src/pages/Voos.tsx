@@ -19,6 +19,7 @@ import { getVoos, deleteVoo, type Voo } from '@/services/voosService'
 import { getAeronaves, type Aeronave } from '@/services/aeronavesService'
 import { TIPO_VOO_LABELS, type TipoVoo, ALL_TIPOS_VOO } from '@/mocks/voos'
 import { getCurrentUser } from '@/services/api/auth'
+import { useAlert } from '@/components/feedback/alert-provider'
 import { cn } from '@/lib/utils'
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -34,6 +35,7 @@ const TIPO_VOO_COLORS: Record<TipoVoo, string> = {
 
 export default function Voos() {
   const navigate = useNavigate()
+  const alert = useAlert()
   const currentUser = getCurrentUser()
   const isAdmin = currentUser?.perfil_ativo === 'admin'
 
@@ -55,6 +57,9 @@ export default function Voos() {
     Promise.all([getVoos(), getAeronaves()]).then(([vs, avs]) => {
       setVoos(isAdmin ? vs : vs.filter(v => v.participante_id === String(currentUser?.id) || v.instrutor_id === String(currentUser?.id)))
       setAeronaves(avs)
+      setLoading(false)
+    }).catch(e => {
+      alert.error(e, 'Erro ao carregar voos.')
       setLoading(false)
     })
   }, [])

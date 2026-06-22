@@ -76,6 +76,7 @@ function ClienteFormModal({ cliente, open, onClose, onSave, onDeleteRequest }: C
   const [uf, setUf] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (open) {
@@ -90,12 +91,27 @@ function ClienteFormModal({ cliente, open, onClose, onSave, onDeleteRequest }: C
       setCidade(cliente?.cidade ?? '')
       setUf(cliente?.uf ?? '')
       setError('')
+      setErrors({})
     }
   }, [open, cliente])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!nome.trim()) { setError('Nome é obrigatório'); return }
+    const e2: Record<string, string> = {}
+    if (!nome.trim()) e2.nome = 'Nome é obrigatório'
+    const cpfDigits = cpfCnpj.replace(/\D/g, '')
+    if (!cpfDigits) e2.cpf_cnpj = 'CPF / CNPJ é obrigatório'
+    else if (cpfDigits.length !== 11 && cpfDigits.length !== 14) e2.cpf_cnpj = 'CPF / CNPJ inválido'
+    if (!logradouro.trim()) e2.logradouro = 'Logradouro é obrigatório'
+    if (!numero.trim()) e2.numero = 'Número é obrigatório'
+    const cepDigits = cep.replace(/\D/g, '')
+    if (!cepDigits) e2.cep = 'CEP é obrigatório'
+    else if (cepDigits.length !== 8) e2.cep = 'CEP inválido'
+    if (!bairro.trim()) e2.bairro = 'Bairro é obrigatório'
+    if (!uf.trim()) e2.uf = 'UF é obrigatória'
+    if (!cidade.trim()) e2.cidade = 'Cidade é obrigatória'
+    if (Object.keys(e2).length > 0) { setErrors(e2); return }
+    setErrors({})
     setSaving(true)
     setError('')
     try {
@@ -128,12 +144,16 @@ function ClienteFormModal({ cliente, open, onClose, onSave, onDeleteRequest }: C
               placeholder="Nome completo ou razão social"
               value={nome}
               onChange={e => setNome(e.target.value)}
+              hasError={!!errors.nome}
+              helper={errors.nome}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">CPF / CNPJ (Opcional)</label>
-              <Input placeholder="000.000.000-00" value={cpfCnpj} onChange={e => setCpfCnpj(maskCpfCnpj(e.target.value))} />
+              <label className="text-sm font-medium">CPF / CNPJ</label>
+              <Input placeholder="000.000.000-00" value={cpfCnpj}
+                onChange={e => setCpfCnpj(maskCpfCnpj(e.target.value))}
+                hasError={!!errors.cpf_cnpj} helper={errors.cpf_cnpj} />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Contato (Opcional)</label>
@@ -146,35 +166,47 @@ function ClienteFormModal({ cliente, open, onClose, onSave, onDeleteRequest }: C
           </div>
 
           <div className="pt-1">
-            <p className="text-xs text-muted-foreground">Endereço (exigido para gerar a remessa CNAB)</p>
+            <p className="text-xs text-muted-foreground">Endereço</p>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5 col-span-2">
-              <label className="text-sm font-medium">Logradouro (Opcional)</label>
-              <Input placeholder="Rua / Avenida" value={logradouro} onChange={e => setLogradouro(e.target.value)} />
+              <label className="text-sm font-medium">Logradouro</label>
+              <Input placeholder="Rua / Avenida" value={logradouro}
+                onChange={e => setLogradouro(e.target.value)}
+                hasError={!!errors.logradouro} helper={errors.logradouro} />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Número (Opcional)</label>
-              <Input placeholder="123" value={numero} onChange={e => setNumero(e.target.value)} />
+              <label className="text-sm font-medium">Número</label>
+              <Input placeholder="123" value={numero}
+                onChange={e => setNumero(e.target.value)}
+                hasError={!!errors.numero} helper={errors.numero} />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">CEP (Opcional)</label>
-              <Input placeholder="00000-000" value={cep} onChange={e => setCep(maskCEP(e.target.value))} />
+              <label className="text-sm font-medium">CEP</label>
+              <Input placeholder="00000-000" value={cep}
+                onChange={e => setCep(maskCEP(e.target.value))}
+                hasError={!!errors.cep} helper={errors.cep} />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Bairro (Opcional)</label>
-              <Input placeholder="Bairro" value={bairro} onChange={e => setBairro(e.target.value)} />
+              <label className="text-sm font-medium">Bairro</label>
+              <Input placeholder="Bairro" value={bairro}
+                onChange={e => setBairro(e.target.value)}
+                hasError={!!errors.bairro} helper={errors.bairro} />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">UF (Opcional)</label>
-              <Input placeholder="SP" maxLength={2} value={uf} onChange={e => setUf(e.target.value.toUpperCase())} />
+              <label className="text-sm font-medium">UF</label>
+              <Input placeholder="SP" maxLength={2} value={uf}
+                onChange={e => setUf(e.target.value.toUpperCase())}
+                hasError={!!errors.uf} helper={errors.uf} />
             </div>
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Cidade (Opcional)</label>
-            <Input placeholder="Cidade" value={cidade} onChange={e => setCidade(e.target.value)} />
+            <label className="text-sm font-medium">Cidade</label>
+            <Input placeholder="Cidade" value={cidade}
+              onChange={e => setCidade(e.target.value)}
+              hasError={!!errors.cidade} helper={errors.cidade} />
           </div>
 
           {error && (
@@ -379,7 +411,7 @@ export default function Clientes() {
       <DadosBancariosModal
         open={!!dadosBancariosTarget}
         onClose={() => setDadosBancariosTarget(null)}
-        entidadeId={dadosBancariosTarget?.id}
+        clienteId={dadosBancariosTarget?.id}
         titularNome={dadosBancariosTarget?.nome}
       />
 

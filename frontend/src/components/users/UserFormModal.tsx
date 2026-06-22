@@ -99,8 +99,20 @@ export function UserFormModal({ user, open, onClose, onSave, restrictedFields = 
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       e.email = 'E-mail inválido'
     }
-    if (!form.cpf.trim()) e.cpf = 'CPF é obrigatório'
-    if (!restrictedFields && form.perfis.length === 0) e.perfis = 'Selecione ao menos um perfil'
+    const cpfDigits = form.cpf.replace(/\D/g, '')
+    if (!cpfDigits) e.cpf = 'CPF é obrigatório'
+    else if (cpfDigits.length !== 11) e.cpf = 'CPF inválido'
+    if (!restrictedFields) {
+      if (!form.logradouro.trim()) e.logradouro = 'Logradouro é obrigatório'
+      if (!form.numero.trim()) e.numero = 'Número é obrigatório'
+      const cepDigits = form.cep.replace(/\D/g, '')
+      if (!cepDigits) e.cep = 'CEP é obrigatório'
+      else if (cepDigits.length !== 8) e.cep = 'CEP inválido'
+      if (!form.bairro.trim()) e.bairro = 'Bairro é obrigatório'
+      if (!form.uf.trim()) e.uf = 'UF é obrigatória'
+      if (!form.cidade.trim()) e.cidade = 'Cidade é obrigatória'
+      if (form.perfis.length === 0) e.perfis = 'Selecione ao menos um perfil'
+    }
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -186,41 +198,47 @@ export function UserFormModal({ user, open, onClose, onSave, restrictedFields = 
           </div>
 
           <div className="pt-1">
-            <p className="text-xs text-muted-foreground">Endereço (exigido para gerar a remessa CNAB)</p>
+            <p className="text-xs text-muted-foreground">Endereço</p>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5 col-span-2">
-              <label className="text-sm font-medium">Logradouro (Opcional)</label>
+              <label className="text-sm font-medium">Logradouro</label>
               <Input placeholder="Rua / Avenida" value={form.logradouro}
-                onChange={e => setForm(p => ({ ...p, logradouro: e.target.value }))} autoComplete="off" />
+                onChange={e => setForm(p => ({ ...p, logradouro: e.target.value }))}
+                hasError={!!errors.logradouro} helper={errors.logradouro} autoComplete="off" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Número (Opcional)</label>
+              <label className="text-sm font-medium">Número</label>
               <Input placeholder="123" value={form.numero}
-                onChange={e => setForm(p => ({ ...p, numero: e.target.value }))} autoComplete="off" />
+                onChange={e => setForm(p => ({ ...p, numero: e.target.value }))}
+                hasError={!!errors.numero} helper={errors.numero} autoComplete="off" />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">CEP (Opcional)</label>
+              <label className="text-sm font-medium">CEP</label>
               <Input placeholder="00000-000" value={form.cep}
-                onChange={e => setForm(p => ({ ...p, cep: maskCEP(e.target.value) }))} autoComplete="off" />
+                onChange={e => setForm(p => ({ ...p, cep: maskCEP(e.target.value) }))}
+                hasError={!!errors.cep} helper={errors.cep} autoComplete="off" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Bairro (Opcional)</label>
+              <label className="text-sm font-medium">Bairro</label>
               <Input placeholder="Bairro" value={form.bairro}
-                onChange={e => setForm(p => ({ ...p, bairro: e.target.value }))} autoComplete="off" />
+                onChange={e => setForm(p => ({ ...p, bairro: e.target.value }))}
+                hasError={!!errors.bairro} helper={errors.bairro} autoComplete="off" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">UF (Opcional)</label>
+              <label className="text-sm font-medium">UF</label>
               <Input placeholder="SP" maxLength={2} value={form.uf}
-                onChange={e => setForm(p => ({ ...p, uf: e.target.value.toUpperCase() }))} autoComplete="off" />
+                onChange={e => setForm(p => ({ ...p, uf: e.target.value.toUpperCase() }))}
+                hasError={!!errors.uf} helper={errors.uf} autoComplete="off" />
             </div>
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Cidade (Opcional)</label>
+            <label className="text-sm font-medium">Cidade</label>
             <Input placeholder="Cidade" value={form.cidade}
-              onChange={e => setForm(p => ({ ...p, cidade: e.target.value }))} autoComplete="off" />
+              onChange={e => setForm(p => ({ ...p, cidade: e.target.value }))}
+              hasError={!!errors.cidade} helper={errors.cidade} autoComplete="off" />
           </div>
 
           {!restrictedFields && (

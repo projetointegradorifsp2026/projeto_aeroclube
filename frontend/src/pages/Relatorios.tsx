@@ -7,8 +7,6 @@ import {
     ChevronLeft,
     ChevronRight,
     ChevronDown,
-    FileText,
-    BookOpen,
     RefreshCw,
     X,
     Check,

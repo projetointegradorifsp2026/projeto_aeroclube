@@ -82,6 +82,7 @@ export interface CustoInput {
   data_vencimento: string
   is_recorrente?: boolean
   gerar_titulo?: boolean
+  voo_id?: string
 }
 
 export async function getCustos(): Promise<Custo[]> {
@@ -103,6 +104,7 @@ export async function createCusto(input: CustoInput): Promise<Custo> {
     is_recorrente: input.is_recorrente ?? false,
     periodicidade_dias: input.is_recorrente ? 30 : null,
     gerar_titulo: input.gerar_titulo ?? false,
+    voo: input.voo_id ? parseInt(input.voo_id, 10) : undefined,
   }
   const created = await apiPost<BackendCusto>('/api/v1/custos/', payload)
   return adapt(created)

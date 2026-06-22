@@ -147,6 +147,14 @@ class DadosBancarios(models.Model):
         related_name="dados_bancarios",
         verbose_name="Entidade",
     )
+    cliente = models.OneToOneField(
+        "pessoas.Cliente",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="dados_bancarios",
+        verbose_name="Cliente",
+    )
 
     banco = models.CharField("Banco", max_length=60, blank=True, default="")
     codigo_banco = models.CharField("Código do Banco", max_length=5, blank=True, default="")
@@ -169,15 +177,21 @@ class DadosBancarios(models.Model):
         verbose_name_plural = "Dados Bancários"
 
     def __str__(self):
-        alvo = self.usuario.nome if self.usuario else (self.entidade.nome if self.entidade else "—")
+        alvo = (
+            self.usuario.nome if self.usuario
+            else self.entidade.nome if self.entidade
+            else self.cliente.nome if self.cliente
+            else "—"
+        )
         return f"Dados bancários de {alvo}"
 
     def clean(self):
         from django.core.exceptions import ValidationError
-        if not self.usuario and not self.entidade:
-            raise ValidationError("Informe um usuário ou uma entidade para os dados bancários.")
-        if self.usuario and self.entidade:
-            raise ValidationError("Vincule os dados bancários a apenas um (usuário OU entidade).")
+        vinculos = [bool(self.usuario), bool(self.entidade), bool(self.cliente)]
+        if not any(vinculos):
+            raise ValidationError("Informe um usuário, uma entidade ou um cliente para os dados bancários.")
+        if sum(vinculos) > 1:
+            raise ValidationError("Vincule os dados bancários a apenas um (usuário, entidade OU cliente).")
 
 
 class RemessaCNAB(models.Model):

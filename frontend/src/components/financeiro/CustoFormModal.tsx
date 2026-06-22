@@ -1,5 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react'
 import { Trash2 } from 'lucide-react'
+import { useAlert } from '@/components/feedback/alert-provider'
 import {
   Dialog,
   DialogContent,
@@ -76,6 +77,7 @@ export function CustoFormModal({ custo, open, onClose, onSave, onDeleteRequest }
   const [colaboradores, setColaboradores] = useState<User[]>([])
   const [contasFixas, setContasFixas] = useState<ContaFixa[]>([])
   const isEdit = !!custo
+  const alert = useAlert()
 
   useEffect(() => {
     if (open) {
@@ -88,7 +90,7 @@ export function CustoFormModal({ custo, open, onClose, onSave, onDeleteRequest }
           ))
           setContasFixas(cfs.filter(cf => cf.is_active))
         })
-        .catch(() => {})
+        .catch(e => alert.error(e, 'Erro ao carregar opções do formulário.'))
     }
   }, [open])
 
