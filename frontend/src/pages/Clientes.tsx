@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useRef, useMemo } from 'react'
 import { TablePagination } from '@/components/ui/pagination'
 import { Plus, Pencil, Trash2, UserX, Landmark } from 'lucide-react'
 import { DadosBancariosModal } from '@/components/financeiro/DadosBancariosModal'
@@ -26,6 +26,7 @@ import {
   type Cliente,
 } from '@/services/clientesService'
 import { maskCpfCnpj, maskPhone, maskCEP } from '@/lib/masks'
+import { buscarEnderecoPorCEP } from '@/services/cepService'
 import { cn } from '@/lib/utils'
 
 const FIELD_LABELS: Record<string, string> = {
@@ -77,6 +78,9 @@ function ClienteFormModal({ cliente, open, onClose, onSave, onDeleteRequest }: C
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [cepLoading, setCepLoading] = useState(false)
+  const [cepError, setCepError] = useState<string | null>(null)
+  const cepAbortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     if (open) {
@@ -94,6 +98,36 @@ function ClienteFormModal({ cliente, open, onClose, onSave, onDeleteRequest }: C
       setErrors({})
     }
   }, [open, cliente])
+
+  async function handleCepChange(raw: string) {
+    const masked = maskCEP(raw)
+    setCep(masked)
+    setCepError(null)
+    const digits = masked.replace(/\D/g, '')
+    if (digits.length !== 8) return
+    cepAbortRef.current?.abort()
+    cepAbortRef.current = new AbortController()
+    setCepLoading(true)
+    const endereco = await buscarEnderecoPorCEP(digits)
+    setCepLoading(false)
+    if (!endereco) {
+      setCepError('CEP não encontrado')
+      return
+    }
+    setLogradouro(endereco.logradouro)
+    setBairro(endereco.bairro)
+    setCidade(endereco.cidade)
+    setUf(endereco.uf)
+    setErrors(prev => {
+      const next = { ...prev }
+      delete next.logradouro
+      delete next.bairro
+      delete next.cidade
+      delete next.uf
+      delete next.cep
+      return next
+    })
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -170,10 +204,15 @@ function ClienteFormModal({ cliente, open, onClose, onSave, onDeleteRequest }: C
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5 col-span-2">
-              <label className="text-sm font-medium">Logradouro</label>
-              <Input placeholder="Rua / Avenida" value={logradouro}
-                onChange={e => setLogradouro(e.target.value)}
-                hasError={!!errors.logradouro} helper={errors.logradouro} />
+              <label className="text-sm font-medium">CEP</label>
+              <Input
+                placeholder="00000-000"
+                value={cep}
+                onChange={e => handleCepChange(e.target.value)}
+                hasError={!!errors.cep || !!cepError}
+                helper={cepError ?? errors.cep}
+                disabled={cepLoading}
+              />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Número</label>
@@ -182,31 +221,35 @@ function ClienteFormModal({ cliente, open, onClose, onSave, onDeleteRequest }: C
                 hasError={!!errors.numero} helper={errors.numero} />
             </div>
           </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Logradouro</label>
+            <Input placeholder={cepLoading ? 'Buscando...' : 'Rua / Avenida'} value={logradouro}
+              onChange={e => setLogradouro(e.target.value)}
+              hasError={!!errors.logradouro} helper={errors.logradouro}
+              disabled={cepLoading} />
+          </div>
           <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">CEP</label>
-              <Input placeholder="00000-000" value={cep}
-                onChange={e => setCep(maskCEP(e.target.value))}
-                hasError={!!errors.cep} helper={errors.cep} />
-            </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 col-span-2">
               <label className="text-sm font-medium">Bairro</label>
               <Input placeholder="Bairro" value={bairro}
                 onChange={e => setBairro(e.target.value)}
-                hasError={!!errors.bairro} helper={errors.bairro} />
+                hasError={!!errors.bairro} helper={errors.bairro}
+                disabled={cepLoading} />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">UF</label>
               <Input placeholder="SP" maxLength={2} value={uf}
                 onChange={e => setUf(e.target.value.toUpperCase())}
-                hasError={!!errors.uf} helper={errors.uf} />
+                hasError={!!errors.uf} helper={errors.uf}
+                disabled={cepLoading} />
             </div>
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Cidade</label>
             <Input placeholder="Cidade" value={cidade}
               onChange={e => setCidade(e.target.value)}
-              hasError={!!errors.cidade} helper={errors.cidade} />
+              hasError={!!errors.cidade} helper={errors.cidade}
+              disabled={cepLoading} />
           </div>
 
           {error && (
