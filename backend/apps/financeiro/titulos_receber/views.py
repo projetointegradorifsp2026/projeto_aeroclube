@@ -79,7 +79,8 @@ class TituloReceberViewSet(viewsets.ModelViewSet):
         criado_por = request.user if request.user.is_authenticated else None
 
         titulos = TituloReceber.objects.filter(
-            id__in=ids, status=TituloReceber.STATUS_ABERTO
+            id__in=ids,
+            status__in=[TituloReceber.STATUS_ABERTO, TituloReceber.STATUS_REMESSA_CRIADA],
         ).order_by("data_vencimento")
 
         resultado = []
