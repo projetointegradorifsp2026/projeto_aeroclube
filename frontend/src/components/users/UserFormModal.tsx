@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react'
+import { useState, useEffect, useRef, type FormEvent } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { ALL_PROFILES, PROFILE_LABELS, type User, type UserProfile } from '@/mocks/users'
 import { cn } from '@/lib/utils'
 import { maskCEP } from '@/lib/masks'
+import { buscarEnderecoPorCEP } from '@/services/cepService'
 
 export interface UserFormData {
   nome: string
@@ -65,6 +66,9 @@ export function UserFormModal({ user, open, onClose, onSave, restrictedFields = 
   const [errors, setErrors] = useState<FormErrors>({})
   const [saveError, setSaveError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [cepLoading, setCepLoading] = useState(false)
+  const [cepError, setCepError] = useState<string | null>(null)
+  const cepAbortRef = useRef<AbortController | null>(null)
   const isEdit = !!user
 
   useEffect(() => {
@@ -139,6 +143,31 @@ export function UserFormModal({ user, open, onClose, onSave, restrictedFields = 
     }
   }
 
+  async function handleCepChange(raw: string) {
+    const masked = maskCEP(raw)
+    setForm(p => ({ ...p, cep: masked }))
+    setCepError(null)
+    const digits = masked.replace(/\D/g, '')
+    if (digits.length !== 8) return
+    cepAbortRef.current?.abort()
+    cepAbortRef.current = new AbortController()
+    setCepLoading(true)
+    const endereco = await buscarEnderecoPorCEP(digits)
+    setCepLoading(false)
+    if (!endereco) {
+      setCepError('CEP não encontrado')
+      return
+    }
+    setForm(p => ({
+      ...p,
+      logradouro: endereco.logradouro,
+      bairro: endereco.bairro,
+      cidade: endereco.cidade,
+      uf: endereco.uf,
+    }))
+    setErrors(prev => ({ ...prev, logradouro: undefined, bairro: undefined, cidade: undefined, uf: undefined, cep: undefined }))
+  }
+
   function togglePerfil(p: UserProfile) {
     setForm(prev => {
       const has = prev.perfis.includes(p)
@@ -202,10 +231,16 @@ export function UserFormModal({ user, open, onClose, onSave, restrictedFields = 
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div className="space-y-1.5 col-span-2">
-              <label className="text-sm font-medium">Logradouro</label>
-              <Input placeholder="Rua / Avenida" value={form.logradouro}
-                onChange={e => setForm(p => ({ ...p, logradouro: e.target.value }))}
-                hasError={!!errors.logradouro} helper={errors.logradouro} autoComplete="off" />
+              <label className="text-sm font-medium">CEP</label>
+              <Input
+                placeholder="00000-000"
+                value={form.cep}
+                onChange={e => handleCepChange(e.target.value)}
+                hasError={!!errors.cep || !!cepError}
+                helper={cepError ?? errors.cep}
+                disabled={cepLoading}
+                autoComplete="off"
+              />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Número</label>
@@ -214,31 +249,35 @@ export function UserFormModal({ user, open, onClose, onSave, restrictedFields = 
                 hasError={!!errors.numero} helper={errors.numero} autoComplete="off" />
             </div>
           </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Logradouro</label>
+            <Input placeholder={cepLoading ? 'Buscando...' : 'Rua / Avenida'} value={form.logradouro}
+              onChange={e => setForm(p => ({ ...p, logradouro: e.target.value }))}
+              hasError={!!errors.logradouro} helper={errors.logradouro}
+              disabled={cepLoading} autoComplete="off" />
+          </div>
           <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">CEP</label>
-              <Input placeholder="00000-000" value={form.cep}
-                onChange={e => setForm(p => ({ ...p, cep: maskCEP(e.target.value) }))}
-                hasError={!!errors.cep} helper={errors.cep} autoComplete="off" />
-            </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 col-span-2">
               <label className="text-sm font-medium">Bairro</label>
               <Input placeholder="Bairro" value={form.bairro}
                 onChange={e => setForm(p => ({ ...p, bairro: e.target.value }))}
-                hasError={!!errors.bairro} helper={errors.bairro} autoComplete="off" />
+                hasError={!!errors.bairro} helper={errors.bairro}
+                disabled={cepLoading} autoComplete="off" />
             </div>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">UF</label>
               <Input placeholder="SP" maxLength={2} value={form.uf}
                 onChange={e => setForm(p => ({ ...p, uf: e.target.value.toUpperCase() }))}
-                hasError={!!errors.uf} helper={errors.uf} autoComplete="off" />
+                hasError={!!errors.uf} helper={errors.uf}
+                disabled={cepLoading} autoComplete="off" />
             </div>
           </div>
           <div className="space-y-1.5">
             <label className="text-sm font-medium">Cidade</label>
             <Input placeholder="Cidade" value={form.cidade}
               onChange={e => setForm(p => ({ ...p, cidade: e.target.value }))}
-              hasError={!!errors.cidade} helper={errors.cidade} autoComplete="off" />
+              hasError={!!errors.cidade} helper={errors.cidade}
+              disabled={cepLoading} autoComplete="off" />
           </div>
 
           {!restrictedFields && (
