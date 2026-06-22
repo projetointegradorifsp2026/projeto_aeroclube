@@ -434,14 +434,14 @@ export default function Aeronaves() {
 
       {/* Dialog: Histórico de Tarifas */}
       <Dialog open={!!historicoTarget} onOpenChange={o => !o && setHistoricoTarget(null)}>
-        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogContent className="sm:max-w-3xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>Histórico de Tarifas — {historicoTarget?.nome}</DialogTitle>
             <DialogDescription>
               Registro de todas as alterações de tarifa desta aeronave.
             </DialogDescription>
           </DialogHeader>
-          <div className="overflow-y-auto flex-1">
+          <div className="overflow-auto flex-1">
             {historicoLoading ? (
               <div className="space-y-2 p-2">
                 {Array.from({ length: 3 }).map((_, i) => (
@@ -458,7 +458,7 @@ export default function Aeronaves() {
                   <tr className="border-b bg-muted/30">
                     <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Data / Hora</th>
                     <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Alterado por</th>
-                    <th className="text-left px-4 py-2 font-medium text-muted-foreground">Descrição</th>
+                    <th className="text-left px-4 py-2 font-medium text-muted-foreground min-w-[180px]">Descrição</th>
                     <th className="text-left px-4 py-2 font-medium text-muted-foreground whitespace-nowrap">Tarifas vigentes</th>
                   </tr>
                 </thead>
@@ -472,11 +472,11 @@ export default function Aeronaves() {
                       <td className="px-4 py-3 whitespace-nowrap text-sm">
                         {h.alterado_por_nome ?? <span className="text-muted-foreground">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground text-xs max-w-[200px]">
-                        <p className="truncate">{h.descricao_alteracao}</p>
+                      <td className="px-4 py-3 text-muted-foreground text-xs min-w-[180px] max-w-[280px]">
+                        <p className="whitespace-normal break-words">{h.descricao_alteracao}</p>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="flex flex-col gap-0.5 text-xs">
+                        <div className="flex flex-col gap-0.5 text-xs whitespace-nowrap">
                           {Object.entries(h.valores_vigentes).map(([k, v]) => v !== null && (
                             <span key={k}>
                               <span className="font-medium text-foreground">{k.replace(/_/g, ' ')}:</span>{' '}

@@ -34,7 +34,7 @@ class DadosBancariosSerializer(serializers.ModelSerializer):
     class Meta:
         model = DadosBancarios
         fields = [
-            "id", "usuario", "entidade", "titular_nome",
+            "id", "usuario", "entidade", "cliente", "titular_nome",
             "banco", "codigo_banco", "agencia", "agencia_dv",
             "conta", "conta_dv", "tipo_conta",
             "titular", "cpf_cnpj_titular", "chave_pix",
@@ -47,15 +47,19 @@ class DadosBancariosSerializer(serializers.ModelSerializer):
             return obj.usuario.nome
         if obj.entidade:
             return obj.entidade.nome
+        if obj.cliente:
+            return obj.cliente.nome
         return obj.titular or "—"
 
     def validate(self, data):
         usuario = data.get("usuario") or (self.instance and self.instance.usuario)
         entidade = data.get("entidade") or (self.instance and self.instance.entidade)
-        if not usuario and not entidade:
-            raise serializers.ValidationError("Informe usuário ou entidade.")
-        if usuario and entidade:
-            raise serializers.ValidationError("Vincule a apenas um (usuário OU entidade).")
+        cliente = data.get("cliente") or (self.instance and self.instance.cliente)
+        vinculos = [bool(usuario), bool(entidade), bool(cliente)]
+        if not any(vinculos):
+            raise serializers.ValidationError("Informe usuário, entidade ou cliente.")
+        if sum(vinculos) > 1:
+            raise serializers.ValidationError("Vincule a apenas um (usuário, entidade OU cliente).")
         return data
 
 

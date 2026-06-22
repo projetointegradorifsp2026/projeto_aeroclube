@@ -98,7 +98,7 @@ class DadosBancariosViewSet(viewsets.ModelViewSet):
     CRUD /api/v1/dados-bancarios/
     Filtros: ?usuario=ID  ?entidade=ID
     """
-    queryset = DadosBancarios.objects.select_related("usuario", "entidade").all()
+    queryset = DadosBancarios.objects.select_related("usuario", "entidade", "cliente").all()
     serializer_class = DadosBancariosSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = None
@@ -111,6 +111,9 @@ class DadosBancariosViewSet(viewsets.ModelViewSet):
         entidade_id = self.request.query_params.get("entidade")
         if entidade_id:
             qs = qs.filter(entidade_id=entidade_id)
+        cliente_id = self.request.query_params.get("cliente")
+        if cliente_id:
+            qs = qs.filter(cliente_id=cliente_id)
         return qs
 
 

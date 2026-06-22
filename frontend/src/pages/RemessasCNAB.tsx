@@ -110,7 +110,7 @@ export default function RemessasCNAB() {
   }
 
   useEffect(() => {
-    reload().catch(() => {}).finally(() => setLoading(false))
+    reload().catch(e => alert.error(e, 'Erro ao carregar dados CNAB.')).finally(() => setLoading(false))
   }, [])
 
   const totalSelecionado = useMemo(

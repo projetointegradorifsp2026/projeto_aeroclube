@@ -26,13 +26,18 @@ class UsuarioManager(BaseUserManager):
     def create_superuser(self, email, nome, password=None, **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
+        # Superusuário criado via manage.py já nasce como administrador.
+        extra_fields.setdefault("perfil_ativo", self.model.PERFIL_ADMIN)
 
         if extra_fields.get("is_staff") is not True:
             raise ValueError("Superuser precisa ter is_staff=True.")
         if extra_fields.get("is_superuser") is not True:
             raise ValueError("Superuser precisa ter is_superuser=True.")
 
-        return self.create_user(email, nome, password, **extra_fields)
+        user = self.create_user(email, nome, password, **extra_fields)
+        # Garante o perfil "admin" na lista de perfis do usuário.
+        UsuarioPerfil.objects.get_or_create(usuario=user, perfil=self.model.PERFIL_ADMIN)
+        return user
 
 
 class Usuario(AbstractUser):
