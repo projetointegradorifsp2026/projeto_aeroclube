@@ -109,6 +109,7 @@ type FormErrors = {
   fim?: string
   data?: string
   data_vencimento?: string
+  carteira?: string
 }
 
 function makeEmpty(): FormState {
@@ -320,7 +321,9 @@ export default function VooFormPage() {
   )
   const carteiraMaxUsavel = Math.min(participanteSaldo, custoCarteira.total !== null ? custoCarteira.total : valorVoo)
   const carteiraUsadaNum = usarCarteira ? Math.min(parseFloat(carteiraValor) || 0, carteiraMaxUsavel) : 0
-  const valorTitulo = valorVoo - carteiraUsadaNum
+  const valorTitulo = usarCarteira && custoCarteira.total !== null && custoCarteira.total > 0
+    ? Math.max(0, valorVoo * (1 - carteiraUsadaNum / custoCarteira.total))
+    : valorVoo - carteiraUsadaNum
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
 
@@ -375,6 +378,7 @@ export default function VooFormPage() {
     }
     if (!form.data) e.data = 'Data é obrigatória'
     if (!form.data_vencimento) e.data_vencimento = 'Data de vencimento é obrigatória'
+    if (usarCarteira && carteiraUsadaNum <= 0) e.carteira = 'Informe um valor maior que zero.'
     setErrors(e)
     return Object.keys(e).length === 0
   }
@@ -422,7 +426,9 @@ export default function VooFormPage() {
           totalDebitadoCarteira = resultado.total_debitado
         }
 
-        const valorTituloFinal = Math.max(0, valorVoo - totalDebitadoCarteira)
+        const valorTituloFinal = usarCarteira && custoCarteira.total !== null && custoCarteira.total > 0
+          ? Math.max(0, Math.round(valorVoo * (1 - totalDebitadoCarteira / custoCarteira.total) * 100) / 100)
+          : Math.max(0, valorVoo - totalDebitadoCarteira)
         if (valorTituloFinal > 0) {
           // Parte/total via carteira → gera uma RECEITA pendente do valor restante.
           // O operador decide depois se ela vira título a receber (faturar).
@@ -894,6 +900,7 @@ export default function VooFormPage() {
                                 hasManuallyEditedCarteira.current = true
                                 setCarteiraValor(e.target.value)
                               }}
+                              hasError={!!errors.carteira}
                             />
                             {custoCarteira.calculando && (
                               <p className="text-xs text-muted-foreground animate-pulse">Calculando tarifa travada...</p>
@@ -912,21 +919,25 @@ export default function VooFormPage() {
                                   </p>
                                 )
                               }
-                              if (carteiraUsadaNum >= valorVoo) {
+                              if (valorTitulo <= 0) {
                                 return (
                                   <p className="text-xs text-emerald-600 dark:text-emerald-400">
                                     Saldo suficiente — nenhum título será gerado.
                                   </p>
                                 )
                               }
-                              if (carteiraUsadaNum > 0) {
+                              if (inputNum === 0 || carteiraValor === '') {
                                 return (
-                                  <p className="text-xs text-amber-600 dark:text-amber-400">
-                                    Título de {fmt(valorTitulo)} será gerado para o valor restante.
+                                  <p className="text-xs text-destructive">
+                                    Informe um valor maior que zero.
                                   </p>
                                 )
                               }
-                              return null
+                              return (
+                                <p className="text-xs text-amber-600 dark:text-amber-400">
+                                  Título de {fmt(valorTitulo)} será gerado para o valor restante.
+                                </p>
+                              )
                             })()}
                           </div>
                         )}

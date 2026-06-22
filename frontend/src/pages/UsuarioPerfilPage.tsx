@@ -251,12 +251,15 @@ export default function UsuarioPerfilPage() {
           )
           setLoadingUser(false)
         },
-      )
+      ).catch(e => {
+        alert.error(e, 'Erro ao carregar dados do usuário.')
+        setLoadingUser(false)
+      })
       // Carrega dados bancários em paralelo
       setDadosBancariosLoading(true)
       getDadosBancariosUsuario(id)
         .then(d => setDadosBancarios(d ?? emptyDadosBancarios()))
-        .catch(() => {})
+        .catch(e => alert.error(e, 'Erro ao carregar dados bancários.'))
         .finally(() => setDadosBancariosLoading(false))
     } else {
       getUsers().then(users => {
@@ -264,12 +267,15 @@ export default function UsuarioPerfilPage() {
         if (!found) { navigate('/dashboard'); return }
         setUser(found)
         setLoadingUser(false)
+      }).catch(e => {
+        alert.error(e, 'Erro ao carregar dados do usuário.')
+        setLoadingUser(false)
       })
       // Carrega dados bancários para o próprio usuário
       setDadosBancariosLoading(true)
       getDadosBancariosUsuario(id)
         .then(d => setDadosBancarios(d ?? emptyDadosBancarios()))
-        .catch(() => {})
+        .catch(e => alert.error(e, 'Erro ao carregar dados bancários.'))
         .finally(() => setDadosBancariosLoading(false))
     }
   }, [id, navigate, isAdmin])
@@ -441,11 +447,14 @@ export default function UsuarioPerfilPage() {
     if (!user) return
     const valor = parseFloat(removeSaldoValor)
     if (!valor || valor <= 0 || !removeSaldoData) return
+    if (valor > user.saldo_carteira) return
     setRemoveSaldoSaving(true)
     try {
       await removerSaldoCarteira(user.id, valor)
       setRemoveSaldoOpen(false)
       setRemoveSaldoValor('')
+    } catch (e) {
+      alert.error(e, 'Erro ao remover saldo da carteira.')
     } finally {
       setRemoveSaldoSaving(false)
     }
@@ -538,6 +547,7 @@ export default function UsuarioPerfilPage() {
   const removeSaldoError = (() => {
     if (!removeSaldoValor) return null
     if (isNaN(removeSaldoNum) || removeSaldoNum <= 0) return 'O valor deve ser maior que zero'
+    if (user && removeSaldoNum > user.saldo_carteira) return `Saldo insuficiente (disponível: ${fmt(user.saldo_carteira)})`
     return null
   })()
 

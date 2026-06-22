@@ -10,6 +10,7 @@ import { getTitulosPagar } from '@/services/titulosPagarService'
 import { getTitulosReceber } from '@/services/titulosReceberService'
 import { getMovimentacoes } from '@/services/carteiraService'
 import { getCurrentUser } from '@/services/api/auth'
+import { useAlert } from '@/components/feedback/alert-provider'
 import { cn } from '@/lib/utils'
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -42,6 +43,7 @@ function StatusBadge({ status }: { status: MovStatus }) {
 }
 
 export default function Movimentacoes() {
+  const alert = useAlert()
   const currentUser = getCurrentUser()
   const isAdmin = currentUser?.perfil_ativo === 'admin'
 
@@ -114,6 +116,9 @@ export default function Movimentacoes() {
         [...entradas, ...carteiraMovs, ...saidas]
           .sort((a, b) => b.data.localeCompare(a.data))
       )
+      setLoading(false)
+    }).catch(e => {
+      alert.error(e, 'Erro ao carregar movimentações.')
       setLoading(false)
     })
   }, [])

@@ -1,5 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react'
 import { Trash2 } from 'lucide-react'
+import { useAlert } from '@/components/feedback/alert-provider'
 import {
   Dialog,
   DialogContent,
@@ -113,6 +114,7 @@ export function TituloReceberFormModal({
   const [usuariosOptions, setUsuariosOptions] = useState<{ value: string; label: string }[]>([])
   const [clientesOptions, setClientesOptions] = useState<{ value: string; label: string }[]>([])
   const isEdit = !!titulo
+  const alert = useAlert()
 
   useEffect(() => {
     if (open) {
@@ -127,7 +129,7 @@ export function TituloReceberFormModal({
             .map(u => ({ value: u.id, label: u.nome })),
         )
         setClientesOptions(clientes.map(c => ({ value: c.id, label: c.nome })))
-      }).catch(() => {})
+      }).catch(e => alert.error(e, 'Erro ao carregar opções do formulário.'))
     }
   }, [open])
 

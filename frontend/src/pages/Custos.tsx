@@ -1,7 +1,10 @@
 import { useEffect, useState, useMemo } from 'react'
-import { Plus, FileUp, Pencil, Trash2, TrendingDown, AlertCircle, Layers, ListChecks } from 'lucide-react'
+import { Plus, FileUp, Pencil, Trash2, TrendingDown, AlertCircle, Layers, ListChecks, CalendarIcon, X } from 'lucide-react'
 import { TablePagination } from '@/components/ui/pagination'
 import { FilterInput, FilterSelect } from '@/components/ui/filter-controls'
+import { Calendar } from '@/components/ui/calendar'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import type { DateRange } from 'react-day-picker'
 import { useAlert } from '@/components/feedback/alert-provider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -402,6 +405,10 @@ export default function Custos() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [tipoFilter, setTipoFilter] = useState<TipoFilter>('all')
+  const [periodoInicio, setPeriodoInicio] = useState('')
+  const [periodoFim, setPeriodoFim] = useState('')
+  const [datePickerOpen, setDatePickerOpen] = useState(false)
+  const [calendarRange, setCalendarRange] = useState<DateRange | undefined>(undefined)
   const [modalOpen, setModalOpen] = useState(false)
   const [editCusto, setEditCusto] = useState<Custo | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<Custo | null>(null)
@@ -412,7 +419,7 @@ export default function Custos() {
   const [titulosTarget, setTitulosTarget] = useState<Custo | null>(null)
 
   useEffect(() => {
-    getCustos().then(setCustos).catch(() => {}).finally(() => setLoading(false))
+    getCustos().then(setCustos).catch(e => alert.error(e, 'Erro ao carregar custos.')).finally(() => setLoading(false))
   }, [])
 
   const filtered = useMemo(() => {
@@ -420,9 +427,12 @@ export default function Custos() {
     return custos.filter(c => {
       const matchSearch = !q || c.favorecido_nome.toLowerCase().includes(q) || c.descricao.toLowerCase().includes(q)
       const matchTipo = tipoFilter === 'all' || c.tipo === tipoFilter
-      return matchSearch && matchTipo
+      const matchPeriodo =
+        (!periodoInicio || c.data_vencimento >= periodoInicio) &&
+        (!periodoFim || c.data_vencimento <= periodoFim)
+      return matchSearch && matchTipo && matchPeriodo
     })
-  }, [custos, search, tipoFilter])
+  }, [custos, search, tipoFilter, periodoInicio, periodoFim])
 
   function openCreate() { setEditCusto(null); setModalOpen(true) }
   function openEdit(c: Custo) { setEditCusto(c); setModalOpen(true) }
@@ -530,6 +540,68 @@ export default function Custos() {
             <option key={t} value={t}>{CUSTO_TIPO_LABELS[t]}</option>
           ))}
         </FilterSelect>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Popover
+            open={datePickerOpen}
+            onOpenChange={(open) => {
+              if (open) {
+                setCalendarRange(
+                  periodoInicio || periodoFim
+                    ? {
+                        from: periodoInicio ? new Date(periodoInicio + 'T12:00:00') : undefined,
+                        to: periodoFim ? new Date(periodoFim + 'T12:00:00') : undefined,
+                      }
+                    : undefined
+                )
+              }
+              setDatePickerOpen(open)
+            }}
+          >
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn('gap-1.5', (periodoInicio || periodoFim) && 'border-primary text-primary')}
+              >
+                <CalendarIcon className="h-4 w-4" />
+                {periodoInicio || periodoFim
+                  ? `${periodoInicio ? fmtDate(periodoInicio) : '...'} – ${periodoFim ? fmtDate(periodoFim) : '...'}`
+                  : 'Selecionar período'}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <Calendar
+                mode="range"
+                selected={calendarRange}
+                onSelect={(range: DateRange | undefined) => {
+                  setCalendarRange(range)
+                  const toStr = (d: Date) => {
+                    const y = d.getFullYear()
+                    const m = String(d.getMonth() + 1).padStart(2, '0')
+                    const day = String(d.getDate()).padStart(2, '0')
+                    return `${y}-${m}-${day}`
+                  }
+                  const fromStr = range?.from ? toStr(range.from) : ''
+                  const toDateStr = range?.to ? toStr(range.to) : ''
+                  setPeriodoInicio(fromStr)
+                  setPeriodoFim(toDateStr)
+                  if (fromStr && toDateStr && fromStr !== toDateStr) setDatePickerOpen(false)
+                }}
+                numberOfMonths={2}
+              />
+            </PopoverContent>
+          </Popover>
+          {(periodoInicio || periodoFim) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { setPeriodoInicio(''); setPeriodoFim(''); setCalendarRange(undefined) }}
+              aria-label="Limpar período"
+            >
+              <X className="h-4 w-4" />
+              Limpar
+            </Button>
+          )}
+        </div>
         <Button onClick={openCreate} className="ml-auto shrink-0">
           <Plus className="h-4 w-4" />
           Novo Custo

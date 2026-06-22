@@ -1,5 +1,6 @@
 import { useState, useEffect, type FormEvent } from 'react'
 import { Trash2 } from 'lucide-react'
+import { useAlert } from '@/components/feedback/alert-provider'
 import {
   Dialog,
   DialogContent,
@@ -113,6 +114,7 @@ export function TituloPagarFormModal({
   const [instrutores, setInstrutores] = useState<User[]>([])
   const [contasFixas, setContasFixas] = useState<ContaFixa[]>([])
   const isEdit = !!titulo
+  const alert = useAlert()
 
   useEffect(() => {
     if (open) {
@@ -127,7 +129,7 @@ export function TituloPagarFormModal({
           (u.perfis.includes('instrutor' as UserProfile) || u.perfis.includes('funcionario' as UserProfile)),
         ))
         setContasFixas(cfs.filter(cf => cf.is_active))
-      }).catch(() => {})
+      }).catch(e => alert.error(e, 'Erro ao carregar opções do formulário.'))
     }
   }, [open])
 
