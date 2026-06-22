@@ -1401,7 +1401,7 @@ export default function UsuarioPerfilPage() {
                                   {expirado && (
                                     <span className="text-rose-500 italic mb-0.5">Tarifa travada expirada — usando tarifa atual</span>
                                   )}
-                                  {expirado || !m.tarifas_historicas
+                                  {expirado || !m.tarifas_historicas || Object.keys(m.tarifas_historicas).length === 0
                                     ? historicoAeronaves.filter(a => a.is_active).map(a => {
                                         if (a.tipo === 'aviao') {
                                           const solo = a.valor_solo > 0 ? `${(saldoRef / a.valor_solo).toFixed(1)}h solo` : null
