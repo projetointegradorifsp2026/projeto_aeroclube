@@ -9,6 +9,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 
+from apps.permissoes.permissions import TemAcessoFuncionalidade
 from .models import Usuario, UsuarioPerfil
 from .serializers import UsuarioSerializer, UsuarioCreateSerializer, UsuarioPerfilSerializer
 
@@ -25,6 +26,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     """
 
     queryset = Usuario.objects.prefetch_related("perfis").order_by("nome")
+    funcionalidade_chave = "usuarios"
     pagination_class = None
 
     def get_queryset(self):
@@ -38,9 +40,17 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         return UsuarioSerializer
 
     def get_permissions(self):
-        if self.action in ["create", "destroy"]:
+        # Self-service: qualquer usuário autenticado age sobre si mesmo.
+        if self.action in ["me", "alterar_perfil_ativo", "alterar_minha_senha"]:
+            return [IsAuthenticated()]
+        # Ações de gestão restritas a administradores.
+        if self.action in [
+            "create", "destroy", "resetar_senha",
+            "adicionar_perfil", "remover_perfil",
+        ]:
             return [IsAdminUser()]
-        return [IsAuthenticated()]
+        # list/retrieve/update/partial_update: exige acesso à tela "usuarios".
+        return [IsAuthenticated(), TemAcessoFuncionalidade()]
 
     def create(self, request, *args, **kwargs):
         """Cria usuário e retorna o serializer completo (com id)."""

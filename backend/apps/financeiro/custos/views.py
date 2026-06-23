@@ -7,6 +7,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.db import transaction
 from django.utils.dateparse import parse_date
 
+from apps.permissoes.permissions import TemAcessoFuncionalidade
 from .models import Custo
 from .serializers import CustoSerializer, CustoWriteSerializer
 
@@ -92,7 +93,8 @@ class CustoViewSet(viewsets.ModelViewSet):
       Body: {"custo_ids": [1,2,3]}
     """
     queryset = Custo.objects.select_related("favorecido__usuario", "favorecido__entidade").all()
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, TemAcessoFuncionalidade]
+    funcionalidade_chave = "custos"
     pagination_class = None
 
     def get_serializer_class(self):

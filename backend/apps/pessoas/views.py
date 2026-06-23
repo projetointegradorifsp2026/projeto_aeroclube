@@ -2,6 +2,7 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
+from apps.permissoes.permissions import TemAcessoFuncionalidade
 from .models import Cliente, EntidadePagar, Fornecedor, Funcionario, Favorecido
 from .serializers import (
     ClienteSerializer,
@@ -15,7 +16,8 @@ from .serializers import (
 class ClienteViewSet(viewsets.ModelViewSet):
     """GET/POST/PATCH/DELETE /api/v1/clientes/"""
     serializer_class = ClienteSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, TemAcessoFuncionalidade]
+    funcionalidade_chave = "clientes"
     pagination_class = None
 
     def get_queryset(self):
@@ -61,7 +63,8 @@ class EntidadePagarViewSet(viewsets.ModelViewSet):
 class FornecedorViewSet(viewsets.ModelViewSet):
     """GET /api/v1/fornecedores/"""
     serializer_class = FornecedorSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, TemAcessoFuncionalidade]
+    funcionalidade_chave = "fornecedores"
     pagination_class = None
 
     def get_queryset(self):
