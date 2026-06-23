@@ -118,7 +118,15 @@ class Voo(models.Model):
         default=0,
     )
 
-    # Repasse ao instrutor (10% do valor do voo para planador com instrutor)
+    # Taxa de repasse ao instrutor (%) — editável pelo front, padrão 10%
+    taxa_instrutor = models.DecimalField(
+        "Taxa do instrutor (%)",
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("10.00"),
+        help_text="Percentual do valor do voo repassado ao instrutor.",
+    )
+    # Repasse ao instrutor (R$) — calculado a partir da taxa_instrutor
     valor_repasse_instrutor = models.DecimalField(
         "Repasse ao instrutor (R$)",
         max_digits=8,
@@ -196,11 +204,6 @@ class Voo(models.Model):
             excedente = max(0, duracao_minutos - planador.minutos_franquia)
             self.valor_tarifa_snapshot = planador.valor_fixo_inicial
             self.valor_total = round(valor, 2)
-            # Instrutor recebe 10% adicionais sobre o valor do voo (planador com instrutor)
-            if self.tipo_voo in self.TIPOS_COM_INSTRUTOR and self.instrutor_id:
-                self.valor_repasse_instrutor = round(self.valor_total * Decimal("0.10"), 2)
-            else:
-                self.valor_repasse_instrutor = Decimal("0.00")
             self.detalhe_cobranca = {
                 "tipo_aeronave": "planador",
                 "duracao_minutos": duracao_minutos,
@@ -209,10 +212,19 @@ class Voo(models.Model):
                 "valor_fixo_inicial": str(planador.valor_fixo_inicial),
                 "valor_minuto_adicional": str(planador.valor_minuto_adicional),
                 "valor_total": str(self.valor_total),
-                "valor_repasse_instrutor": str(self.valor_repasse_instrutor),
             }
         except Exception:
             pass
+
+        # Repasse ao instrutor — vale para avião e planador, conforme a taxa informada
+        if self.tipo_voo in self.TIPOS_COM_INSTRUTOR and self.instrutor_id:
+            taxa = self.taxa_instrutor if self.taxa_instrutor is not None else Decimal("10.00")
+            self.valor_repasse_instrutor = round(self.valor_total * (taxa / Decimal("100")), 2)
+        else:
+            self.valor_repasse_instrutor = Decimal("0.00")
+        if self.detalhe_cobranca is not None:
+            self.detalhe_cobranca["taxa_instrutor"] = str(self.taxa_instrutor)
+            self.detalhe_cobranca["valor_repasse_instrutor"] = str(self.valor_repasse_instrutor)
 
     def save(self, *args, **kwargs):
         # 1. Calcular duração e tempo decimal

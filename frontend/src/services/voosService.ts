@@ -19,6 +19,8 @@ interface BackendVoo {
   destino: string | null
   valor_tarifa_snapshot: string
   valor_total: string
+  taxa_instrutor: string
+  valor_repasse_instrutor: string
   detalhe_cobranca: {
     tipo_aeronave?: string
     [key: string]: unknown
@@ -51,7 +53,7 @@ function adaptVoo(v: BackendVoo): Voo {
     destino: v.destino ?? '',
     valor_hora: parseFloat(v.valor_tarifa_snapshot),
     valor_voo: parseFloat(v.valor_total),
-    taxa_instrutor: v.instrutor ? 10 : null,
+    taxa_instrutor: v.instrutor ? parseFloat(v.taxa_instrutor) : null,
     data: v.data_voo,
     data_vencimento: addDays(v.data_voo, 30),
     created_at: v.created_at,
@@ -74,6 +76,7 @@ export async function createVoo(data: Omit<Voo, 'id' | 'created_at'>): Promise<V
     data_voo: data.data,
     origem: data.origem || null,
     destino: data.destino || null,
+    taxa_instrutor: data.taxa_instrutor ?? 10,
   }
   const created = await apiPost<BackendVoo>('/api/v1/voos/', payload)
   return adaptVoo(created)
@@ -93,6 +96,7 @@ export async function updateVoo(
   if (data.data !== undefined) payload.data_voo = data.data
   if (data.origem !== undefined) payload.origem = data.origem || null
   if (data.destino !== undefined) payload.destino = data.destino || null
+  if (data.taxa_instrutor !== undefined) payload.taxa_instrutor = data.taxa_instrutor ?? 10
 
   const updated = await apiPatch<BackendVoo>(`/api/v1/voos/${id}/`, payload)
   return adaptVoo(updated)
