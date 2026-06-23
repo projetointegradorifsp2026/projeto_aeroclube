@@ -40,6 +40,7 @@ INSTALLED_APPS = [
     "apps.financeiro.custos",
     "apps.financeiro.cnab",
     "apps.relatorios",
+    "apps.permissoes",
 ]
 
 MIDDLEWARE = [
