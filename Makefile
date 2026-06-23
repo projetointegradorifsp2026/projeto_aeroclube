@@ -17,7 +17,7 @@ BASE     = docker-compose.yml
 DEV      = docker-compose.dev.yml
 TEST     = docker-compose.test.yml
 PROD     = docker-compose.prod.yml
-APPS = users relatorios pessoas carteira titulos_pagar titulos_receber aeronaves voos conta_fixa
+APPS = users relatorios pessoas carteira titulos_pagar titulos_receber aeronaves voos conta_fixa permissoes
 
 # .PHONY declara que estes alvos não são arquivos reais
 .PHONY: help dev-up dev-down dev-logs test test-down prod-up prod-down \
