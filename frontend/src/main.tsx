@@ -23,7 +23,7 @@ import Voos from './pages/Voos';
 import VooFormPage from './pages/VooFormPage'
 import UsuarioPerfilPage from './pages/UsuarioPerfilPage'
 import Relatorios from './pages/Relatorios'
-import GestaoPermissoes from './pages/GestaoPermissoes'
+import NotFound from './pages/NotFound'
 import { getCurrentUser, isAuthenticated } from './services/api/auth';
 import { canAccess } from './lib/permissions';
 import type { UserProfile } from './mocks/users';
@@ -121,7 +121,11 @@ const router = createBrowserRouter([
         element: <ProtectedRoute route="/permissoes"><GestaoPermissoes /></ProtectedRoute>
       },
     ]
-  }
+  },
+  {
+    path: "*",
+    element: <NotFound />,
+  },
 ])
 
 createRoot(document.getElementById('root')!).render(
