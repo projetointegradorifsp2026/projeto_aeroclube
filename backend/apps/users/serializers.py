@@ -22,6 +22,7 @@ class UsuarioPerfilSerializer(serializers.ModelSerializer):
 class UsuarioSerializer(serializers.ModelSerializer):
     perfis = UsuarioPerfilSerializer(many=True, read_only=True)
     perfil_ativo_display = serializers.CharField(source="get_perfil_ativo_display", read_only=True)
+    funcionalidades_permitidas = serializers.SerializerMethodField()
 
     class Meta:
         model = Usuario
@@ -39,10 +40,16 @@ class UsuarioSerializer(serializers.ModelSerializer):
             "perfil_ativo",
             "perfil_ativo_display",
             "perfis",
+            "funcionalidades_permitidas",
             "is_active",
             "date_joined",
         ]
         read_only_fields = ["id", "date_joined"]
+
+    def get_funcionalidades_permitidas(self, obj):
+        # Import lazy para evitar ciclo de import com o app de permissões.
+        from apps.permissoes.models import funcionalidades_do_usuario
+        return funcionalidades_do_usuario(obj)
 
     def validate_cpf_cnpj(self, value):
         return _validar_cpf_cnpj_drf(value)
