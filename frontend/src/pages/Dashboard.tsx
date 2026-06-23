@@ -204,9 +204,11 @@ interface FinCardProps {
     trend?: { value: number; up: boolean }
     subtitle?: string
     valueColor?: string
+    /** Texto do valor quando não é monetário (ex.: contagem). Sobrepõe fmt(value). */
+    valueText?: string
 }
 
-function FinCard({ label, value, loading, icon: Icon, iconColor, trend, subtitle, valueColor }: FinCardProps) {
+function FinCard({ label, value, loading, icon: Icon, iconColor, trend, subtitle, valueColor, valueText }: FinCardProps) {
     return (
         <Card className="relative">
             <CardContent className="px-3 py-3 sm:px-4 sm:py-2">
@@ -225,7 +227,7 @@ function FinCard({ label, value, loading, icon: Icon, iconColor, trend, subtitle
                             <p className="text-xs sm:text-sm text-muted-foreground leading-snug">{label}</p>
 
                         </div>
-                        <p className={cn('text-xl sm:text-2xl font-bold tracking-tight  z-40', valueColor)}>{fmt(value)}</p>
+                        <p className={cn('text-xl sm:text-2xl font-bold tracking-tight  z-40', valueColor)}>{valueText ?? fmt(value)}</p>
                         {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
                         {trend && (
                             <p className={cn('flex items-center gap-1 text-xs mt-1.5', trend.up ? 'text-emerald-600' : 'text-rose-500')}>
@@ -1357,29 +1359,22 @@ function DashboardInstrutor({ perfil }: { perfil: string }) {
                                 iconColor="text-gray-200"
                                 subtitle={`${meusPagamentos.filter(t => t.status === 'baixado').length} pagamento(s)`}
                             />
-                            <Card>
-                                <CardContent className="px-3 py-3 sm:px-5 sm:py-4">
-                                    {loading ? (
-                                        <><Skeleton className="h-4 w-3/4 mb-3" /><Skeleton className="h-7 w-2/3" /></>
-                                    ) : (
-                                        <>
-                                            <div className="flex items-start justify-between gap-2 mb-2 sm:mb-3">
-                                                <p className="text-xs sm:text-sm text-muted-foreground leading-snug">Voos como instrutor</p>
-                                                <div className="rounded-lg p-1.5 sm:p-2 bg-violet-100 dark:bg-violet-900/30 shrink-0">
-                                                    <Plane className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-violet-600 dark:text-violet-400" />
-                                                </div>
-                                            </div>
-                                            <p className="text-xl sm:text-2xl font-bold tracking-tight">{voosComoInstrutor.length}</p>
-                                            <p className="text-xs text-muted-foreground mt-1">
-                                                {voosComoInstrutor.reduce((s, v) => s + v.tempo_decimal, 0).toFixed(1).replace('.', ',')} h totais
-                                            </p>
-                                        </>
-                                    )}
-                                </CardContent>
-                            </Card>
+                            {perfil === 'instrutor' && (
+                                <FinCard
+                                    label="Voos como instrutor"
+                                    value={voosComoInstrutor.length}
+                                    valueText={String(voosComoInstrutor.length)}
+                                    loading={loading}
+                                    icon={Plane}
+                                    iconBg="bg-violet-100 dark:bg-violet-900/30"
+                                    iconColor="text-gray-200"
+                                    subtitle={`${voosComoInstrutor.reduce((s, v) => s + v.tempo_decimal, 0).toFixed(1).replace('.', ',')} h totais`}
+                                />
+                            )}
                         </div>
                     </section>
 
+                    {perfil === 'instrutor' && (
                     <section>
                         <p className="text-sm font-medium text-muted-foreground mb-3">Meus últimos voos como instrutor</p>
                         <Card>
@@ -1415,6 +1410,7 @@ function DashboardInstrutor({ perfil }: { perfil: string }) {
                             </CardContent>
                         </Card>
                     </section>
+                    )}
                 </div>
 
                 <div>
