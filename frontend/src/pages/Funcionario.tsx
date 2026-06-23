@@ -122,7 +122,7 @@ export default function Funcionario() {
         </p>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <FilterInput
           value={search}
           onChange={setSearch}
@@ -144,7 +144,7 @@ export default function Funcionario() {
           <option value="active">Ativos</option>
           <option value="inactive">Inativos</option>
         </FilterSelect>
-        <Button onClick={openCreate} className="ml-auto shrink-0">
+        <Button onClick={openCreate} className="w-full sm:w-auto sm:ml-auto">
           <Plus className="h-4 w-4" />
           Novo Cadastro
         </Button>

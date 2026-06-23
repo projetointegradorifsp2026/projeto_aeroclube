@@ -1043,7 +1043,7 @@ export default function UsuarioPerfilPage() {
 
                 return (
                   <>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1.5">
                         <label className="text-sm font-medium">Aeronave</label>
                         <select
@@ -1087,7 +1087,7 @@ export default function UsuarioPerfilPage() {
                       </p>
                     )}
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1.5">
                         <label className="text-sm font-medium">{horasLabel}</label>
                         <Input

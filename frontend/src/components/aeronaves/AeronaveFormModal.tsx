@@ -257,7 +257,7 @@ export function AeronaveFormModal({
 
           {/* Avião: tarifas horárias */}
           {form.tipo === 'aviao' && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Tarifa Solo (R$/h)</label>
                 <Input
@@ -305,7 +305,7 @@ export function AeronaveFormModal({
                   helper={errors.valor_fixo_inicial}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">Tempo limite (min)</label>
                   <Input
@@ -339,7 +339,7 @@ export function AeronaveFormModal({
               </div>
               {/* Duplo comando (opcional) */}
               <p className="text-xs text-muted-foreground font-medium pt-1">Duplo comando (opcional)</p>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium text-muted-foreground">Valor fixo duplo (Opcional)</label>
                   <Input

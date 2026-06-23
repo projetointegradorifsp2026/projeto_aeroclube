@@ -86,11 +86,11 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row">
+    <div className="min-h-screen flex flex-col md:flex-row">
 
       {/* ── Painel esquerdo — hero cinematográfico ── */}
       <div
-        className="relative lg:w-[58%] min-h-[340px] lg:min-h-screen flex flex-col justify-between overflow-hidden"
+        className="relative md:w-1/2 lg:w-[58%] min-h-[280px] md:min-h-screen flex flex-col justify-between overflow-hidden"
         style={{ backgroundColor: "#08070f" }}
       >
         {/* Foto de fundo do aeroclube — substitua pelo caminho local quando disponível */}
@@ -161,7 +161,7 @@ export default function Login() {
       </div>
 
       {/* ── Painel direito — formulário ── */}
-      <div className="lg:w-[42%] flex items-center justify-center bg-background px-6 py-10 lg:p-14">
+      <div className="md:w-1/2 lg:w-[42%] flex items-center justify-center bg-background px-6 py-10 lg:p-14">
         <div className="w-full max-w-sm space-y-6">
           {/* Topo: logo */}
           <div className="flex justify-center">

@@ -38,16 +38,16 @@ export function TitulosRelacionadosModal({ open, onClose, titulo, descricao, tit
             Nenhum título gerado ainda.
           </p>
         ) : (
-          <div className="overflow-y-auto flex-1">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto overflow-y-auto flex-1">
+            <table className="w-full min-w-[600px] text-sm">
               <thead>
                 <tr className="border-b bg-muted/30">
                   <th className="text-left px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Parcela</th>
                   <th className="text-right px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Valor</th>
                   <th className="text-right px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Pago</th>
                   <th className="text-left px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Vencimento</th>
-                  <th className="text-left px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Pagamento</th>
-                  <th className="text-left px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Status</th>
+                  <th className="hidden sm:table-cell text-left px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Pagamento</th>
+                  <th className="hidden sm:table-cell text-left px-4 py-2.5 font-medium text-muted-foreground whitespace-nowrap">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -64,10 +64,10 @@ export function TitulosRelacionadosModal({ open, onClose, titulo, descricao, tit
                       }
                     </td>
                     <td className="px-4 py-2.5 whitespace-nowrap">{fmtDate(t.data_vencimento)}</td>
-                    <td className="px-4 py-2.5 whitespace-nowrap">
+                    <td className="hidden sm:table-cell px-4 py-2.5 whitespace-nowrap">
                       {t.data_pagamento ? fmtDate(t.data_pagamento) : <span className="text-muted-foreground">—</span>}
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td className="hidden sm:table-cell px-4 py-2.5">
                       <StatusBadge status={t.status} atrasado={t.esta_atrasado} />
                     </td>
                   </tr>

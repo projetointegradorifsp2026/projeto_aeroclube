@@ -127,7 +127,7 @@ export function ContaFixaFormModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-1">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Nome</label>
               <Input
@@ -159,7 +159,7 @@ export function ContaFixaFormModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Valor mensal (R$)</label>
               <Input

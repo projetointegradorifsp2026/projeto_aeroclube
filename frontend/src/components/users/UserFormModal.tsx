@@ -229,8 +229,8 @@ export function UserFormModal({ user, open, onClose, onSave, restrictedFields = 
           <div className="pt-1">
             <p className="text-xs text-muted-foreground">Endereço</p>
           </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-1.5 col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="space-y-1.5 col-span-1 sm:col-span-2">
               <label className="text-sm font-medium">CEP</label>
               <Input
                 placeholder="00000-000"
@@ -256,8 +256,8 @@ export function UserFormModal({ user, open, onClose, onSave, restrictedFields = 
               hasError={!!errors.logradouro} helper={errors.logradouro}
               disabled={cepLoading} autoComplete="off" />
           </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-1.5 col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="space-y-1.5 col-span-1 sm:col-span-2">
               <label className="text-sm font-medium">Bairro</label>
               <Input placeholder="Bairro" value={form.bairro}
                 onChange={e => setForm(p => ({ ...p, bairro: e.target.value }))}

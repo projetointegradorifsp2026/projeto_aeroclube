@@ -504,7 +504,7 @@ export default function Relatorios() {
                     <div className="grid grid-cols-1 xl:grid-cols-[280px_minmax(0,1fr)] gap-6 mt-4 items-start">
 
                         {/* ── Painel esquerdo: campos + filtros + ordenação ── */}
-                        <div className="flex flex-col h-[calc(100vh-14rem)] rounded-xl border bg-card overflow-hidden">
+                        <div className="flex flex-col h-[70vh] xl:h-[calc(100vh-14rem)] rounded-xl border bg-card overflow-hidden">
 
                             {/* Área rolável */}
                             <div className="flex-1 overflow-y-scroll min-h-0 scrollbar-thin">
@@ -670,7 +670,7 @@ export default function Relatorios() {
                         <div className="flex flex-col min-w-0 gap-2">
 
                             {/* Preview table */}
-                            <div className="h-[calc(100vh-14rem)] rounded-xl border border-border bg-card overflow-hidden flex flex-col">
+                            <div className="h-[70vh] xl:h-[calc(100vh-14rem)] rounded-xl border border-border bg-card overflow-hidden flex flex-col">
                                 {!resultado && !loading ? (
                                     <Empty>
                                         <EmptyHeader>

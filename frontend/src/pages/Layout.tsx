@@ -467,8 +467,13 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, currentUse
             </Sidebar>
 
             {/* CONTEÚDO */}
-            <SidebarInset className="mt-3 rounded-tl-[2.5rem] rounded-bl-[2.5rem] overflow-hidden">
-                <div className="p-8 flex flex-col flex-1">
+            <SidebarInset className="md:mt-3 md:rounded-tl-[2.5rem] md:rounded-bl-[2.5rem] overflow-hidden">
+                {/* Barra superior — apenas mobile: gatilho para abrir a navbar */}
+                <header className="flex items-center gap-2 border-b px-4 h-14 shrink-0 md:hidden">
+                    <SidebarTrigger />
+                    <img src={logoIcon} alt="Aeroclube" className="h-7 object-contain" />
+                </header>
+                <div className="p-4 sm:p-6 md:p-8 flex flex-col flex-1 min-w-0">
                     <Outlet />
                 </div>
             </SidebarInset>
