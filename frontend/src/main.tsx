@@ -116,6 +116,10 @@ const router = createBrowserRouter([
         path: "relatorios",
         element: <ProtectedRoute route="/relatorios"><Relatorios /></ProtectedRoute>
       },
+      {
+        path: "permissoes",
+        element: <ProtectedRoute route="/permissoes"><GestaoPermissoes /></ProtectedRoute>
+      },
     ]
   },
   {

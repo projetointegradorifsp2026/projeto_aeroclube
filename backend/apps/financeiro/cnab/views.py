@@ -6,6 +6,8 @@ from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.db import transaction
 from django.http import HttpResponse
 
+from apps.permissoes.permissions import TemAcessoFuncionalidade
+
 from .cnab240 import gerar_arquivo_remessa
 from .cnab_retorno import ler_arquivo_retorno
 
@@ -89,7 +91,8 @@ class ConfiguracaoBancariaViewSet(viewsets.ModelViewSet):
     """
     queryset = ConfiguracaoBancaria.objects.all().order_by("-is_active", "descricao")
     serializer_class = ConfiguracaoBancariaSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuthenticated, TemAcessoFuncionalidade]
+    funcionalidade_chave = "config-bancaria"
     pagination_class = None
 
 
@@ -127,7 +130,8 @@ class RemessaCNABViewSet(viewsets.ModelViewSet):
     """
     queryset = RemessaCNAB.objects.select_related("configuracao", "criado_por").prefetch_related("itens")
     serializer_class = RemessaCNABSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, TemAcessoFuncionalidade]
+    funcionalidade_chave = "remessas-cnab"
     pagination_class = None
 
     @action(detail=False, methods=["post"], url_path="gerar")
@@ -247,7 +251,8 @@ class RetornoCNABViewSet(viewsets.ModelViewSet):
     """
     queryset = RetornoCNAB.objects.select_related("configuracao", "criado_por").prefetch_related("itens")
     serializer_class = RetornoCNABSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, TemAcessoFuncionalidade]
+    funcionalidade_chave = "remessas-cnab"
     pagination_class = None
 
     @action(detail=False, methods=["post"], url_path="processar")

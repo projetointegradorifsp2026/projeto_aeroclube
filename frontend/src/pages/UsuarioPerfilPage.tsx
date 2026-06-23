@@ -50,6 +50,7 @@ import {
   getDadosBancariosUsuario, salvarDadosBancarios, emptyDadosBancarios, type DadosBancarios,
 } from '@/services/cnabService'
 import { AlterarSenhaModal } from '@/components/users/AlterarSenhaModal'
+import PermissoesUsuarioCard from '@/components/permissoes/PermissoesUsuarioCard'
 import { getCurrentUser } from '@/services/api/auth'
 import {
   getTitulosReceber,
@@ -785,6 +786,9 @@ export default function UsuarioPerfilPage() {
           })()}
         </CardContent>
       </Card>
+
+      {/* Exceções de acesso a telas — apenas admin */}
+      {isAdmin && user && <PermissoesUsuarioCard usuarioId={parseInt(user.id, 10)} />}
 
       {/* Movimentações — visível apenas para admin */}
       {isAdmin && <Card>

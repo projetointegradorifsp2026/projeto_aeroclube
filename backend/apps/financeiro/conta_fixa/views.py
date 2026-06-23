@@ -1,6 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
+from apps.permissoes.permissions import TemAcessoFuncionalidade
 from .models import ContaFixa
 from .serializers import ContaFixaSerializer
 
@@ -8,7 +9,8 @@ from .serializers import ContaFixaSerializer
 class ContaFixaViewSet(viewsets.ModelViewSet):
     queryset = ContaFixa.objects.all().order_by("nome")
     serializer_class = ContaFixaSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, TemAcessoFuncionalidade]
+    funcionalidade_chave = "conta-fixa"
     pagination_class = None
 
     def get_queryset(self):

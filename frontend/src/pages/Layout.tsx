@@ -44,7 +44,7 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import {
     ChevronsUpDown, LogOut, User, Users, ChevronDown, ChartSpline, FileInput, FileOutput,
     Plane, ChartNoAxesColumnIncreasing, FolderPlus, FileUser, Truck, DollarSign,
-    RefreshCw, BarChart2, TrendingUp, TrendingDown, Landmark, FileText
+    RefreshCw, BarChart2, TrendingUp, TrendingDown, Landmark, FileText, ShieldCheck
 } from "lucide-react"
 
 import { Link, useLocation, useNavigate } from "react-router-dom"
@@ -175,6 +175,21 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, currentUse
                                         <Link to="/movimentacoes">
                                             <ChartSpline />
                                             <span className="group-data-[collapsible=icon]:hidden">Movimentações</span>
+                                        </Link>
+                                    </SidebarMenuButton>
+                                </SidebarMenuItem>
+                            )}
+
+                            {canAccess(perfil, '/permissoes') && (
+                                <SidebarMenuItem>
+                                    <SidebarMenuButton
+                                        asChild
+                                        isActive={pathname === "/permissoes"}
+                                        tooltip="Permissões"
+                                    >
+                                        <Link to="/permissoes">
+                                            <ShieldCheck />
+                                            <span className="group-data-[collapsible=icon]:hidden">Permissões</span>
                                         </Link>
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>

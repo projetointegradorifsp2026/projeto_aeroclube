@@ -24,5 +24,6 @@ urlpatterns = [
     path("api/v1/", include("apps.financeiro.custos.urls")),
     path("api/v1/", include("apps.financeiro.cnab.urls")),
     path("api/v1/", include("apps.relatorios.urls")),
+    path("api/v1/", include("apps.permissoes.urls")),
     path("api-auth/", include("rest_framework.urls")),
 ]
