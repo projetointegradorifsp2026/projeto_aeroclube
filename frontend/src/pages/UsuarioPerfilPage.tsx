@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/dialog'
 import {
   getUsers,
+  getMe,
   updateUser,
   addSaldoCarteira,
   removerSaldoCarteira,
@@ -52,6 +53,7 @@ import {
 import { AlterarSenhaModal } from '@/components/users/AlterarSenhaModal'
 import PermissoesUsuarioCard from '@/components/permissoes/PermissoesUsuarioCard'
 import { getCurrentUser } from '@/services/api/auth'
+import { canAccess } from '@/lib/permissions'
 import {
   getTitulosReceber,
   baixarTituloReceber,
@@ -108,7 +110,9 @@ export default function UsuarioPerfilPage() {
   const alert = useAlert()
 
   const currentUser = getCurrentUser()
-  const isAdmin = currentUser?.perfil_ativo === 'admin'
+  // "Visão de gestão" = pode acessar a tela de usuários. Quem não tem (não-admin e
+  // admin secundário sem a tela) vê o próprio perfil em modo restrito e carrega via /me.
+  const podeGerirUsuarios = canAccess(currentUser?.perfil_ativo, '/usuarios')
 
   const [user, setUser] = useState<User | null>(null)
   const [loadingUser, setLoadingUser] = useState(true)
@@ -206,7 +210,7 @@ export default function UsuarioPerfilPage() {
 
   useEffect(() => {
     if (!id) return
-    if (isAdmin) {
+    if (podeGerirUsuarios) {
       Promise.all([getUsers(), getTitulosReceber(), getTitulosPagar(), getMovimentacoesCarteira(id)]).then(
         ([users, allReceber, allPagar, movCarteira]) => {
           const found = users.find(u => u.id === id)
@@ -269,10 +273,10 @@ export default function UsuarioPerfilPage() {
         .catch(e => alert.error(e, 'Erro ao carregar dados bancários.'))
         .finally(() => setDadosBancariosLoading(false))
     } else {
-      getUsers().then(users => {
-        const found = users.find(u => u.id === id)
-        if (!found) { navigate('/dashboard'); return }
-        setUser(found)
+      // Não-admin: carrega o PRÓPRIO usuário via /me (a lista de usuários é restrita a admin).
+      getMe().then(me => {
+        if (String(me.id) !== String(id)) { navigate('/dashboard'); return }
+        setUser(me)
         setLoadingUser(false)
       }).catch(e => {
         alert.error(e, 'Erro ao carregar dados do usuário.')
@@ -289,7 +293,7 @@ export default function UsuarioPerfilPage() {
         .catch(e => alert.error(e, 'Erro ao carregar dados bancários.'))
         .finally(() => setDadosBancariosLoading(false))
     }
-  }, [id, navigate, isAdmin])
+  }, [id, navigate, podeGerirUsuarios])
 
   const movTotalPages = Math.ceil(movimentacoes.length / PAGE_SIZE)
   const movPaginated = movimentacoes.slice((movPage - 1) * PAGE_SIZE, movPage * PAGE_SIZE)
@@ -567,7 +571,7 @@ export default function UsuarioPerfilPage() {
     <div className="pt-2 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon-sm" onClick={() => navigate(isAdmin ? '/usuarios' : '/dashboard')}>
+        <Button variant="ghost" size="icon-sm" onClick={() => navigate(podeGerirUsuarios ? '/usuarios' : '/dashboard')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
@@ -584,7 +588,7 @@ export default function UsuarioPerfilPage() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold">Dados do Usuário</CardTitle>
               <div className="flex gap-2">
-                {isAdmin && (
+                {podeGerirUsuarios && (
                   <Button variant="outline" size="sm" onClick={() => setResetDialogOpen(true)}>
                     <KeyRound className="h-3.5 w-3.5" />
                     Resetar Senha
@@ -596,10 +600,12 @@ export default function UsuarioPerfilPage() {
                     Alterar Senha
                   </Button>
                 )}
-                <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-                  <Pencil className="h-3.5 w-3.5" />
-                  Editar
-                </Button>
+                {podeGerirUsuarios && (
+                  <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                    Editar
+                  </Button>
+                )}
               </div>
             </div>
           </CardHeader>
@@ -694,7 +700,7 @@ export default function UsuarioPerfilPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              {isAdmin && (
+              {podeGerirUsuarios && (
                 <>
                   <Button
                     variant="outline"
@@ -737,7 +743,7 @@ export default function UsuarioPerfilPage() {
             const setField = <K extends keyof DadosBancarios>(k: K, v: DadosBancarios[K]) =>
               setDadosBancarios(p => ({ ...p, [k]: v }))
             return (
-              <div className="space-y-4">
+              <fieldset disabled={!podeGerirUsuarios} className="space-y-4 min-w-0 border-0 p-0 m-0">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium">Banco</label>
@@ -789,26 +795,26 @@ export default function UsuarioPerfilPage() {
                     <Input value={dadosBancarios.cpf_cnpj_titular} onChange={e => setField('cpf_cnpj_titular', e.target.value)} />
                   </div>
                 </div>
-                {dadosBancariosDirty && (
+                {podeGerirUsuarios && dadosBancariosDirty && (
                   <div className="flex justify-end">
                     <Button onClick={handleSaveDadosBancarios} disabled={dadosBancariosSaving}>
                       {dadosBancariosSaving ? 'Salvando...' : 'Salvar Dados Bancários'}
                     </Button>
                   </div>
                 )}
-              </div>
+              </fieldset>
             )
           })()}
         </CardContent>
       </Card>
 
       {/* Telas liberadas — só quando o usuário visualizado é administrador */}
-      {isAdmin && user && user.perfis.includes('admin') && (
+      {podeGerirUsuarios && user && user.perfis.includes('admin') && (
         <PermissoesUsuarioCard usuarioId={parseInt(user.id, 10)} />
       )}
 
       {/* Movimentações — visível apenas para admin */}
-      {isAdmin && <Card>
+      {podeGerirUsuarios && <Card>
         <CardHeader className="border-b pb-3">
           <div className="flex items-center gap-2">
             <Receipt className="h-4 w-4 text-muted-foreground" />
@@ -887,7 +893,7 @@ export default function UsuarioPerfilPage() {
       </Card>}
 
       {/* Títulos a Receber — visível apenas para admin */}
-      {isAdmin && <Card>
+      {podeGerirUsuarios && <Card>
         <CardHeader className="border-b pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -984,7 +990,7 @@ export default function UsuarioPerfilPage() {
       </Card>}
 
       {/* Modal de edição */}
-      <UserFormModal user={user} open={editOpen} onClose={() => setEditOpen(false)} onSave={handleSaveUser} restrictedFields={!isAdmin} />
+      <UserFormModal user={user} open={editOpen} onClose={() => setEditOpen(false)} onSave={handleSaveUser} restrictedFields={!podeGerirUsuarios} />
 
       <AlterarSenhaModal open={alterarSenhaOpen} onClose={() => setAlterarSenhaOpen(false)} />
 

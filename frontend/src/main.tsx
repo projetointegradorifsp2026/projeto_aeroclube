@@ -1,6 +1,6 @@
 import { StrictMode, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
+import { createBrowserRouter, RouterProvider, Navigate, useParams } from "react-router-dom";
 
 import './index.css'
 import Login from './pages/Login'
@@ -29,13 +29,18 @@ import { canAccess } from './lib/permissions';
 import type { UserProfile } from './mocks/users';
 import { AlertProvider } from './components/feedback/alert-provider';
 
-function ProtectedRoute({ route, children }: { route: string; children: ReactNode }) {
+function ProtectedRoute({ route, allowSelf, children }: { route: string; allowSelf?: boolean; children: ReactNode }) {
+  const params = useParams()
   if (!isAuthenticated()) return <Navigate to="/" replace />
   const user = getCurrentUser()
-  if (!canAccess(user?.perfil_ativo as UserProfile, route)) {
-    return <Navigate to="/dashboard" replace />
+  if (canAccess(user?.perfil_ativo as UserProfile, route)) {
+    return <>{children}</>
   }
-  return <>{children}</>
+  // Autoatendimento: usuário sem acesso à tela pode ver o PRÓPRIO perfil.
+  if (allowSelf && params.id && String(params.id) === String(user?.id)) {
+    return <>{children}</>
+  }
+  return <Navigate to="/dashboard" replace />
 }
 
 const router = createBrowserRouter([
@@ -60,7 +65,7 @@ const router = createBrowserRouter([
       },
       {
         path: "usuarios/:id",
-        element: <ProtectedRoute route="/usuarios/:id"><UsuarioPerfilPage /></ProtectedRoute>
+        element: <ProtectedRoute route="/usuarios/:id" allowSelf><UsuarioPerfilPage /></ProtectedRoute>
       },
       {
         path: "movimentacoes",
