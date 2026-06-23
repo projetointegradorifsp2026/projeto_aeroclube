@@ -8,6 +8,7 @@ export interface AuthUser {
   email: string
   perfil_ativo: string
   perfis: { id: number; perfil: string }[]
+  funcionalidades_permitidas?: string[]
 }
 
 export async function login(email: string, password: string): Promise<AuthUser> {
