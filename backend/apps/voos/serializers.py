@@ -29,6 +29,7 @@ class VooSerializer(serializers.ModelSerializer):
             "destino",
             "valor_tarifa_snapshot",
             "valor_total",
+            "taxa_instrutor",
             "valor_repasse_instrutor",
             "detalhe_cobranca",
             "created_at",
