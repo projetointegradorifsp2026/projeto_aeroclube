@@ -787,8 +787,10 @@ export default function UsuarioPerfilPage() {
         </CardContent>
       </Card>
 
-      {/* Exceções de acesso a telas — apenas admin */}
-      {isAdmin && user && <PermissoesUsuarioCard usuarioId={parseInt(user.id, 10)} />}
+      {/* Telas liberadas — só quando o usuário visualizado é administrador */}
+      {isAdmin && user && user.perfis.includes('admin') && (
+        <PermissoesUsuarioCard usuarioId={parseInt(user.id, 10)} />
+      )}
 
       {/* Movimentações — visível apenas para admin */}
       {isAdmin && <Card>

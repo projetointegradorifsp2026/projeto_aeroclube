@@ -23,7 +23,6 @@ export const ROUTE_PERMISSIONS: Record<string, UserProfile[]> = {
   '/fornecedores': ['admin'],
   '/conta-fixa': ['admin'],
   '/relatorios': ['admin'],
-  '/permissoes': ['admin'],
 }
 
 /** Converte uma rota em chave de funcionalidade: '/usuarios/:id' → 'usuarios'. */
