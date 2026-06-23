@@ -453,6 +453,7 @@ export default function Aeronaves() {
                 Nenhum registro de histórico encontrado.
               </p>
             ) : (
+              <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/30">
@@ -493,6 +494,7 @@ export default function Aeronaves() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
           <DialogFooter>

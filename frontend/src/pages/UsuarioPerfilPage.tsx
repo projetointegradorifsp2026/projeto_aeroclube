@@ -1352,6 +1352,7 @@ export default function UsuarioPerfilPage() {
                 .reduce((acc, m) => acc + (m.saldo_restante ?? 0), 0)
               return (
                 <>
+                  <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b bg-muted/30">
@@ -1458,6 +1459,7 @@ export default function UsuarioPerfilPage() {
                       })}
                     </tbody>
                   </table>
+                  </div>
                   {totalVencido > 0 && (
                     <div className="mx-4 my-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm dark:border-rose-900 dark:bg-rose-950/30">
                       <div className="flex items-center justify-between mb-2">

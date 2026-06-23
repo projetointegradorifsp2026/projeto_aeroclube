@@ -447,7 +447,7 @@ export default function Relatorios() {
 
             {/* Tabs + botões de export na mesma linha */}
             <Tabs value={fonte} onValueChange={(v) => handleFonte(v as Fonte)}>
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                     <TabsList>
                         <TabsTrigger value="receber">
                             <FileInput className="h-4 w-4" />
@@ -459,16 +459,8 @@ export default function Relatorios() {
                         </TabsTrigger>
                     </TabsList>
 
-                    <div className="flex items-center gap-4">
-                        {resultado && !loading && (
-                            <p className="text-sm text-muted-foreground whitespace-nowrap">
-                                <span className="font-medium text-foreground">{resultado.count}</span> registro(s) encontrado(s)
-                                {resultado.count > resultado.page_size && (
-                                    <span className="ml-1">(mostrando {resultado.page_size} por página)</span>
-                                )}
-                            </p>
-                        )}
-                        <div className="flex gap-2">
+                    <div className="flex flex-col items-stretch gap-2 sm:items-end">
+                        <div className="flex flex-wrap gap-2">
                             <button
                                 onClick={() => handleExport('excel')}
                                 disabled={!podeExportar}
@@ -492,6 +484,14 @@ export default function Relatorios() {
                                 CSV (.csv)
                             </button>
                         </div>
+                        {resultado && !loading && (
+                            <p className="text-sm text-muted-foreground sm:text-right">
+                                <span className="font-medium text-foreground">{resultado.count}</span> registro(s) encontrado(s)
+                                {resultado.count > resultado.page_size && (
+                                    <span className="ml-1">(mostrando {resultado.page_size} por página)</span>
+                                )}
+                            </p>
+                        )}
                     </div>
                 </div>
 

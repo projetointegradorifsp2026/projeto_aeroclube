@@ -1217,6 +1217,7 @@ function DashboardAluno({ perfil }: { perfil: string }) {
                                         </EmptyHeader>
                                     </Empty>
                                 ) : (
+                                    <div className="overflow-x-auto">
                                     <table className="w-full text-sm">
                                         <thead>
                                             <tr className="border-b bg-muted/30">
@@ -1230,6 +1231,7 @@ function DashboardAluno({ perfil }: { perfil: string }) {
                                             {meusVoos.slice(0, 6).map(v => <VooRow key={v.id} voo={v} />)}
                                         </tbody>
                                     </table>
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>
@@ -1393,6 +1395,7 @@ function DashboardInstrutor({ perfil }: { perfil: string }) {
                                         </EmptyHeader>
                                     </Empty>
                                 ) : (
+                                    <div className="overflow-x-auto">
                                     <table className="w-full text-sm">
                                         <thead>
                                             <tr className="border-b bg-muted/30">
@@ -1407,6 +1410,7 @@ function DashboardInstrutor({ perfil }: { perfil: string }) {
                                             {voosComoInstrutor.slice(0, 6).map(v => <VooRow key={v.id} voo={v} asInstrutor />)}
                                         </tbody>
                                     </table>
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>

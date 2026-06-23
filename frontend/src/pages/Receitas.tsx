@@ -548,7 +548,7 @@ export default function Receitas() {
         </p>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <FilterInput value={search} onChange={setSearch} placeholder="Buscar por devedor ou descrição..." />
         <FilterSelect value={tipoFilter} onChange={v => setTipoFilter(v as TipoFilter)}>
           <option value="all">Todos os tipos</option>
@@ -618,7 +618,7 @@ export default function Receitas() {
             </Button>
           )}
         </div>
-        <Button onClick={openCreate} className="ml-auto shrink-0">
+        <Button onClick={openCreate} className="w-full sm:w-auto sm:ml-auto">
           <Plus className="h-4 w-4" />
           Nova Receita
         </Button>

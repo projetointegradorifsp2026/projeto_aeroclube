@@ -65,7 +65,7 @@ interface SidebarConsumerProps {
 }
 
 function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, currentUser, onLogout, onUserUpdated }: SidebarConsumerProps) {
-    const { state, isMobile, setOpen } = useSidebar()
+    const { state, isMobile, setOpen, setOpenMobile } = useSidebar()
     const navigate = useNavigate()
     const isCollapsed = state === "collapsed"
     const userName = currentUser?.nome ?? "Usuário"
@@ -78,6 +78,11 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, currentUse
     const [selectedPerfil, setSelectedPerfil] = useState(perfil)
     const [switching, setSwitching] = useState(false)
     const [switchError, setSwitchError] = useState("")
+
+    // No mobile, fecha a sidebar (Sheet off-canvas) ao navegar para outra tela.
+    useEffect(() => {
+        if (isMobile) setOpenMobile(false)
+    }, [pathname, isMobile, setOpenMobile])
 
     async function handleSwitchPerfil() {
         if (!currentUser || !selectedPerfil || selectedPerfil === currentUser.perfil_ativo) {

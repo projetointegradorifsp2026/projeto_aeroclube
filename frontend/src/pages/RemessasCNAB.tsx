@@ -225,6 +225,7 @@ export default function RemessasCNAB() {
                   </EmptyHeader>
                 </Empty>
               ) : (
+                <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b bg-muted/30">
@@ -253,6 +254,7 @@ export default function RemessasCNAB() {
                     ))}
                   </tbody>
                 </table>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -359,7 +361,7 @@ export default function RemessasCNAB() {
                     ))}
                   </div>
                   {retResultado.itens.length > 0 && (
-                    <div className="rounded-lg border border-border overflow-hidden">
+                    <div className="rounded-lg border border-border overflow-hidden overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b bg-muted/30">
