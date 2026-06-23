@@ -1,14 +1,14 @@
 """
-Controle de acesso parametrizável (híbrido) por perfil e por usuário.
+Controle de acesso para "admins secundários".
 
-- PermissaoPerfil: base por perfil — quais funcionalidades cada perfil acessa.
-- PermissaoUsuario: exceção por usuário — libera/bloqueia uma funcionalidade
-  para um usuário específico, sobrepondo o default do perfil.
+Regras:
+- superusuário (admin principal) → acesso total, não controlável;
+- usuário com perfil ativo `admin` (não superusuário) → vê as TELAS_COMUNS mais
+  as telas administrativas liberadas individualmente via PermissaoUsuario (checkbox);
+- demais perfis (não-admin) → acesso FIXO pelas regras de negócio (TELAS_FIXAS_PERFIL).
 
-Acesso efetivo de um usuário a uma funcionalidade:
-  1. admin/superuser → sempre liberado (regra de negócio);
-  2. se houver override do usuário (PermissaoUsuario) → vale o override;
-  3. senão → vale o default do perfil ativo (PermissaoPerfil).
+Enforcement usa o fecho de DEPENDENCIAS: liberar uma tela libera o acesso às
+telas de que ela depende (ex.: Voos consome Aeronaves/Usuários/Receitas/Custos).
 """
 
 from django.db import models
@@ -17,7 +17,7 @@ from apps.users.models import Usuario
 
 
 class Funcionalidade(models.Model):
-    """Catálogo de telas/funcionalidades controláveis (ex.: 'voos', 'relatorios')."""
+    """Catálogo de telas/funcionalidades."""
 
     chave = models.SlugField("Chave", max_length=50, unique=True)
     nome = models.CharField("Nome", max_length=100)
@@ -33,32 +33,8 @@ class Funcionalidade(models.Model):
         return self.nome
 
 
-class PermissaoPerfil(models.Model):
-    """Base por perfil: liga um perfil a uma funcionalidade com flag de acesso."""
-
-    perfil = models.CharField("Perfil", max_length=20, choices=Usuario.PERFIL_CHOICES)
-    funcionalidade = models.ForeignKey(
-        Funcionalidade,
-        on_delete=models.CASCADE,
-        related_name="permissoes",
-    )
-    permitido = models.BooleanField("Permitido", default=False)
-
-    class Meta:
-        verbose_name = "Permissão de Perfil"
-        verbose_name_plural = "Permissões de Perfil"
-        unique_together = ("perfil", "funcionalidade")
-
-    def __str__(self):
-        return f"{self.perfil} → {self.funcionalidade.chave}: {self.permitido}"
-
-
 class PermissaoUsuario(models.Model):
-    """Exceção por usuário: sobrepõe o default do perfil para uma funcionalidade.
-
-    A existência da linha indica que há override; `permitido` diz se libera (True)
-    ou bloqueia (False). Sem linha, o usuário herda o default do perfil.
-    """
+    """Tela administrativa liberada para um admin secundário (checkbox)."""
 
     usuario = models.ForeignKey(
         Usuario,
@@ -70,7 +46,7 @@ class PermissaoUsuario(models.Model):
         on_delete=models.CASCADE,
         related_name="permissoes_usuario",
     )
-    permitido = models.BooleanField("Permitido", default=False)
+    permitido = models.BooleanField("Permitido", default=True)
 
     class Meta:
         verbose_name = "Permissão de Usuário"
@@ -78,59 +54,89 @@ class PermissaoUsuario(models.Model):
         unique_together = ("usuario", "funcionalidade")
 
     def __str__(self):
-        return f"{self.usuario_id} → {self.funcionalidade.chave}: {self.permitido}"
+        return f"{self.usuario_id} → {self.funcionalidade.chave}"
 
 
 # ---------------------------------------------------------------------------
-# Resolução de acesso efetivo
+# Regras fixas (negócio) — não parametrizáveis
 # ---------------------------------------------------------------------------
 
-def funcionalidades_do_perfil(perfil):
-    """Chaves liberadas para o perfil (base, sem overrides de usuário)."""
-    if perfil == Usuario.PERFIL_ADMIN:
-        return list(Funcionalidade.objects.values_list("chave", flat=True))
-    return list(
-        PermissaoPerfil.objects
-        .filter(perfil=perfil, permitido=True)
-        .values_list("funcionalidade__chave", flat=True)
-    )
+# Sempre liberadas a qualquer usuário autenticado.
+TELAS_COMUNS = ["dashboard", "movimentacoes"]
+
+# Telas administrativas que podem ser liberadas a um admin secundário (checkbox).
+TELAS_CONTROLAVEIS = [
+    "usuarios", "receitas", "custos", "voos", "titulos-a-receber",
+    "titulos-a-pagar", "aeronaves", "clientes", "fornecedores",
+    "conta-fixa", "remessas-cnab", "config-bancaria", "relatorios",
+]
+
+# Acesso fixo dos perfis não-admin (espelha as regras atuais do frontend).
+TELAS_FIXAS_PERFIL = {
+    Usuario.PERFIL_ALUNO: ["dashboard", "movimentacoes", "voos", "titulos-a-receber"],
+    Usuario.PERFIL_SOCIO: ["dashboard", "movimentacoes", "voos", "titulos-a-receber"],
+    Usuario.PERFIL_EXTERNO: ["dashboard", "movimentacoes", "voos", "titulos-a-receber"],
+    Usuario.PERFIL_INSTRUTOR: ["dashboard", "movimentacoes", "voos", "titulos-a-pagar"],
+    Usuario.PERFIL_FUNCIONARIO: ["dashboard", "movimentacoes", "titulos-a-pagar"],
+}
+
+# Liberar a tela-chave libera o acesso (API) às telas de que ela depende.
+DEPENDENCIAS = {
+    "dashboard": ["usuarios", "voos", "titulos-a-receber", "titulos-a-pagar"],
+    "movimentacoes": ["titulos-a-receber", "titulos-a-pagar"],
+    "voos": ["aeronaves", "usuarios", "receitas", "custos"],
+    "titulos-a-receber": ["usuarios"],
+    "titulos-a-pagar": ["usuarios"],
+    "usuarios": ["aeronaves", "titulos-a-receber", "titulos-a-pagar"],
+    "remessas-cnab": ["titulos-a-receber"],
+    "receitas": ["usuarios"],
+    "custos": ["usuarios", "fornecedores"],
+}
 
 
-def funcionalidades_do_usuario(user):
-    """Chaves liberadas para o usuário: base do perfil ativo + overrides do usuário."""
-    if user.is_superuser or user.perfil_ativo == Usuario.PERFIL_ADMIN:
-        return list(Funcionalidade.objects.values_list("chave", flat=True))
+# ---------------------------------------------------------------------------
+# Resolução de acesso
+# ---------------------------------------------------------------------------
 
-    chaves = set(funcionalidades_do_perfil(user.perfil_ativo))
-    overrides = (
-        PermissaoUsuario.objects
-        .filter(usuario=user)
-        .values_list("funcionalidade__chave", "permitido")
-    )
-    for chave, permitido in overrides:
-        if permitido:
-            chaves.add(chave)
-        else:
-            chaves.discard(chave)
-    return list(chaves)
+def _todas_chaves():
+    return list(Funcionalidade.objects.values_list("chave", flat=True))
+
+
+def telas_menu(user):
+    """Telas que aparecem no menu / dirigem o frontend (sem dependências)."""
+    if user.is_superuser:
+        return _todas_chaves()
+    if user.perfil_ativo == Usuario.PERFIL_ADMIN:
+        liberadas = (
+            PermissaoUsuario.objects
+            .filter(usuario=user, permitido=True)
+            .values_list("funcionalidade__chave", flat=True)
+        )
+        return list(dict.fromkeys(TELAS_COMUNS + list(liberadas)))
+    return list(TELAS_FIXAS_PERFIL.get(user.perfil_ativo, TELAS_COMUNS))
+
+
+def _fecho(chaves):
+    """Fecho transitivo das dependências."""
+    resultado = set(chaves)
+    pilha = list(chaves)
+    while pilha:
+        atual = pilha.pop()
+        for dep in DEPENDENCIAS.get(atual, ()):
+            if dep not in resultado:
+                resultado.add(dep)
+                pilha.append(dep)
+    return resultado
+
+
+def telas_acesso(user):
+    """Telas acessíveis para enforcement (menu + fecho de dependências)."""
+    if user.is_superuser:
+        return set(_todas_chaves())
+    return _fecho(telas_menu(user))
 
 
 def usuario_tem_acesso(user, chave):
-    """True se o usuário acessa a funcionalidade (admin/override/perfil)."""
-    if user.is_superuser or user.perfil_ativo == Usuario.PERFIL_ADMIN:
+    if user.is_superuser:
         return True
-
-    override = (
-        PermissaoUsuario.objects
-        .filter(usuario=user, funcionalidade__chave=chave)
-        .values_list("permitido", flat=True)
-        .first()
-    )
-    if override is not None:
-        return override
-
-    return PermissaoPerfil.objects.filter(
-        perfil=user.perfil_ativo,
-        funcionalidade__chave=chave,
-        permitido=True,
-    ).exists()
+    return chave in telas_acesso(user)

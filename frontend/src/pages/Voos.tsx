@@ -104,7 +104,7 @@ export default function Voos() {
         </p>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <FilterInput
           value={search}
           onChange={setSearch}
@@ -133,7 +133,7 @@ export default function Voos() {
           ))}
         </FilterSelect>
         {isAdmin && (
-          <Button onClick={() => navigate('/voos/novo')} className="ml-auto shrink-0">
+          <Button onClick={() => navigate('/voos/novo')} className="w-full sm:w-auto sm:ml-auto">
             <Plus className="h-4 w-4" />
             Registrar Voo
           </Button>

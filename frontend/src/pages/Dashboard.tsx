@@ -55,6 +55,7 @@ import { getTitulosReceber, createTituloReceber, type TituloReceber } from '@/se
 import { getTitulosPagar, createTituloPagar, type TituloPagar } from '@/services/titulosPagarService'
 import { getVoos, type Voo } from '@/services/voosService'
 import { getCurrentUser } from '@/services/api/auth'
+import { canAccess } from '@/lib/permissions'
 import { getUsers, createUser, type User } from '@/services/usersService'
 import { Link, useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
@@ -127,13 +128,15 @@ interface QuickLinkItem {
     icon: typeof Plane
     iconBg: string
     iconColor: string
+    /** Rota da tela correspondente, usada para gatear a ação por permissão. */
+    route?: string
 }
 
 const QUICK_LINKS_ADMIN_BASE: Omit<QuickLinkItem, 'onClick'>[] = [
-    { label: 'Registrar voo', to: '/voos/novo', icon: Plane, iconBg: 'bg-blue-100 dark:bg-blue-900/30', iconColor: 'text-blue-600 dark:text-blue-400' },
-    { label: 'Títulos a Pagar', icon: FileText, iconBg: 'bg-rose-100 dark:bg-rose-900/30', iconColor: 'text-rose-600 dark:text-rose-400' },
-    { label: 'Títulos a Receber', icon: BookOpen, iconBg: 'bg-emerald-100 dark:bg-emerald-900/30', iconColor: 'text-emerald-600 dark:text-emerald-400' },
-    { label: 'Cadastrar usuário', icon: UserPlus, iconBg: 'bg-violet-100 dark:bg-violet-900/30', iconColor: 'text-violet-600 dark:text-violet-400' },
+    { label: 'Registrar voo', to: '/voos/novo', route: '/voos', icon: Plane, iconBg: 'bg-blue-100 dark:bg-blue-900/30', iconColor: 'text-blue-600 dark:text-blue-400' },
+    { label: 'Títulos a Pagar', route: '/titulos-a-pagar', icon: FileText, iconBg: 'bg-rose-100 dark:bg-rose-900/30', iconColor: 'text-rose-600 dark:text-rose-400' },
+    { label: 'Títulos a Receber', route: '/titulos-a-receber', icon: BookOpen, iconBg: 'bg-emerald-100 dark:bg-emerald-900/30', iconColor: 'text-emerald-600 dark:text-emerald-400' },
+    { label: 'Cadastrar usuário', route: '/usuarios', icon: UserPlus, iconBg: 'bg-violet-100 dark:bg-violet-900/30', iconColor: 'text-violet-600 dark:text-violet-400' },
 ]
 
 const QUICK_LINKS_ALUNO: QuickLinkItem[] = [
@@ -962,12 +965,15 @@ function DashboardAdmin() {
         setReceberModalOpen(false)
     }
 
-    const adminQuickLinks: QuickLinkItem[] = QUICK_LINKS_ADMIN_BASE.map(l => {
-        if (l.label === 'Títulos a Pagar') return { ...l, onClick: () => setPagarModalOpen(true) }
-        if (l.label === 'Títulos a Receber') return { ...l, onClick: () => setReceberModalOpen(true) }
-        if (l.label === 'Cadastrar usuário') return { ...l, onClick: () => setUserModalOpen(true) }
-        return l
-    })
+    const perfil = getCurrentUser()?.perfil_ativo ?? ''
+    const adminQuickLinks: QuickLinkItem[] = QUICK_LINKS_ADMIN_BASE
+        .filter(l => !l.route || canAccess(perfil, l.route))
+        .map(l => {
+            if (l.label === 'Títulos a Pagar') return { ...l, onClick: () => setPagarModalOpen(true) }
+            if (l.label === 'Títulos a Receber') return { ...l, onClick: () => setReceberModalOpen(true) }
+            if (l.label === 'Cadastrar usuário') return { ...l, onClick: () => setUserModalOpen(true) }
+            return l
+        })
 
     return (
         <div className="pt-2 space-y-6">
@@ -1050,7 +1056,7 @@ function DashboardAdmin() {
                     </section>
 
                     {/* Gráfico 1 + 2 */}
-                    <div className="grid grid-cols-2 gap-4 items-start">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
                         <section className="h-full">
                             <GraficoVencidosPorMes />
                         </section>
@@ -1211,6 +1217,7 @@ function DashboardAluno({ perfil }: { perfil: string }) {
                                         </EmptyHeader>
                                     </Empty>
                                 ) : (
+                                    <div className="overflow-x-auto">
                                     <table className="w-full text-sm">
                                         <thead>
                                             <tr className="border-b bg-muted/30">
@@ -1224,6 +1231,7 @@ function DashboardAluno({ perfil }: { perfil: string }) {
                                             {meusVoos.slice(0, 6).map(v => <VooRow key={v.id} voo={v} />)}
                                         </tbody>
                                     </table>
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>
@@ -1387,6 +1395,7 @@ function DashboardInstrutor({ perfil }: { perfil: string }) {
                                         </EmptyHeader>
                                     </Empty>
                                 ) : (
+                                    <div className="overflow-x-auto">
                                     <table className="w-full text-sm">
                                         <thead>
                                             <tr className="border-b bg-muted/30">
@@ -1401,6 +1410,7 @@ function DashboardInstrutor({ perfil }: { perfil: string }) {
                                             {voosComoInstrutor.slice(0, 6).map(v => <VooRow key={v.id} voo={v} asInstrutor />)}
                                         </tbody>
                                     </table>
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>

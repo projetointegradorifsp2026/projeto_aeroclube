@@ -9,9 +9,8 @@ class FuncionalidadeSerializer(serializers.ModelSerializer):
         fields = ["id", "chave", "nome", "rota", "ordem"]
 
 
-class PermissaoItemSerializer(serializers.Serializer):
-    """Item do PATCH em lote da matriz de permissões."""
+class PermissaoUsuarioItemSerializer(serializers.Serializer):
+    """Item do PATCH de telas de um admin secundário (checkbox)."""
 
-    perfil = serializers.CharField()
     funcionalidade = serializers.SlugField()
     permitido = serializers.BooleanField()

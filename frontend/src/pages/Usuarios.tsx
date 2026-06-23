@@ -140,7 +140,7 @@ export default function Usuarios() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <FilterInput
           value={search}
           onChange={setSearch}
@@ -166,7 +166,7 @@ export default function Usuarios() {
           <option value="active">Ativos</option>
           <option value="inactive">Inativos</option>
         </FilterSelect>
-        <Button onClick={() => setModalOpen(true)} className="ml-auto shrink-0">
+        <Button onClick={() => setModalOpen(true)} className="w-full sm:w-auto sm:ml-auto">
           <UserPlus className="h-4 w-4" />
           Novo Usuário
         </Button>

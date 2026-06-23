@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 from django.db import transaction
 
+from apps.permissoes.permissions import TemAcessoFuncionalidade
 from .models import TituloReceber
 from .serializers import TituloReceberSerializer, BaixaParcialSerializer, QuitacaoMultiplaSerializer
 
@@ -17,7 +18,8 @@ class TituloReceberViewSet(viewsets.ModelViewSet):
     """
     queryset = TituloReceber.objects.select_related("participante", "cliente", "voo").order_by("data_vencimento")
     serializer_class = TituloReceberSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, TemAcessoFuncionalidade]
+    funcionalidade_chave = "titulos-a-receber"
     pagination_class = None
 
     def get_queryset(self):

@@ -68,6 +68,20 @@ export async function getUsers(): Promise<User[]> {
   return users.map(u => adaptUser(u, saldoMap.get(u.id) ?? 0))
 }
 
+/**
+ * Retorna o próprio usuário autenticado (self-service, sem exigir a tela "usuarios").
+ * Usado na visualização do próprio perfil por usuários não-admin.
+ */
+export async function getMe(): Promise<User> {
+  const me = await apiGet<BackendUser>('/api/v1/usuarios/me/')
+  let saldo = 0
+  try {
+    const carteiras = await apiList<BackendCarteira>(`/api/v1/carteiras/?participante=${me.id}`)
+    if (carteiras.length) saldo = parseFloat(carteiras[0].saldo)
+  } catch { /* saldo é opcional na visualização */ }
+  return adaptUser(me, saldo)
+}
+
 export async function createUser(
   data: {
     nome: string; email: string; cpf: string; perfis: UserProfile[]; is_active: boolean

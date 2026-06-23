@@ -99,7 +99,7 @@ export function DadosBancariosModal({ open, onClose, usuarioId, entidadeId, clie
           <p className="py-8 text-center text-sm text-muted-foreground">Carregando...</p>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 pt-1">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Banco</label>
                 <Input value={form.banco} onChange={e => set('banco', e.target.value)} placeholder="Ex: Sicoob" />
@@ -111,7 +111,7 @@ export function DadosBancariosModal({ open, onClose, usuarioId, entidadeId, clie
               </div>
             </div>
 
-            <div className="grid grid-cols-[2fr_1fr_2fr_1fr] gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-[2fr_1fr_2fr_1fr] gap-3">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Agência</label>
                 <Input value={form.agencia} onChange={e => set('agencia', e.target.value)} />
@@ -132,7 +132,7 @@ export function DadosBancariosModal({ open, onClose, usuarioId, entidadeId, clie
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Tipo de Conta</label>
                 <select className={selectCls} value={form.tipo_conta} onChange={e => set('tipo_conta', e.target.value as DadosBancarios['tipo_conta'])}>
@@ -146,7 +146,7 @@ export function DadosBancariosModal({ open, onClose, usuarioId, entidadeId, clie
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Titular</label>
                 <Input value={form.titular} onChange={e => set('titular', e.target.value)} />

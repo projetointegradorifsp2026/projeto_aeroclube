@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db import transaction
 
+from apps.permissoes.permissions import TemAcessoFuncionalidade
 from .models import Voo, calcular_tempo_decimal
 from .serializers import VooSerializer, SimulacaoTempoDecimalSerializer
 
@@ -21,7 +22,8 @@ class VooViewSet(viewsets.ModelViewSet):
     """
     queryset = Voo.objects.select_related("participante", "instrutor", "aeronave").order_by("-data_voo")
     serializer_class = VooSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, TemAcessoFuncionalidade]
+    funcionalidade_chave = "voos"
     pagination_class = None
 
     def create(self, request, *args, **kwargs):

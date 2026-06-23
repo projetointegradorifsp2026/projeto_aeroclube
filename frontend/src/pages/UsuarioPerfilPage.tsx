@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/dialog'
 import {
   getUsers,
+  getMe,
   updateUser,
   addSaldoCarteira,
   removerSaldoCarteira,
@@ -52,6 +53,7 @@ import {
 import { AlterarSenhaModal } from '@/components/users/AlterarSenhaModal'
 import PermissoesUsuarioCard from '@/components/permissoes/PermissoesUsuarioCard'
 import { getCurrentUser } from '@/services/api/auth'
+import { canAccess } from '@/lib/permissions'
 import {
   getTitulosReceber,
   baixarTituloReceber,
@@ -108,7 +110,9 @@ export default function UsuarioPerfilPage() {
   const alert = useAlert()
 
   const currentUser = getCurrentUser()
-  const isAdmin = currentUser?.perfil_ativo === 'admin'
+  // "Visão de gestão" = pode acessar a tela de usuários. Quem não tem (não-admin e
+  // admin secundário sem a tela) vê o próprio perfil em modo restrito e carrega via /me.
+  const podeGerirUsuarios = canAccess(currentUser?.perfil_ativo, '/usuarios')
 
   const [user, setUser] = useState<User | null>(null)
   const [loadingUser, setLoadingUser] = useState(true)
@@ -116,8 +120,11 @@ export default function UsuarioPerfilPage() {
 
   const [alterarSenhaOpen, setAlterarSenhaOpen] = useState(false)
   const [dadosBancarios, setDadosBancarios] = useState<DadosBancarios>(emptyDadosBancarios())
+  // Snapshot dos dados bancários como carregados, para detectar alterações.
+  const [dadosBancariosInicial, setDadosBancariosInicial] = useState<DadosBancarios>(emptyDadosBancarios())
   const [dadosBancariosLoading, setDadosBancariosLoading] = useState(false)
   const [dadosBancariosSaving, setDadosBancariosSaving] = useState(false)
+  const dadosBancariosDirty = JSON.stringify(dadosBancarios) !== JSON.stringify(dadosBancariosInicial)
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [resetSuccess, setResetSuccess] = useState(false)
@@ -203,7 +210,7 @@ export default function UsuarioPerfilPage() {
 
   useEffect(() => {
     if (!id) return
-    if (isAdmin) {
+    if (podeGerirUsuarios) {
       Promise.all([getUsers(), getTitulosReceber(), getTitulosPagar(), getMovimentacoesCarteira(id)]).then(
         ([users, allReceber, allPagar, movCarteira]) => {
           const found = users.find(u => u.id === id)
@@ -258,14 +265,18 @@ export default function UsuarioPerfilPage() {
       // Carrega dados bancários em paralelo
       setDadosBancariosLoading(true)
       getDadosBancariosUsuario(id)
-        .then(d => setDadosBancarios(d ?? emptyDadosBancarios()))
+        .then(d => {
+          const dados = d ?? emptyDadosBancarios()
+          setDadosBancarios(dados)
+          setDadosBancariosInicial(dados)
+        })
         .catch(e => alert.error(e, 'Erro ao carregar dados bancários.'))
         .finally(() => setDadosBancariosLoading(false))
     } else {
-      getUsers().then(users => {
-        const found = users.find(u => u.id === id)
-        if (!found) { navigate('/dashboard'); return }
-        setUser(found)
+      // Não-admin: carrega o PRÓPRIO usuário via /me (a lista de usuários é restrita a admin).
+      getMe().then(me => {
+        if (String(me.id) !== String(id)) { navigate('/dashboard'); return }
+        setUser(me)
         setLoadingUser(false)
       }).catch(e => {
         alert.error(e, 'Erro ao carregar dados do usuário.')
@@ -274,11 +285,15 @@ export default function UsuarioPerfilPage() {
       // Carrega dados bancários para o próprio usuário
       setDadosBancariosLoading(true)
       getDadosBancariosUsuario(id)
-        .then(d => setDadosBancarios(d ?? emptyDadosBancarios()))
+        .then(d => {
+          const dados = d ?? emptyDadosBancarios()
+          setDadosBancarios(dados)
+          setDadosBancariosInicial(dados)
+        })
         .catch(e => alert.error(e, 'Erro ao carregar dados bancários.'))
         .finally(() => setDadosBancariosLoading(false))
     }
-  }, [id, navigate, isAdmin])
+  }, [id, navigate, podeGerirUsuarios])
 
   const movTotalPages = Math.ceil(movimentacoes.length / PAGE_SIZE)
   const movPaginated = movimentacoes.slice((movPage - 1) * PAGE_SIZE, movPage * PAGE_SIZE)
@@ -318,6 +333,8 @@ export default function UsuarioPerfilPage() {
     setDadosBancariosSaving(true)
     try {
       await salvarDadosBancarios({ ...dadosBancarios, usuario: parseInt(user.id, 10), entidade: null })
+      // Atualiza o snapshot para o botão sumir até a próxima alteração.
+      setDadosBancariosInicial(dadosBancarios)
     } finally {
       setDadosBancariosSaving(false)
     }
@@ -554,7 +571,7 @@ export default function UsuarioPerfilPage() {
     <div className="pt-2 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon-sm" onClick={() => navigate(isAdmin ? '/usuarios' : '/dashboard')}>
+        <Button variant="ghost" size="icon-sm" onClick={() => navigate(podeGerirUsuarios ? '/usuarios' : '/dashboard')}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
@@ -571,7 +588,7 @@ export default function UsuarioPerfilPage() {
             <div className="flex items-center justify-between">
               <CardTitle className="text-base font-semibold">Dados do Usuário</CardTitle>
               <div className="flex gap-2">
-                {isAdmin && (
+                {podeGerirUsuarios && (
                   <Button variant="outline" size="sm" onClick={() => setResetDialogOpen(true)}>
                     <KeyRound className="h-3.5 w-3.5" />
                     Resetar Senha
@@ -583,10 +600,12 @@ export default function UsuarioPerfilPage() {
                     Alterar Senha
                   </Button>
                 )}
-                <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
-                  <Pencil className="h-3.5 w-3.5" />
-                  Editar
-                </Button>
+                {podeGerirUsuarios && (
+                  <Button variant="outline" size="sm" onClick={() => setEditOpen(true)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                    Editar
+                  </Button>
+                )}
               </div>
             </div>
           </CardHeader>
@@ -681,7 +700,7 @@ export default function UsuarioPerfilPage() {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              {isAdmin && (
+              {podeGerirUsuarios && (
                 <>
                   <Button
                     variant="outline"
@@ -724,7 +743,7 @@ export default function UsuarioPerfilPage() {
             const setField = <K extends keyof DadosBancarios>(k: K, v: DadosBancarios[K]) =>
               setDadosBancarios(p => ({ ...p, [k]: v }))
             return (
-              <div className="space-y-4">
+              <fieldset disabled={!podeGerirUsuarios} className="space-y-4 min-w-0 border-0 p-0 m-0">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <label className="text-sm font-medium">Banco</label>
@@ -776,22 +795,26 @@ export default function UsuarioPerfilPage() {
                     <Input value={dadosBancarios.cpf_cnpj_titular} onChange={e => setField('cpf_cnpj_titular', e.target.value)} />
                   </div>
                 </div>
-                <div className="flex justify-end">
-                  <Button onClick={handleSaveDadosBancarios} disabled={dadosBancariosSaving}>
-                    {dadosBancariosSaving ? 'Salvando...' : 'Salvar Dados Bancários'}
-                  </Button>
-                </div>
-              </div>
+                {podeGerirUsuarios && dadosBancariosDirty && (
+                  <div className="flex justify-end">
+                    <Button onClick={handleSaveDadosBancarios} disabled={dadosBancariosSaving}>
+                      {dadosBancariosSaving ? 'Salvando...' : 'Salvar Dados Bancários'}
+                    </Button>
+                  </div>
+                )}
+              </fieldset>
             )
           })()}
         </CardContent>
       </Card>
 
-      {/* Exceções de acesso a telas — apenas admin */}
-      {isAdmin && user && <PermissoesUsuarioCard usuarioId={parseInt(user.id, 10)} />}
+      {/* Telas liberadas — só quando o usuário visualizado é administrador */}
+      {podeGerirUsuarios && user && user.perfis.includes('admin') && (
+        <PermissoesUsuarioCard usuarioId={parseInt(user.id, 10)} />
+      )}
 
       {/* Movimentações — visível apenas para admin */}
-      {isAdmin && <Card>
+      {podeGerirUsuarios && <Card>
         <CardHeader className="border-b pb-3">
           <div className="flex items-center gap-2">
             <Receipt className="h-4 w-4 text-muted-foreground" />
@@ -870,7 +893,7 @@ export default function UsuarioPerfilPage() {
       </Card>}
 
       {/* Títulos a Receber — visível apenas para admin */}
-      {isAdmin && <Card>
+      {podeGerirUsuarios && <Card>
         <CardHeader className="border-b pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -967,7 +990,7 @@ export default function UsuarioPerfilPage() {
       </Card>}
 
       {/* Modal de edição */}
-      <UserFormModal user={user} open={editOpen} onClose={() => setEditOpen(false)} onSave={handleSaveUser} restrictedFields={!isAdmin} />
+      <UserFormModal user={user} open={editOpen} onClose={() => setEditOpen(false)} onSave={handleSaveUser} restrictedFields={!podeGerirUsuarios} />
 
       <AlterarSenhaModal open={alterarSenhaOpen} onClose={() => setAlterarSenhaOpen(false)} />
 
@@ -1026,7 +1049,7 @@ export default function UsuarioPerfilPage() {
 
                 return (
                   <>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1.5">
                         <label className="text-sm font-medium">Aeronave</label>
                         <select
@@ -1070,7 +1093,7 @@ export default function UsuarioPerfilPage() {
                       </p>
                     )}
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="space-y-1.5">
                         <label className="text-sm font-medium">{horasLabel}</label>
                         <Input
@@ -1335,6 +1358,7 @@ export default function UsuarioPerfilPage() {
                 .reduce((acc, m) => acc + (m.saldo_restante ?? 0), 0)
               return (
                 <>
+                  <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b bg-muted/30">
@@ -1441,6 +1465,7 @@ export default function UsuarioPerfilPage() {
                       })}
                     </tbody>
                   </table>
+                  </div>
                   {totalVencido > 0 && (
                     <div className="mx-4 my-3 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm dark:border-rose-900 dark:bg-rose-950/30">
                       <div className="flex items-center justify-between mb-2">

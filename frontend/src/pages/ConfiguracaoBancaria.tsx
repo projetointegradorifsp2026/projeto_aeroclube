@@ -188,28 +188,28 @@ export default function ConfiguracaoBancaria() {
           </div>
         </CardHeader>
         <CardContent className="p-6 space-y-5">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {field('Descrição', 'descricao', !editingBenef, '', 120)}
             {field('Nome / Razão Social', 'nome_beneficiario', !editingBenef, '', 120)}
             {field('CPF/CNPJ', 'cpf_cnpj', !editingBenef, '', 18)}
             {field('Convênio', 'convenio', !editingBenef, '', 20)}
           </div>
 
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {field('Código do Banco', 'codigo_banco', !editingBenef, '', 3)}
             {field('Nome do Banco', 'nome_banco', !editingBenef, '', 30)}
             {field('Prefixo Cooperativa', 'prefixo_cooperativa', !editingBenef, '', 4)}
             {field('DV Prefixo', 'dv_prefixo', !editingBenef, '', 1)}
           </div>
 
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {field('Código Beneficiário', 'codigo_beneficiario', !editingBenef, '', 10)}
             {field('DV Beneficiário', 'dv_beneficiario', !editingBenef, '', 1)}
             {field('Conta Corrente', 'conta_corrente', !editingBenef, '', 12)}
             {field('DV Conta', 'dv_conta', !editingBenef, '', 1)}
           </div>
 
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {field('Carteira', 'carteira', !editingBenef, '', 2)}
             {field('Modalidade', 'modalidade', !editingBenef, '', 2)}
             <div className="space-y-1.5">
@@ -227,7 +227,7 @@ export default function ConfiguracaoBancaria() {
             {field('Tipo de Formulário', 'tipo_formulario', !editingBenef, '', 1)}
           </div>
 
-          <div className="grid grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="space-y-1.5">
               <label className={labelCls}>Próximo NSA (sequencial)</label>
               <Input
@@ -296,7 +296,7 @@ export default function ConfiguracaoBancaria() {
             Estes dados geram o QR Code / "copia e cola" no botão <strong>Pagar com PIX</strong> dos
             títulos a receber. Para a apresentação, use uma chave sua.
           </p>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {field('Chave PIX', 'chave_pix', !editingPix, 'CPF/CNPJ, e-mail, telefone ou chave aleatória', 77)}
             {field('Nome do recebedor', 'nome_recebedor', !editingPix, 'máx. 25 caracteres', 25)}
             {field('Cidade do recebedor', 'cidade_recebedor', !editingPix, 'máx. 15 caracteres', 15)}

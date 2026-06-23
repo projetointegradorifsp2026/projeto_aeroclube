@@ -446,7 +446,7 @@ export default function TitulosReceber() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <FilterInput
           value={search}
           onChange={setSearch}
@@ -463,7 +463,7 @@ export default function TitulosReceber() {
           <option value="voo">Voo</option>
           <option value="carteira">Carteira</option>
         </FilterSelect>
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1.5 w-full sm:w-auto sm:shrink-0">
           <Popover
             open={datePickerOpen}
             onOpenChange={(open) => {
@@ -484,7 +484,7 @@ export default function TitulosReceber() {
               <Button
                 variant="outline"
                 className={cn(
-                  "gap-1.5",
+                  "gap-1.5 flex-1 sm:flex-none",
                   (periodoInicio || periodoFim) && "border-primary text-primary"
                 )}
               >
@@ -494,7 +494,7 @@ export default function TitulosReceber() {
                   : "Selecionar período"}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
+            <PopoverContent className="w-auto max-w-[calc(100vw-1.5rem)] overflow-auto p-0">
               <Calendar
                 mode="range"
                 selected={calendarRange}
@@ -531,7 +531,7 @@ export default function TitulosReceber() {
           )}
         </div>
         {isAdmin && (
-          <Button onClick={openCreate} className="ml-auto shrink-0">
+          <Button onClick={openCreate} className="w-full sm:w-auto sm:ml-auto">
             <Plus className="h-4 w-4" />
             Novo Título
           </Button>

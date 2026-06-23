@@ -447,7 +447,7 @@ export default function Relatorios() {
 
             {/* Tabs + botões de export na mesma linha */}
             <Tabs value={fonte} onValueChange={(v) => handleFonte(v as Fonte)}>
-                <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                     <TabsList>
                         <TabsTrigger value="receber">
                             <FileInput className="h-4 w-4" />
@@ -459,16 +459,8 @@ export default function Relatorios() {
                         </TabsTrigger>
                     </TabsList>
 
-                    <div className="flex items-center gap-4">
-                        {resultado && !loading && (
-                            <p className="text-sm text-muted-foreground whitespace-nowrap">
-                                <span className="font-medium text-foreground">{resultado.count}</span> registro(s) encontrado(s)
-                                {resultado.count > resultado.page_size && (
-                                    <span className="ml-1">(mostrando {resultado.page_size} por página)</span>
-                                )}
-                            </p>
-                        )}
-                        <div className="flex gap-2">
+                    <div className="flex flex-col items-stretch gap-2 sm:items-end">
+                        <div className="flex flex-wrap gap-2">
                             <button
                                 onClick={() => handleExport('excel')}
                                 disabled={!podeExportar}
@@ -492,6 +484,14 @@ export default function Relatorios() {
                                 CSV (.csv)
                             </button>
                         </div>
+                        {resultado && !loading && (
+                            <p className="text-sm text-muted-foreground sm:text-right">
+                                <span className="font-medium text-foreground">{resultado.count}</span> registro(s) encontrado(s)
+                                {resultado.count > resultado.page_size && (
+                                    <span className="ml-1">(mostrando {resultado.page_size} por página)</span>
+                                )}
+                            </p>
+                        )}
                     </div>
                 </div>
 
@@ -504,7 +504,7 @@ export default function Relatorios() {
                     <div className="grid grid-cols-1 xl:grid-cols-[280px_minmax(0,1fr)] gap-6 mt-4 items-start">
 
                         {/* ── Painel esquerdo: campos + filtros + ordenação ── */}
-                        <div className="flex flex-col h-[calc(100vh-14rem)] rounded-xl border bg-card overflow-hidden">
+                        <div className="flex flex-col h-[70vh] xl:h-[calc(100vh-14rem)] rounded-xl border bg-card overflow-hidden">
 
                             {/* Área rolável */}
                             <div className="flex-1 overflow-y-scroll min-h-0 scrollbar-thin">
@@ -670,7 +670,7 @@ export default function Relatorios() {
                         <div className="flex flex-col min-w-0 gap-2">
 
                             {/* Preview table */}
-                            <div className="h-[calc(100vh-14rem)] rounded-xl border border-border bg-card overflow-hidden flex flex-col">
+                            <div className="h-[70vh] xl:h-[calc(100vh-14rem)] rounded-xl border border-border bg-card overflow-hidden flex flex-col">
                                 {!resultado && !loading ? (
                                     <Empty>
                                         <EmptyHeader>

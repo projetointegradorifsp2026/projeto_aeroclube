@@ -111,7 +111,7 @@ export function PixPagamentoDialog({ open, onClose, valor, descricao, referencia
 
             <div>
               <p className="mb-1 text-xs text-muted-foreground">PIX copia e cola</p>
-              <div className="flex items-stretch gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch gap-2">
                 <code className="max-h-20 flex-1 overflow-y-auto break-all rounded-md border border-border bg-muted/40 px-2 py-1.5 text-[11px]">
                   {payload}
                 </code>

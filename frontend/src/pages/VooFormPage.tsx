@@ -593,7 +593,7 @@ export default function VooFormPage() {
                   Tarifação — {selectedAeronave.nome}
                 </p>
                 {selectedAeronave.tipo === 'aviao' ? (
-                  <div className="grid grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6">
                     <div>
                       <p className="text-xs text-muted-foreground mb-0.5">Tarifa Solo</p>
                       <p className="font-semibold">
@@ -610,7 +610,7 @@ export default function VooFormPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                     <div>
                       <p className="text-xs text-muted-foreground mb-0.5">Valor fixo</p>
                       <p className="font-semibold">{fmt(selectedAeronave.valor_fixo_inicial)}</p>
@@ -641,7 +641,7 @@ export default function VooFormPage() {
               Dados do Voo
             </p>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Data</label>
                 <input
@@ -684,7 +684,7 @@ export default function VooFormPage() {
             </div>
 
             {precisaInstrutor && (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">Instrutor</label>
                   <SearchSelect
@@ -729,7 +729,7 @@ export default function VooFormPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Início</label>
                 <input
@@ -773,7 +773,7 @@ export default function VooFormPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">Origem (ICAO)</label>
                 <Input

@@ -194,7 +194,7 @@ export function ReceitaFormModal({ receita, open, onClose, onSave, onDeleteReque
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-1">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Tipo</label>
               <select className={selectCls} value={form.tipo} onChange={e => handleTipoChange(e.target.value as ReceitaTipo)} disabled={isEdit}>
@@ -221,7 +221,7 @@ export function ReceitaFormModal({ receita, open, onClose, onSave, onDeleteReque
             />
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Valor (R$)</label>
               <Input

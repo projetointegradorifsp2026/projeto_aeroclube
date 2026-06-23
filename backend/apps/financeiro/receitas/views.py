@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db import transaction
 
+from apps.permissoes.permissions import TemAcessoFuncionalidade
 from .models import Receita
 from .serializers import ReceitaSerializer
 
@@ -88,7 +89,8 @@ class ReceitaViewSet(viewsets.ModelViewSet):
     """
     queryset = Receita.objects.select_related("participante", "cliente", "voo").all()
     serializer_class = ReceitaSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, TemAcessoFuncionalidade]
+    funcionalidade_chave = "receitas"
     pagination_class = None
 
     def get_queryset(self):

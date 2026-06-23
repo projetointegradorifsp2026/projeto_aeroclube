@@ -182,7 +182,7 @@ function ClienteFormModal({ cliente, open, onClose, onSave, onDeleteRequest }: C
               helper={errors.nome}
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-sm font-medium">CPF / CNPJ</label>
               <Input placeholder="000.000.000-00" value={cpfCnpj}
@@ -202,8 +202,8 @@ function ClienteFormModal({ cliente, open, onClose, onSave, onDeleteRequest }: C
           <div className="pt-1">
             <p className="text-xs text-muted-foreground">Endereço</p>
           </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-1.5 col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="space-y-1.5 col-span-1 sm:col-span-2">
               <label className="text-sm font-medium">CEP</label>
               <Input
                 placeholder="00000-000"
@@ -228,8 +228,8 @@ function ClienteFormModal({ cliente, open, onClose, onSave, onDeleteRequest }: C
               hasError={!!errors.logradouro} helper={errors.logradouro}
               disabled={cepLoading} />
           </div>
-          <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-1.5 col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="space-y-1.5 col-span-1 sm:col-span-2">
               <label className="text-sm font-medium">Bairro</label>
               <Input placeholder="Bairro" value={bairro}
                 onChange={e => setBairro(e.target.value)}
@@ -357,14 +357,14 @@ export default function Clientes() {
         </p>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <FilterInput value={search} onChange={setSearch} placeholder="Buscar por nome, e-mail ou CPF/CNPJ..." />
         <FilterSelect value={statusFilter} onChange={v => setStatusFilter(v as typeof statusFilter)}>
           <option value="all">Todos os status</option>
           <option value="active">Ativos</option>
           <option value="inactive">Inativos</option>
         </FilterSelect>
-        <Button onClick={() => { setEditItem(null); setModalOpen(true) }} className="ml-auto shrink-0">
+        <Button onClick={() => { setEditItem(null); setModalOpen(true) }} className="w-full sm:w-auto sm:ml-auto">
           <Plus className="h-4 w-4" />
           Novo Cliente
         </Button>

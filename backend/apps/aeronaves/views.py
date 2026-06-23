@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 
+from apps.permissoes.permissions import TemAcessoFuncionalidade
 from .models import Aeronave, Aviao, Planador, HistoricoTarifaAeronave
 from .serializers import AeronaveSerializer, AviaoSerializer, PlanadorSerializer, HistoricoTarifaSerializer
 
@@ -11,7 +12,8 @@ class AeronaveViewSet(viewsets.ReadOnlyModelViewSet):
     """GET /api/v1/aeronaves/ — lista todas as aeronaves (visão resumida, apenas ativas)."""
     queryset = Aeronave.objects.filter(is_active=True, is_deleted=False).order_by("nome")
     serializer_class = AeronaveSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, TemAcessoFuncionalidade]
+    funcionalidade_chave = "aeronaves"
     pagination_class = None
 
 
@@ -35,7 +37,8 @@ def _snapshot_planador(planador):
 class AviaoViewSet(viewsets.ModelViewSet):
     """CRUD /api/v1/avioes/  ?all=true inclui inativos (mas nunca excluídos)"""
     serializer_class = AviaoSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, TemAcessoFuncionalidade]
+    funcionalidade_chave = "aeronaves"
     pagination_class = None
 
     def get_queryset(self):
@@ -81,7 +84,8 @@ class AviaoViewSet(viewsets.ModelViewSet):
 class PlanadorViewSet(viewsets.ModelViewSet):
     """CRUD /api/v1/planadores/  ?all=true inclui inativos (mas nunca excluídos)"""
     serializer_class = PlanadorSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, TemAcessoFuncionalidade]
+    funcionalidade_chave = "aeronaves"
     pagination_class = None
 
     def get_queryset(self):
@@ -147,7 +151,8 @@ class PlanadorViewSet(viewsets.ModelViewSet):
 class HistoricoTarifaViewSet(viewsets.ReadOnlyModelViewSet):
     """GET /api/v1/historico-tarifas/?aeronave=ID"""
     serializer_class = HistoricoTarifaSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, TemAcessoFuncionalidade]
+    funcionalidade_chave = "aeronaves"
     pagination_class = None
 
     def get_queryset(self):

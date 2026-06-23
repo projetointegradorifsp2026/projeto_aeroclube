@@ -299,7 +299,7 @@ export function TituloReceberFormModal({
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-1">
           {/* Tipo + Devedor */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Tipo</label>
               <select
@@ -336,7 +336,7 @@ export function TituloReceberFormModal({
           </div>
 
           {/* Valor Total + Emissão + Parcelas */}
-          <div className={cn('grid gap-3', isEdit ? 'grid-cols-2' : 'grid-cols-3')}>
+          <div className={cn('grid gap-3 grid-cols-1', isEdit ? 'sm:grid-cols-2' : 'sm:grid-cols-3')}>
             <div className="space-y-1.5">
               <label className="text-sm font-medium">Valor Total (R$)</label>
               <Input

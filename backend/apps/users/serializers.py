@@ -48,8 +48,8 @@ class UsuarioSerializer(serializers.ModelSerializer):
 
     def get_funcionalidades_permitidas(self, obj):
         # Import lazy para evitar ciclo de import com o app de permissões.
-        from apps.permissoes.models import funcionalidades_do_usuario
-        return funcionalidades_do_usuario(obj)
+        from apps.permissoes.models import telas_menu
+        return telas_menu(obj)
 
     def validate_cpf_cnpj(self, value):
         return _validar_cpf_cnpj_drf(value)

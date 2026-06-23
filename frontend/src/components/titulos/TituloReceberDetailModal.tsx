@@ -140,7 +140,7 @@ export function TituloReceberDetailModal({
 
           {/* Bloco de informações da parcela */}
           <div className="rounded-lg border border-border overflow-hidden divide-y divide-border text-sm">
-            <div className="grid grid-cols-2 divide-x divide-border">
+            <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
               <div className="px-4 py-3">
                 <p className="text-xs text-muted-foreground mb-0.5">Valor</p>
                 <p className="font-medium">{fmt(current.valor)}</p>
@@ -151,7 +151,7 @@ export function TituloReceberDetailModal({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 divide-x divide-border">
+            <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
               <div className="px-4 py-3">
                 <p className="text-xs text-muted-foreground mb-0.5">
                   {current.status === 'baixado' ? 'Multa' : 'Saldo restante'}
@@ -186,7 +186,7 @@ export function TituloReceberDetailModal({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 divide-x divide-border">
+            <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-border">
               <div className="px-4 py-3">
                 <p className="text-xs text-muted-foreground mb-0.5">Emissão</p>
                 <p>{fmtDate(current.data_emissao)}</p>

@@ -403,7 +403,7 @@ export default function TitulosPagar() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
         <FilterInput
           value={search}
           onChange={setSearch}
@@ -419,7 +419,7 @@ export default function TitulosPagar() {
           <option value="conta_fixa">Conta Fixa</option>
           <option value="outros">Outros</option>
         </FilterSelect>
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1.5 w-full sm:w-auto sm:shrink-0">
           <Popover
             open={datePickerOpen}
             onOpenChange={(open) => {
@@ -439,7 +439,7 @@ export default function TitulosPagar() {
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                className={cn('gap-1.5', (periodoInicio || periodoFim) && 'border-primary text-primary')}
+                className={cn('gap-1.5 flex-1 sm:flex-none', (periodoInicio || periodoFim) && 'border-primary text-primary')}
               >
                 <CalendarIcon className="h-4 w-4" />
                 {periodoInicio || periodoFim
@@ -447,7 +447,7 @@ export default function TitulosPagar() {
                   : 'Selecionar período'}
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
+            <PopoverContent className="w-auto max-w-[calc(100vw-1.5rem)] overflow-auto p-0">
               <Calendar
                 mode="range"
                 selected={calendarRange}
@@ -482,7 +482,7 @@ export default function TitulosPagar() {
           )}
         </div>
         {isAdmin && (
-          <Button onClick={openCreate} className="ml-auto shrink-0">
+          <Button onClick={openCreate} className="w-full sm:w-auto sm:ml-auto">
             <Plus className="h-4 w-4" />
             Novo Título
           </Button>
