@@ -9160,5 +9160,336 @@
       "valor": "500.00",
       "created_at": "2026-06-02T12:00:00.000Z"
     }
+  },
+  {
+    "model": "permissoes.funcionalidade",
+    "pk": 1,
+    "fields": {
+      "chave": "dashboard",
+      "nome": "Dashboard",
+      "rota": "/dashboard",
+      "ordem": 1
+    }
+  },
+  {
+    "model": "permissoes.funcionalidade",
+    "pk": 2,
+    "fields": {
+      "chave": "usuarios",
+      "nome": "Usuários",
+      "rota": "/usuarios",
+      "ordem": 2
+    }
+  },
+  {
+    "model": "permissoes.funcionalidade",
+    "pk": 3,
+    "fields": {
+      "chave": "movimentacoes",
+      "nome": "Movimentações",
+      "rota": "/movimentacoes",
+      "ordem": 3
+    }
+  },
+  {
+    "model": "permissoes.funcionalidade",
+    "pk": 4,
+    "fields": {
+      "chave": "voos",
+      "nome": "Voos",
+      "rota": "/voos",
+      "ordem": 4
+    }
+  },
+  {
+    "model": "permissoes.funcionalidade",
+    "pk": 5,
+    "fields": {
+      "chave": "titulos-a-receber",
+      "nome": "Títulos a Receber",
+      "rota": "/titulos-a-receber",
+      "ordem": 5
+    }
+  },
+  {
+    "model": "permissoes.funcionalidade",
+    "pk": 6,
+    "fields": {
+      "chave": "titulos-a-pagar",
+      "nome": "Títulos a Pagar",
+      "rota": "/titulos-a-pagar",
+      "ordem": 6
+    }
+  },
+  {
+    "model": "permissoes.funcionalidade",
+    "pk": 7,
+    "fields": {
+      "chave": "receitas",
+      "nome": "Receitas",
+      "rota": "/receitas",
+      "ordem": 7
+    }
+  },
+  {
+    "model": "permissoes.funcionalidade",
+    "pk": 8,
+    "fields": {
+      "chave": "custos",
+      "nome": "Custos",
+      "rota": "/custos",
+      "ordem": 8
+    }
+  },
+  {
+    "model": "permissoes.funcionalidade",
+    "pk": 9,
+    "fields": {
+      "chave": "remessas-cnab",
+      "nome": "Remessas CNAB",
+      "rota": "/remessas-cnab",
+      "ordem": 9
+    }
+  },
+  {
+    "model": "permissoes.funcionalidade",
+    "pk": 10,
+    "fields": {
+      "chave": "config-bancaria",
+      "nome": "Configuração Bancária",
+      "rota": "/config-bancaria",
+      "ordem": 10
+    }
+  },
+  {
+    "model": "permissoes.funcionalidade",
+    "pk": 11,
+    "fields": {
+      "chave": "aeronaves",
+      "nome": "Aeronaves",
+      "rota": "/aeronaves",
+      "ordem": 11
+    }
+  },
+  {
+    "model": "permissoes.funcionalidade",
+    "pk": 12,
+    "fields": {
+      "chave": "clientes",
+      "nome": "Clientes",
+      "rota": "/clientes",
+      "ordem": 12
+    }
+  },
+  {
+    "model": "permissoes.funcionalidade",
+    "pk": 13,
+    "fields": {
+      "chave": "fornecedores",
+      "nome": "Fornecedores",
+      "rota": "/fornecedores",
+      "ordem": 13
+    }
+  },
+  {
+    "model": "permissoes.funcionalidade",
+    "pk": 14,
+    "fields": {
+      "chave": "conta-fixa",
+      "nome": "Conta Fixa",
+      "rota": "/conta-fixa",
+      "ordem": 14
+    }
+  },
+  {
+    "model": "permissoes.funcionalidade",
+    "pk": 15,
+    "fields": {
+      "chave": "relatorios",
+      "nome": "Relatórios",
+      "rota": "/relatorios",
+      "ordem": 15
+    }
+  },
+  {
+    "model": "permissoes.funcionalidade",
+    "pk": 16,
+    "fields": {
+      "chave": "permissoes",
+      "nome": "Permissões",
+      "rota": "/permissoes",
+      "ordem": 16
+    }
+  },
+  {
+    "model": "permissoes.permissaoperfil",
+    "pk": 1,
+    "fields": {
+      "perfil": "aluno",
+      "funcionalidade": 1,
+      "permitido": true
+    }
+  },
+  {
+    "model": "permissoes.permissaoperfil",
+    "pk": 2,
+    "fields": {
+      "perfil": "socio",
+      "funcionalidade": 1,
+      "permitido": true
+    }
+  },
+  {
+    "model": "permissoes.permissaoperfil",
+    "pk": 3,
+    "fields": {
+      "perfil": "externo",
+      "funcionalidade": 1,
+      "permitido": true
+    }
+  },
+  {
+    "model": "permissoes.permissaoperfil",
+    "pk": 4,
+    "fields": {
+      "perfil": "instrutor",
+      "funcionalidade": 1,
+      "permitido": true
+    }
+  },
+  {
+    "model": "permissoes.permissaoperfil",
+    "pk": 5,
+    "fields": {
+      "perfil": "funcionario",
+      "funcionalidade": 1,
+      "permitido": true
+    }
+  },
+  {
+    "model": "permissoes.permissaoperfil",
+    "pk": 6,
+    "fields": {
+      "perfil": "aluno",
+      "funcionalidade": 3,
+      "permitido": true
+    }
+  },
+  {
+    "model": "permissoes.permissaoperfil",
+    "pk": 7,
+    "fields": {
+      "perfil": "socio",
+      "funcionalidade": 3,
+      "permitido": true
+    }
+  },
+  {
+    "model": "permissoes.permissaoperfil",
+    "pk": 8,
+    "fields": {
+      "perfil": "externo",
+      "funcionalidade": 3,
+      "permitido": true
+    }
+  },
+  {
+    "model": "permissoes.permissaoperfil",
+    "pk": 9,
+    "fields": {
+      "perfil": "instrutor",
+      "funcionalidade": 3,
+      "permitido": true
+    }
+  },
+  {
+    "model": "permissoes.permissaoperfil",
+    "pk": 10,
+    "fields": {
+      "perfil": "funcionario",
+      "funcionalidade": 3,
+      "permitido": true
+    }
+  },
+  {
+    "model": "permissoes.permissaoperfil",
+    "pk": 11,
+    "fields": {
+      "perfil": "aluno",
+      "funcionalidade": 4,
+      "permitido": true
+    }
+  },
+  {
+    "model": "permissoes.permissaoperfil",
+    "pk": 12,
+    "fields": {
+      "perfil": "socio",
+      "funcionalidade": 4,
+      "permitido": true
+    }
+  },
+  {
+    "model": "permissoes.permissaoperfil",
+    "pk": 13,
+    "fields": {
+      "perfil": "externo",
+      "funcionalidade": 4,
+      "permitido": true
+    }
+  },
+  {
+    "model": "permissoes.permissaoperfil",
+    "pk": 14,
+    "fields": {
+      "perfil": "instrutor",
+      "funcionalidade": 4,
+      "permitido": true
+    }
+  },
+  {
+    "model": "permissoes.permissaoperfil",
+    "pk": 15,
+    "fields": {
+      "perfil": "aluno",
+      "funcionalidade": 5,
+      "permitido": true
+    }
+  },
+  {
+    "model": "permissoes.permissaoperfil",
+    "pk": 16,
+    "fields": {
+      "perfil": "socio",
+      "funcionalidade": 5,
+      "permitido": true
+    }
+  },
+  {
+    "model": "permissoes.permissaoperfil",
+    "pk": 17,
+    "fields": {
+      "perfil": "externo",
+      "funcionalidade": 5,
+      "permitido": true
+    }
+  },
+  {
+    "model": "permissoes.permissaoperfil",
+    "pk": 18,
+    "fields": {
+      "perfil": "instrutor",
+      "funcionalidade": 6,
+      "permitido": true
+    }
+  },
+  {
+    "model": "permissoes.permissaoperfil",
+    "pk": 19,
+    "fields": {
+      "perfil": "funcionario",
+      "funcionalidade": 6,
+      "permitido": true
+    }
   }
 ]
