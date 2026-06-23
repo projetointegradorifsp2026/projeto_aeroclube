@@ -213,7 +213,7 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, currentUse
                     </SidebarGroup>
 
                     {/* GRUPO TÍTULOS */}
-                    {(canAccess(perfil, '/titulos-a-receber') || canAccess(perfil, '/titulos-a-pagar')) && (
+                    {(canAccess(perfil, '/receitas') || canAccess(perfil, '/titulos-a-receber') || canAccess(perfil, '/custos') || canAccess(perfil, '/titulos-a-pagar')) && (
                         <SidebarGroup>
                             <SidebarGroupLabel>Títulos</SidebarGroupLabel>
 
@@ -279,40 +279,44 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, currentUse
                     )}
 
                     {/* GRUPO COBRANÇA BANCÁRIA (admin) */}
-                    {canAccess(perfil, '/remessas-cnab') && (
+                    {(canAccess(perfil, '/remessas-cnab') || canAccess(perfil, '/config-bancaria')) && (
                         <SidebarGroup>
                             <SidebarGroupLabel>Cobrança Bancária</SidebarGroupLabel>
                             <SidebarMenu>
-                                <SidebarMenuItem>
-                                    <SidebarMenuButton
-                                        asChild
-                                        isActive={pathname.startsWith("/remessas-cnab")}
-                                        tooltip="Remessas CNAB"
-                                    >
-                                        <Link to="/remessas-cnab">
-                                            <FileText />
-                                            <span className="group-data-[collapsible=icon]:hidden">Remessas CNAB</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                                <SidebarMenuItem>
-                                    <SidebarMenuButton
-                                        asChild
-                                        isActive={pathname.startsWith("/config-bancaria")}
-                                        tooltip="Config. Bancária"
-                                    >
-                                        <Link to="/config-bancaria">
-                                            <Landmark />
-                                            <span className="group-data-[collapsible=icon]:hidden">Config. Bancária</span>
-                                        </Link>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
+                                {canAccess(perfil, '/remessas-cnab') && (
+                                    <SidebarMenuItem>
+                                        <SidebarMenuButton
+                                            asChild
+                                            isActive={pathname.startsWith("/remessas-cnab")}
+                                            tooltip="Remessas CNAB"
+                                        >
+                                            <Link to="/remessas-cnab">
+                                                <FileText />
+                                                <span className="group-data-[collapsible=icon]:hidden">Remessas CNAB</span>
+                                            </Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                )}
+                                {canAccess(perfil, '/config-bancaria') && (
+                                    <SidebarMenuItem>
+                                        <SidebarMenuButton
+                                            asChild
+                                            isActive={pathname.startsWith("/config-bancaria")}
+                                            tooltip="Config. Bancária"
+                                        >
+                                            <Link to="/config-bancaria">
+                                                <Landmark />
+                                                <span className="group-data-[collapsible=icon]:hidden">Config. Bancária</span>
+                                            </Link>
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                )}
                             </SidebarMenu>
                         </SidebarGroup>
                     )}
 
                     {/* GRUPO CADASTROS (admin) */}
-                    {canAccess(perfil, '/aeronaves') && (
+                    {(canAccess(perfil, '/aeronaves') || canAccess(perfil, '/clientes') || canAccess(perfil, '/fornecedores') || canAccess(perfil, '/conta-fixa')) && (
                         <SidebarGroup>
                             <SidebarGroupLabel>Cadastros</SidebarGroupLabel>
 
@@ -338,53 +342,61 @@ function SidebarConsumer({ openCadastros, setOpenCadastros, pathname, currentUse
 
                                     {openCadastros && (
                                         <SidebarMenuSub>
-                                            <SidebarMenuSubItem>
-                                                <SidebarMenuSubButton
-                                                    asChild
-                                                    isActive={pathname.startsWith("/aeronaves")}
-                                                >
-                                                    <Link to="/aeronaves">
-                                                        <Plane />
-                                                        <span>Aeronaves</span>
-                                                    </Link>
-                                                </SidebarMenuSubButton>
-                                            </SidebarMenuSubItem>
+                                            {canAccess(perfil, '/aeronaves') && (
+                                                <SidebarMenuSubItem>
+                                                    <SidebarMenuSubButton
+                                                        asChild
+                                                        isActive={pathname.startsWith("/aeronaves")}
+                                                    >
+                                                        <Link to="/aeronaves">
+                                                            <Plane />
+                                                            <span>Aeronaves</span>
+                                                        </Link>
+                                                    </SidebarMenuSubButton>
+                                                </SidebarMenuSubItem>
+                                            )}
 
-                                            <SidebarMenuSubItem>
-                                                <SidebarMenuSubButton
-                                                    asChild
-                                                    isActive={pathname.startsWith("/clientes")}
-                                                >
-                                                    <Link to="/clientes">
-                                                        <FileUser />
-                                                        <span>Clientes</span>
-                                                    </Link>
-                                                </SidebarMenuSubButton>
-                                            </SidebarMenuSubItem>
+                                            {canAccess(perfil, '/clientes') && (
+                                                <SidebarMenuSubItem>
+                                                    <SidebarMenuSubButton
+                                                        asChild
+                                                        isActive={pathname.startsWith("/clientes")}
+                                                    >
+                                                        <Link to="/clientes">
+                                                            <FileUser />
+                                                            <span>Clientes</span>
+                                                        </Link>
+                                                    </SidebarMenuSubButton>
+                                                </SidebarMenuSubItem>
+                                            )}
 
-                                            <SidebarMenuSubItem>
-                                                <SidebarMenuSubButton
-                                                    asChild
-                                                    isActive={pathname.startsWith("/fornecedores")}
-                                                >
-                                                    <Link to="/fornecedores">
-                                                        <Truck />
-                                                        <span>Fornecedores</span>
-                                                    </Link>
-                                                </SidebarMenuSubButton>
-                                            </SidebarMenuSubItem>
+                                            {canAccess(perfil, '/fornecedores') && (
+                                                <SidebarMenuSubItem>
+                                                    <SidebarMenuSubButton
+                                                        asChild
+                                                        isActive={pathname.startsWith("/fornecedores")}
+                                                    >
+                                                        <Link to="/fornecedores">
+                                                            <Truck />
+                                                            <span>Fornecedores</span>
+                                                        </Link>
+                                                    </SidebarMenuSubButton>
+                                                </SidebarMenuSubItem>
+                                            )}
 
-                                            <SidebarMenuSubItem>
-                                                <SidebarMenuSubButton
-                                                    asChild
-                                                    isActive={pathname.startsWith("/conta-fixa")}
-                                                >
-                                                    <Link to="/conta-fixa">
-                                                        <DollarSign />
-                                                        <span>Conta fixa</span>
-                                                    </Link>
-                                                </SidebarMenuSubButton>
-                                            </SidebarMenuSubItem>
+                                            {canAccess(perfil, '/conta-fixa') && (
+                                                <SidebarMenuSubItem>
+                                                    <SidebarMenuSubButton
+                                                        asChild
+                                                        isActive={pathname.startsWith("/conta-fixa")}
+                                                    >
+                                                        <Link to="/conta-fixa">
+                                                            <DollarSign />
+                                                            <span>Conta fixa</span>
+                                                        </Link>
+                                                    </SidebarMenuSubButton>
+                                                </SidebarMenuSubItem>
+                                            )}
                                         </SidebarMenuSub>
                                     )}
                                 </SidebarMenuItem>

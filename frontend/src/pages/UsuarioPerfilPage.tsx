@@ -116,8 +116,11 @@ export default function UsuarioPerfilPage() {
 
   const [alterarSenhaOpen, setAlterarSenhaOpen] = useState(false)
   const [dadosBancarios, setDadosBancarios] = useState<DadosBancarios>(emptyDadosBancarios())
+  // Snapshot dos dados bancários como carregados, para detectar alterações.
+  const [dadosBancariosInicial, setDadosBancariosInicial] = useState<DadosBancarios>(emptyDadosBancarios())
   const [dadosBancariosLoading, setDadosBancariosLoading] = useState(false)
   const [dadosBancariosSaving, setDadosBancariosSaving] = useState(false)
+  const dadosBancariosDirty = JSON.stringify(dadosBancarios) !== JSON.stringify(dadosBancariosInicial)
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
   const [resetting, setResetting] = useState(false)
   const [resetSuccess, setResetSuccess] = useState(false)
@@ -258,7 +261,11 @@ export default function UsuarioPerfilPage() {
       // Carrega dados bancários em paralelo
       setDadosBancariosLoading(true)
       getDadosBancariosUsuario(id)
-        .then(d => setDadosBancarios(d ?? emptyDadosBancarios()))
+        .then(d => {
+          const dados = d ?? emptyDadosBancarios()
+          setDadosBancarios(dados)
+          setDadosBancariosInicial(dados)
+        })
         .catch(e => alert.error(e, 'Erro ao carregar dados bancários.'))
         .finally(() => setDadosBancariosLoading(false))
     } else {
@@ -274,7 +281,11 @@ export default function UsuarioPerfilPage() {
       // Carrega dados bancários para o próprio usuário
       setDadosBancariosLoading(true)
       getDadosBancariosUsuario(id)
-        .then(d => setDadosBancarios(d ?? emptyDadosBancarios()))
+        .then(d => {
+          const dados = d ?? emptyDadosBancarios()
+          setDadosBancarios(dados)
+          setDadosBancariosInicial(dados)
+        })
         .catch(e => alert.error(e, 'Erro ao carregar dados bancários.'))
         .finally(() => setDadosBancariosLoading(false))
     }
@@ -318,6 +329,8 @@ export default function UsuarioPerfilPage() {
     setDadosBancariosSaving(true)
     try {
       await salvarDadosBancarios({ ...dadosBancarios, usuario: parseInt(user.id, 10), entidade: null })
+      // Atualiza o snapshot para o botão sumir até a próxima alteração.
+      setDadosBancariosInicial(dadosBancarios)
     } finally {
       setDadosBancariosSaving(false)
     }
@@ -776,11 +789,13 @@ export default function UsuarioPerfilPage() {
                     <Input value={dadosBancarios.cpf_cnpj_titular} onChange={e => setField('cpf_cnpj_titular', e.target.value)} />
                   </div>
                 </div>
-                <div className="flex justify-end">
-                  <Button onClick={handleSaveDadosBancarios} disabled={dadosBancariosSaving}>
-                    {dadosBancariosSaving ? 'Salvando...' : 'Salvar Dados Bancários'}
-                  </Button>
-                </div>
+                {dadosBancariosDirty && (
+                  <div className="flex justify-end">
+                    <Button onClick={handleSaveDadosBancarios} disabled={dadosBancariosSaving}>
+                      {dadosBancariosSaving ? 'Salvando...' : 'Salvar Dados Bancários'}
+                    </Button>
+                  </div>
+                )}
               </div>
             )
           })()}

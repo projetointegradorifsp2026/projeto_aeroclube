@@ -17,13 +17,18 @@ import {
 export default function PermissoesUsuarioCard({ usuarioId }: { usuarioId: number }) {
   const alert = useAlert()
   const [itens, setItens] = useState<PermissaoUsuarioItem[]>([])
+  // Snapshot das permissões como carregadas, para detectar alterações.
+  const [itensInicial, setItensInicial] = useState<PermissaoUsuarioItem[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+
+  const dirty = JSON.stringify(itens.map(it => [it.funcionalidade, it.permitido]))
+    !== JSON.stringify(itensInicial.map(it => [it.funcionalidade, it.permitido]))
 
   function load() {
     setLoading(true)
     getPermissoesUsuario(usuarioId)
-      .then(res => setItens(res.itens))
+      .then(res => { setItens(res.itens); setItensInicial(res.itens) })
       .catch(() => alert.error('Erro ao carregar as permissões do usuário.'))
       .finally(() => setLoading(false))
   }
@@ -45,6 +50,7 @@ export default function PermissoesUsuarioCard({ usuarioId }: { usuarioId: number
       }))
       const res = await salvarPermissoesUsuario(usuarioId, payload)
       setItens(res.itens)
+      setItensInicial(res.itens)
       alert.success('Permissões do usuário atualizadas.')
     } catch {
       alert.error('Erro ao salvar as permissões do usuário.')
@@ -60,10 +66,12 @@ export default function PermissoesUsuarioCard({ usuarioId }: { usuarioId: number
           <ShieldCheck className="h-5 w-5 text-primary" />
           Telas liberadas
         </CardTitle>
-        <Button size="sm" onClick={handleSalvar} disabled={saving || loading}>
-          <Save className="h-4 w-4" />
-          {saving ? 'Salvando...' : 'Salvar'}
-        </Button>
+        {dirty && (
+          <Button size="sm" onClick={handleSalvar} disabled={saving || loading}>
+            <Save className="h-4 w-4" />
+            {saving ? 'Salvando...' : 'Salvar'}
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground mb-4">
