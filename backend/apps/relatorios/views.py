@@ -20,6 +20,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from apps.permissoes.permissions import TemAcessoFuncionalidade
+
 from apps.financeiro.titulos_pagar.models import TituloPagar
 from apps.financeiro.titulos_receber.models import TituloReceber
 
@@ -320,7 +322,8 @@ class RelatorioMetadadosView(APIView):
     Retorna os campos disponíveis, tipos e status para montar o formulário
     do gerador de relatórios no frontend.
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, TemAcessoFuncionalidade]
+    funcionalidade_chave = "relatorios"
 
     # Campos com tipo inteiro (não monetários) — usados pelo frontend para evitar formatação de moeda
     _CAMPOS_INTEIROS = {'num_parcela', 'total_parcelas'}
@@ -429,7 +432,8 @@ class RelatorioTitulosView(APIView):
         ordenar_dir  asc | desc  (default: asc)
         page         número da página (somente para formato json, default: 1)
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, TemAcessoFuncionalidade]
+    funcionalidade_chave = "relatorios"
 
     _CAMPOS_RECEBER = {
         'participante_nome': 'Participante',
