@@ -1,18 +1,12 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django.shortcuts import get_object_or_404
 
 from apps.users.models import Usuario
-from .models import Funcionalidade, PermissaoPerfil, PermissaoUsuario
-from .serializers import FuncionalidadeSerializer, PermissaoItemSerializer
-
-
-PERFIS_NAO_ADMIN = [
-    (chave, nome) for chave, nome in Usuario.PERFIL_CHOICES
-    if chave != Usuario.PERFIL_ADMIN
-]
+from .models import Funcionalidade, PermissaoUsuario, TELAS_CONTROLAVEIS
+from .serializers import FuncionalidadeSerializer, PermissaoUsuarioItemSerializer
 
 
 class FuncionalidadeViewSet(viewsets.ReadOnlyModelViewSet):
@@ -24,117 +18,72 @@ class FuncionalidadeViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = None
 
 
-class PermissoesMatrizView(APIView):
-    """Matriz de permissões por perfil. Somente administradores.
-
-    GET   /api/v1/permissoes/  → { perfis, funcionalidades, matriz }
-    PATCH /api/v1/permissoes/  → [{ perfil, funcionalidade, permitido }]
-    """
-
-    permission_classes = [IsAdminUser]
-
-    def get(self, request):
-        funcionalidades = list(Funcionalidade.objects.all())
-        liberadas = set(
-            PermissaoPerfil.objects
-            .filter(permitido=True)
-            .values_list("perfil", "funcionalidade__chave")
-        )
-        matriz = [
-            {"perfil": perfil, "funcionalidade": f.chave,
-             "permitido": (perfil, f.chave) in liberadas}
-            for perfil, _ in PERFIS_NAO_ADMIN
-            for f in funcionalidades
-        ]
-        return Response({
-            "perfis": [{"chave": c, "nome": n} for c, n in Usuario.PERFIL_CHOICES],
-            "perfil_admin": Usuario.PERFIL_ADMIN,
-            "funcionalidades": FuncionalidadeSerializer(funcionalidades, many=True).data,
-            "matriz": matriz,
-        })
-
-    def patch(self, request):
-        serializer = PermissaoItemSerializer(data=request.data, many=True)
-        serializer.is_valid(raise_exception=True)
-        chaves_validas = set(Funcionalidade.objects.values_list("chave", flat=True))
-        perfis_validos = {c for c, _ in PERFIS_NAO_ADMIN}
-
-        for item in serializer.validated_data:
-            perfil = item["perfil"]
-            chave = item["funcionalidade"]
-            # admin é bypass; chaves/perfis inválidos são ignorados silenciosamente
-            if perfil not in perfis_validos or chave not in chaves_validas:
-                continue
-            funcionalidade = Funcionalidade.objects.get(chave=chave)
-            PermissaoPerfil.objects.update_or_create(
-                perfil=perfil,
-                funcionalidade=funcionalidade,
-                defaults={"permitido": item["permitido"]},
-            )
-        return self.get(request)
-
-
 class UsuarioPermissoesView(APIView):
-    """Exceções de acesso por usuário (override do perfil). Somente admin.
+    """Telas administrativas liberadas para um admin secundário (checkbox).
 
-    GET   /api/v1/permissoes-usuario/<id>/  → estado por funcionalidade
-    PATCH /api/v1/permissoes-usuario/<id>/  → [{ funcionalidade, override }]
-        override: "herdar" (remove), True (libera), False (bloqueia)
+    Só faz sentido para usuários com perfil ativo `admin` que não são
+    superusuários. Somente administradores acessam.
+
+    GET   /api/v1/permissoes-usuario/<id>/  → { usuario, perfil_ativo, itens }
+        itens: [{ funcionalidade, nome, permitido }] para as TELAS_CONTROLAVEIS
+    PATCH /api/v1/permissoes-usuario/<id>/  → [{ funcionalidade, permitido }]
+        permitido True  → libera a tela (update_or_create)
+        permitido False → remove a liberação (delete)
     """
 
     permission_classes = [IsAdminUser]
 
-    def get(self, request, usuario_id):
-        usuario = get_object_or_404(Usuario, pk=usuario_id)
-        funcionalidades = list(Funcionalidade.objects.all())
-        base = set(
-            PermissaoPerfil.objects
-            .filter(perfil=usuario.perfil_ativo, permitido=True)
+    def _itens(self, usuario):
+        funcionalidades = {
+            f.chave: f
+            for f in Funcionalidade.objects.filter(chave__in=TELAS_CONTROLAVEIS)
+        }
+        liberadas = set(
+            PermissaoUsuario.objects
+            .filter(usuario=usuario, permitido=True)
             .values_list("funcionalidade__chave", flat=True)
         )
-        overrides = dict(
-            PermissaoUsuario.objects
-            .filter(usuario=usuario)
-            .values_list("funcionalidade__chave", "permitido")
-        )
         itens = []
-        for f in funcionalidades:
-            ov = overrides.get(f.chave)  # None | True | False
-            herdado = f.chave in base
-            efetivo = ov if ov is not None else herdado
+        for chave in TELAS_CONTROLAVEIS:
+            f = funcionalidades.get(chave)
+            if f is None:
+                continue
             itens.append({
                 "funcionalidade": f.chave,
                 "nome": f.nome,
-                "rota": f.rota,
-                "ordem": f.ordem,
-                "herdado_perfil": herdado,
-                "override": ov,
-                "efetivo": efetivo,
+                "permitido": f.chave in liberadas,
             })
+        return itens
+
+    def get(self, request, usuario_id):
+        usuario = get_object_or_404(Usuario, pk=usuario_id)
         return Response({
             "usuario": usuario.id,
             "perfil_ativo": usuario.perfil_ativo,
-            "itens": itens,
+            "itens": self._itens(usuario),
         })
 
     def patch(self, request, usuario_id):
         usuario = get_object_or_404(Usuario, pk=usuario_id)
-        chaves_validas = set(Funcionalidade.objects.values_list("chave", flat=True))
+        serializer = PermissaoUsuarioItemSerializer(data=request.data, many=True)
+        serializer.is_valid(raise_exception=True)
 
-        for item in request.data:
-            chave = item.get("funcionalidade")
-            override = item.get("override")
-            if chave not in chaves_validas:
+        funcionalidades = {
+            f.chave: f
+            for f in Funcionalidade.objects.filter(chave__in=TELAS_CONTROLAVEIS)
+        }
+        for item in serializer.validated_data:
+            f = funcionalidades.get(item["funcionalidade"])
+            if f is None:  # fora das telas controláveis → ignora
                 continue
-            funcionalidade = Funcionalidade.objects.get(chave=chave)
-            if override in ("herdar", None):
-                PermissaoUsuario.objects.filter(
-                    usuario=usuario, funcionalidade=funcionalidade,
-                ).delete()
-            else:
+            if item["permitido"]:
                 PermissaoUsuario.objects.update_or_create(
                     usuario=usuario,
-                    funcionalidade=funcionalidade,
-                    defaults={"permitido": bool(override)},
+                    funcionalidade=f,
+                    defaults={"permitido": True},
                 )
+            else:
+                PermissaoUsuario.objects.filter(
+                    usuario=usuario, funcionalidade=f,
+                ).delete()
         return self.get(request, usuario_id)

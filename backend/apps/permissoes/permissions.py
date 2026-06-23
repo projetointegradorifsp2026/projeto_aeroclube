@@ -1,8 +1,9 @@
 """Permission class de enforcement por funcionalidade.
 
 Uma view declara `funcionalidade_chave = "<chave>"` e inclui esta classe em
-`permission_classes`. O acesso é liberado para admin/superuser sempre; para os
-demais perfis exige uma linha PermissaoPerfil com permitido=True.
+`permission_classes`. O acesso depende de `usuario_tem_acesso`: superusuário
+sempre; admin secundário conforme telas liberadas (mais o fecho de
+dependências); demais perfis conforme TELAS_FIXAS_PERFIL.
 """
 
 from rest_framework.permissions import BasePermission
