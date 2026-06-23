@@ -159,7 +159,6 @@ export default function UsuarioPerfilPage() {
 
   const [batchOpen, setBatchOpen] = useState(false)
   const [batchData, setBatchData] = useState(todayStr())
-  const [batchValor, setBatchValor] = useState('')
   const [batchBaixando, setBatchBaixando] = useState(false)
 
   async function reloadMovimentacoes(nomeUsuario: string) {
