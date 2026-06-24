@@ -404,14 +404,19 @@ export default function TitulosReceber() {
       }
 
       const cashAmount = parseFloat(baixaValor) || 0
-      const totalPayment = cashAmount + multa + carteiraAmount
+      // "Valor a receber" (baixaValor) já embute a multa, então o total pago é
+      // apenas dinheiro + carteira — não somar a multa de novo (evita duplicá-la).
+      const totalPayment = cashAmount + carteiraAmount
+      // O backend faz `multa += juros` (incremento). Envia somente a multa NOVA
+      // desta baixa, descontando a que já estava registrada no título (ex.: via editar).
+      const multaIncremental = multa - (baixaTarget.multa ?? 0)
       // Se a baixa foi inteiramente via carteira (sem dinheiro externo), registra "carteira".
       const forma: FormaPagamento = cashAmount <= 0 && carteiraAmount > 0 ? 'carteira' : baixaForma
       const updated = await baixarTituloReceber(
         baixaTarget.id,
         totalPayment,
         baixaData,
-        multa,
+        multaIncremental,
         carteiraAmount,
         forma,
       )

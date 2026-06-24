@@ -87,10 +87,16 @@ export default function Voos() {
   async function handleDelete() {
     if (!deleteTarget) return
     setDeleting(true)
-    await deleteVoo(deleteTarget.id)
-    setVoos(prev => prev.filter(v => v.id !== deleteTarget.id))
-    setDeleteTarget(null)
-    setDeleting(false)
+    try {
+      await deleteVoo(deleteTarget.id)
+      setVoos(prev => prev.filter(v => v.id !== deleteTarget.id))
+      setDeleteTarget(null)
+      alert.success('Voo excluído com sucesso')
+    } catch (err) {
+      alert.error(err, 'Não foi possível excluir o voo.')
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const hasNoData = !loading && voos.length === 0

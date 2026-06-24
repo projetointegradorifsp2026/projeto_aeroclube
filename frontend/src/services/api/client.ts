@@ -126,5 +126,8 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
 
 export async function apiDelete(path: string): Promise<void> {
   const res = await apiFetch(path, { method: 'DELETE' })
-  if (!res.ok) throw new Error(`DELETE ${path} → ${res.status}`)
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: `DELETE ${path} → ${res.status}` }))
+    throw new Error(typeof err === 'object' ? JSON.stringify(err) : String(err))
+  }
 }
