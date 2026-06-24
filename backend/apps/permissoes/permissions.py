@@ -11,6 +11,16 @@ from rest_framework.permissions import BasePermission
 from .models import usuario_tem_acesso
 
 
+class IsSuperUser(BasePermission):
+    """Acesso restrito a superusuários (gestão das telas liberadas)."""
+
+    message = "Apenas superusuários podem acessar este recurso."
+
+    def has_permission(self, request, view):
+        user = getattr(request, "user", None)
+        return bool(user and user.is_authenticated and user.is_superuser)
+
+
 class TemAcessoFuncionalidade(BasePermission):
     message = "Seu perfil não tem acesso a esta funcionalidade."
 
