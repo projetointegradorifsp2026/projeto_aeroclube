@@ -42,9 +42,10 @@ class UsuarioSerializer(serializers.ModelSerializer):
             "perfis",
             "funcionalidades_permitidas",
             "is_active",
+            "is_superuser",
             "date_joined",
         ]
-        read_only_fields = ["id", "date_joined"]
+        read_only_fields = ["id", "date_joined", "is_superuser"]
 
     def get_funcionalidades_permitidas(self, obj):
         # Import lazy para evitar ciclo de import com o app de permissões.

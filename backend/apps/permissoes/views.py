@@ -1,11 +1,12 @@
 from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 
 from apps.users.models import Usuario
 from .models import Funcionalidade, PermissaoUsuario, TELAS_CONTROLAVEIS
+from .permissions import IsSuperUser
 from .serializers import FuncionalidadeSerializer, PermissaoUsuarioItemSerializer
 
 
@@ -22,7 +23,8 @@ class UsuarioPermissoesView(APIView):
     """Telas administrativas liberadas para um admin secundário (checkbox).
 
     Só faz sentido para usuários com perfil ativo `admin` que não são
-    superusuários. Somente administradores acessam.
+    superusuários. Somente superusuários acessam (a gestão de telas
+    liberadas é exclusiva do superusuário).
 
     GET   /api/v1/permissoes-usuario/<id>/  → { usuario, perfil_ativo, itens }
         itens: [{ funcionalidade, nome, permitido }] para as TELAS_CONTROLAVEIS
@@ -31,7 +33,7 @@ class UsuarioPermissoesView(APIView):
         permitido False → remove a liberação (delete)
     """
 
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsSuperUser]
 
     def _itens(self, usuario):
         funcionalidades = {

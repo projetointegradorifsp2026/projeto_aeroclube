@@ -808,8 +808,9 @@ export default function UsuarioPerfilPage() {
         </CardContent>
       </Card>
 
-      {/* Telas liberadas — só quando o usuário visualizado é administrador */}
-      {podeGerirUsuarios && user && user.perfis.includes('admin') && (
+      {/* Telas liberadas — exclusivo do superusuário, e só quando o usuário
+          visualizado é administrador. Admin secundário não vê esta aba. */}
+      {currentUser?.is_superuser && user && user.perfis.includes('admin') && (
         <PermissoesUsuarioCard usuarioId={parseInt(user.id, 10)} />
       )}
 

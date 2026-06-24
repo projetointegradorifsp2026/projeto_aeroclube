@@ -9,6 +9,7 @@ export interface AuthUser {
   perfil_ativo: string
   perfis: { id: number; perfil: string }[]
   funcionalidades_permitidas?: string[]
+  is_superuser?: boolean
 }
 
 export async function login(email: string, password: string): Promise<AuthUser> {
